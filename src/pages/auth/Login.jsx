@@ -1,0 +1,130 @@
+import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { LogIn, Loader2, Mail, Lock } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+import * as authService from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
+
+const Login = () => {
+  const { login } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!username || !password) {
+        toast.error('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await authService.login({ username, password });
+        const { data } = response;
+
+        if (data && data.accessToken) {
+          if (data.role !== 'recruiter') {
+            toast.error(
+              'Quyền truy cập bị từ chối. Trang này chỉ dành cho nhà tuyển dụng.',
+            );
+            return;
+          }
+          // The login function from context will handle token and state
+          login(data, data.accessToken);
+          toast.success('Đăng nhập thành công!');
+          // Navigation will be handled automatically by the router reacting to auth state change
+        } else {
+          throw new Error('Phản hồi từ server không hợp lệ.');
+        }
+      } catch (err) {
+        // The API client interceptor already shows a toast on error.
+        // We can log it here for debugging if needed.
+        console.error('Login page error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [username, password, login],
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-2 text-center">
+        <h2 className="text-2xl font-bold">Đăng nhập</h2>
+        <p className="text-balance text-muted-foreground">
+          Nhập thông tin của bạn để truy cập tài khoản
+        </p>
+      </div>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="grid gap-2">
+          <Label htmlFor="username">Tên đăng nhập</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="username"
+              type="text"
+              placeholder="tendangnhap"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={isLoading}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <div className="flex items-center">
+            <Label htmlFor="password">Mật khẩu</Label>
+            <Link
+              to="/forgot-password"
+              className="ml-auto inline-block text-sm underline"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <LogIn className="mr-2 h-4 w-4" />
+          )}
+          Đăng nhập
+        </Button>
+        <Button variant="outline" className="w-full" type="button">
+          <FcGoogle className="mr-2 h-4 w-4" />
+          Đăng nhập với Google
+        </Button>
+      </form>
+      <div className="mt-4 text-center text-sm">
+        Chưa có tài khoản?{' '}
+        <Link to="/auth/register" className="underline font-semibold text-emerald-700">
+          Đăng ký ngay
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
