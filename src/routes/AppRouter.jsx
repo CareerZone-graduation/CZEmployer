@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 // Layouts
 import AuthLayout from '@/layouts/AuthLayout';
@@ -19,14 +19,15 @@ import Notifications from '@/pages/Notifications';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 
-// A simple placeholder for pages that are not yet created
+// Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
   <div className="text-center">
     <h1 className="text-2xl font-bold">{title}</h1>
-    <p className="text-muted-foreground">This page is under construction.</p>
+    <p className="text-muted-foreground">Trang này đang được xây dựng.</p>
   </div>
 );
 
+// Component để bảo vệ các route yêu cầu đăng nhập
 const ProtectedRoute = ({ isAuthenticated }) => {
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
@@ -37,6 +38,7 @@ const ProtectedRoute = ({ isAuthenticated }) => {
 const AppRouter = () => {
   const { isAuthenticated, isInitializing } = useAuth();
 
+  // Hiển thị màn hình tải trong khi kiểm tra trạng thái đăng nhập
   if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -47,10 +49,14 @@ const AppRouter = () => {
 
   return (
     <Routes>
-      {/* Public Home Route */}
-      <Route path="/" element={<Home />} />
+      {/* --- THAY ĐỔI CHÍNH Ở ĐÂY --- */}
+      {/* Route gốc '/': Nếu đã đăng nhập thì vào dashboard, nếu chưa thì hiển thị trang Home */}
+      <Route
+        path="/"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />}
+      />
 
-      {/* Authentication Routes */}
+      {/* Route xác thực: /auth/login, /auth/register */}
       <Route
         path="/auth"
         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthLayout />}
@@ -60,34 +66,34 @@ const AppRouter = () => {
         <Route index element={<Navigate to="login" replace />} />
       </Route>
 
-      {/* Protected Dashboard Layout Route */}
+      {/* Các route được bảo vệ bên trong DashboardLayout */}
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route element={<DashboardLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="company-profile" element={<CompanyProfile />} />
-          <Route path="billing" element={<PlaceholderPage title="Billing & Payments" />} />
+          <Route path="billing" element={<PlaceholderPage title="Thanh toán & Hóa đơn" />} />
           
-          {/* Jobs Module with Tabs */}
+          {/* Module Jobs với các tab */}
           <Route path="jobs" element={<Jobs />}>
             <Route index element={<JobList />} />
             <Route path="create" element={<CreateJob />} />
             <Route path="archived" element={<ArchivedJobs />} />
           </Route>
 
-          <Route path="candidates" element={<PlaceholderPage title="Candidate Management" />} />
-          <Route path="interviews" element={<PlaceholderPage title="Interview Schedule" />} />
-          <Route path="reviews" element={<PlaceholderPage title="Candidate Reviews" />} />
+          <Route path="candidates" element={<PlaceholderPage title="Quản lý Ứng viên" />} />
+          <Route path="interviews" element={<PlaceholderPage title="Lịch phỏng vấn" />} />
+          <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
       </Route>
 
-      {/* Standalone Messaging Route (also protected) */}
+      {/* Route nhắn tin độc lập (cũng được bảo vệ) */}
       <Route
         path="/messaging"
         element={isAuthenticated ? <Messaging /> : <Navigate to="/auth/login" replace />}
       />
 
-      {/* 404 Not Found Route */}
+      {/* Route 404 Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

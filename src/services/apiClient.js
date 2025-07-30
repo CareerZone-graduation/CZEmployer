@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { getAccessToken, saveAccessToken } from '../utils/token';
-import { forcedLogout } from '../utils/auth';
+import { getAccessToken, saveAccessToken } from '@/utils/token';
+import { forcedLogout } from '@/utils/auth';
 import { refreshToken } from './authService';
-import { toast } from 'react-toastify'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL, // Lấy URL từ biến môi trường
@@ -84,9 +83,6 @@ apiClient.interceptors.response.use(
         isRefreshing = false;
       }
     }
-    //luôn show toast nếu có lỗi
-    const errorMessage = response?.data?.message || error?.message + ' : '+ error.response.statusText|| 'Đã có lỗi xảy ra';
-    toast.error(errorMessage);
 
     return Promise.reject(error);
   }

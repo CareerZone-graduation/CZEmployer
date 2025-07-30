@@ -1,9 +1,8 @@
-import { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getMe } from '@/services/authService';
 import * as tokenUtil from '@/utils/token';
 import { forcedLogout } from '@/utils/auth';
-
-const AuthContext = createContext(null);
+import { AuthContext } from '@/hooks/useAuth';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -66,10 +65,4 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === null) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// useAuth hook has been moved to a separate file for Fast Refresh compatibility.

@@ -50,12 +50,10 @@ export const updateMyCompany = (formData) =>
 /**
  * Tạo mới một công ty với FormData.
  * @param {FormData} formData - FormData chứa companyData (JSON string) và businessRegistrationFile (file).
- * @param {object} axiosConfig - Cấu hình Axios tùy chọn.
  * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
-export const createCompany = (formData, axiosConfig) =>
+export const createCompany = (formData) =>
   apiClient.post('/companies', formData, {
-    ...axiosConfig,
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -66,10 +64,9 @@ export const createCompany = (formData, axiosConfig) =>
  * @param {FormData} formData
  * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
-export const updateMyCompanyLogo = (formData,axiosConfig) =>
+export const updateMyCompanyLogo = (formData) =>
   apiClient.post('/companies/my-company/logo', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    ...axiosConfig,
   });
