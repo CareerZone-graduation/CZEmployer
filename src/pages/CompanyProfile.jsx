@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Building, Mail, Phone, Link as LinkIcon, MapPin, User, FileText, Tag, Users, Globe } from 'lucide-react';
+import { Building, Mail, Phone, Link as LinkIcon, MapPin, User, FileText, Tag, Users, Globe, Edit } from 'lucide-react';
 
 import * as companyService from '@/services/companyService';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,12 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import ErrorState from '@/components/common/ErrorState';
+import CompanyEditForm from '@/components/company/CompanyEditForm';
 
 const CompanyProfile = () => {
   const [company, setCompany] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const fetchCompanyProfile = useCallback(async () => {
     setIsLoading(true);
@@ -35,6 +38,19 @@ const CompanyProfile = () => {
   useEffect(() => {
     fetchCompanyProfile();
   }, [fetchCompanyProfile]);
+
+  const handleEditSuccess = useCallback((updatedCompany) => {
+    setCompany(updatedCompany);
+    setIsEditDialogOpen(false);
+  }, []);
+
+  const handleEditClick = useCallback(() => {
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+  }, []);
 
   if (isLoading) {
     return <CompanyProfileSkeleton />;
@@ -67,7 +83,10 @@ const CompanyProfile = () => {
               {company.website}
             </a>
           </div>
-          <Button>Chỉnh sửa</Button>
+          <Button onClick={handleEditClick}>
+            <Edit className="h-4 w-4 mr-2" />
+            Chỉnh sửa
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="prose max-w-none text-gray-700">
@@ -88,6 +107,17 @@ const CompanyProfile = () => {
           <InfoItem icon={LinkIcon} label="Giấy phép kinh doanh" value={<a href={company.businessRegistrationUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Xem tài liệu</a>} />
         </InfoCard>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <CompanyEditForm
+            company={company}
+            onClose={handleCloseEditDialog}
+            onSuccess={handleEditSuccess}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
