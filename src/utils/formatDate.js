@@ -1,19 +1,37 @@
 export const formatDate = (date) => {
-  return new Date(date).toLocaleDateString("en-US", {
+  if (!date) return '-';
+  
+  const parsedDate = new Date(date);
+  
+  // Check for invalid date
+  if (isNaN(parsedDate.getTime())) {
+    return '-';
+  }
+  
+  return parsedDate.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  })
+  });
 }
 
 export const formatDateTime = (date) => {
-  return new Date(date).toLocaleString("en-US", {
+  if (!date) return '-';
+  
+  const parsedDate = new Date(date);
+  
+  // Check for invalid date
+  if (isNaN(parsedDate.getTime())) {
+    return '-';
+  }
+  
+  return parsedDate.toLocaleString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  })
+  });
 }
 
 export const getRelativeTime = (date) => {

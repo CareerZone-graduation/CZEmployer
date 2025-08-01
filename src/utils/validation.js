@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LOCATIONS } from '../constants/index.js';
+import { provinceNames, locationMap } from '@/constants/locations.enum';
 
 const jobTypeEnum = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY', 'VOLUNTEER', 'FREELANCE'];
 const workTypeEnum = ['ON_SITE', 'REMOTE', 'HYBRID'];
@@ -14,9 +14,9 @@ const jobCategoryEnum = [
 const jobStatusEnum = ['ACTIVE', 'INACTIVE', 'EXPIRED'];
 
 const locationSchema = z.object({
-  city: z.enum(LOCATIONS.CITIES, { required_error: 'Tên thành phố là bắt buộc' }),
-  district: z.enum(LOCATIONS.DISTRICTS, { required_error: 'Tên quận/huyện là bắt buộc' }),
-  address: z.string().trim().min(1, 'Địa chỉ chi tiết là bắt buộc').max(200),
+  province: z.enum(provinceNames, { required_error: 'Tỉnh/Thành phố là bắt buộc' }),
+  // Tạm thời cho phép ward là string, sẽ validate trong .refine()
+  ward: z.string({ required_error: 'Phường/Xã là bắt buộc' }),
 });
 
 export const createJobSchema = z.object({
@@ -25,16 +25,53 @@ export const createJobSchema = z.object({
   requirements: z.string().trim().min(10, 'Yêu cầu phải có ít nhất 10 ký tự').max(2000),
   benefits: z.string().trim().min(10, 'Quyền lợi phải có ít nhất 10 ký tự').max(2000),
   location: locationSchema,
+  address: z.string().trim().min(1, 'Địa chỉ chi tiết là bắt buộc').max(200),
   type: z.enum(jobTypeEnum),
   workType: z.enum(workTypeEnum),
-  minSalary: z.coerce.number().min(1000000, 'Mức lương tối thiểu phải là 1,000,000 VND').optional(),
-  maxSalary: z.coerce.number().min(1000000, 'Mức lương tối đa phải là 1,000,000 VND').optional(),
+  minSalary: z.union([
+    z.coerce.number().min(0, 'Mức lương không thể là số âm'),
+    z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, 'Mức lương không thể là số âm')
+  ]).optional(),
+  maxSalary: z.union([
+    z.coerce.number().min(0, 'Mức lương không thể là số âm'),
+    z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, 'Mức lương không thể là số âm')
+  ]).optional(),
   deadline: z.coerce.date().refine((date) => date > new Date(), 'Hạn chót phải là một ngày trong tương lai'),
   experience: z.enum(experienceEnum),
   category: z.enum(jobCategoryEnum),
-}).refine(data => !data.minSalary || !data.maxSalary || data.maxSalary >= data.minSalary, {
+  skills: z.array(z.string().trim().max(50, 'Kỹ năng không được vượt quá 50 ký tự')).optional(),
+  approved: z.boolean().optional(),
+  id: z.string().optional(), // Thêm id field (duplicate của _id)
+})
+.refine(data => {
+  // Extract numeric values for comparison
+  const getNumericValue = (salary) => {
+    if (!salary) return null;
+    if (typeof salary === 'number') return salary;
+    if (typeof salary === 'string') return Number(salary);
+    return null;
+  };
+  
+  const minVal = getNumericValue(data.minSalary);
+  const maxVal = getNumericValue(data.maxSalary);
+  
+  if (minVal !== null && maxVal !== null) {
+    return maxVal >= minVal;
+  }
+  return true;
+}, {
   message: 'Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu',
   path: ['maxSalary'],
+})
+.refine(data => {
+    const provinceData = locationMap.get(data.location.province);
+    if (!provinceData) {
+      return false; // Tỉnh không hợp lệ (dù enum đã check, đây là lớp bảo vệ thứ 2)
+    }
+    return provinceData.wards.includes(data.location.ward);
+}, {
+    message: 'Phường/Xã không thuộc Tỉnh/Thành phố đã chọn.',
+    path: ['location', 'ward'],
 });
 
 export const updateJobSchema = z.object({
@@ -43,17 +80,63 @@ export const updateJobSchema = z.object({
   requirements: z.string().trim().min(10, 'Yêu cầu phải có ít nhất 10 ký tự').max(2000).optional(),
   benefits: z.string().trim().min(10, 'Quyền lợi phải có ít nhất 10 ký tự').max(2000).optional(),
   location: locationSchema.optional(),
+  address: z.string().trim().min(1, 'Địa chỉ chi tiết là bắt buộc').max(200).optional(),
   type: z.enum(jobTypeEnum).optional(),
   workType: z.enum(workTypeEnum).optional(),
-  minSalary: z.coerce.number().min(1000000, 'Mức lương tối thiểu phải là 1,000,000 VND').optional(),
-  maxSalary: z.coerce.number().min(1000000, 'Mức lương tối đa phải là 1,000,000 VND').optional(),
+  minSalary: z.union([
+    z.coerce.number().min(0, 'Mức lương không thể là số âm'),
+    z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, 'Mức lương không thể là số âm')
+  ]).optional(),
+  maxSalary: z.union([
+    z.coerce.number().min(0, 'Mức lương không thể là số âm'),
+    z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, 'Mức lương không thể là số âm')
+  ]).optional(),
   deadline: z.coerce.date().refine((date) => date > new Date(), 'Hạn chót phải là một ngày trong tương lai').optional(),
   experience: z.enum(experienceEnum).optional(),
   category: z.enum(jobCategoryEnum).optional(),
   status: z.enum(jobStatusEnum).optional(),
-}).refine(data => !data.minSalary || !data.maxSalary || data.maxSalary >= data.minSalary, {
+  skills: z.array(z.string().trim().max(50, 'Kỹ năng không được vượt quá 50 ký tự')).optional(),
+  approved: z.boolean().optional(),
+  recruiterProfileId: z.string().optional(),
+  id: z.string().optional(), // Thêm id field (duplicate của _id)
+})
+.refine(data => {
+  // Extract numeric values for comparison
+  const getNumericValue = (salary) => {
+    if (!salary) return null;
+    if (typeof salary === 'number') return salary;
+    if (typeof salary === 'string') return Number(salary);
+    return null;
+  };
+  
+  const minVal = getNumericValue(data.minSalary);
+  const maxVal = getNumericValue(data.maxSalary);
+  
+  if (minVal !== null && maxVal !== null) {
+    return maxVal >= minVal;
+  }
+  return true;
+}, {
     message: 'Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu',
     path: ['maxSalary'],
+})
+.refine(data => {
+    // Chỉ validate location nếu nó được cung cấp
+    if (!data.location) {
+      return true;
+    }
+    // Cả province và ward đều phải được cung cấp nếu location tồn tại
+    if (!data.location.province || !data.location.ward) {
+      return false; // Hoặc có thể đặt message cụ thể hơn
+    }
+    const provinceData = locationMap.get(data.location.province);
+    if (!provinceData) {
+      return false; // Tỉnh không hợp lệ
+    }
+    return provinceData.wards.includes(data.location.ward);
+}, {
+    message: 'Phường/Xã không thuộc Tỉnh/Thành phố đã chọn.',
+    path: ['location', 'ward'],
 });
 
 export const jobQuerySchema = z.object({
@@ -83,20 +166,21 @@ export const applyToJobSchema = z.object({
   path: ['cvId'], // Báo lỗi ở trường đầu tiên để dễ xử lý
 });
 
+// Company update schema
 export const updateCompanySchema = z.object({
-  name: z.string().trim().min(2, 'Tên công ty phải có ít nhất 2 ký tự').max(200, 'Tên công ty không được vượt quá 200 ký tự'),
-  about: z.string().trim().min(20, 'Giới thiệu công ty phải có ít nhất 20 ký tự').max(2000, 'Giới thiệu không được vượt quá 2000 ký tự'),
+  name: z.string().min(1, "Tên công ty là bắt buộc"),
+  about: z.string().min(1, "Giới thiệu công ty là bắt buộc"),
   industry: z.string().optional(),
-  size: z.string().max(50, 'Quy mô công ty không được vượt quá 50 ký tự').optional(),
-  website: z.string().url('URL trang web không hợp lệ').or(z.literal('')).optional(),
-  taxCode: z.string().max(50, 'Mã số thuế không được vượt quá 50 ký tự').optional(),
-  address: z.object({
-    street: z.string().max(200, 'Địa chỉ không được vượt quá 200 ký tự').optional(),
-    city: z.string().max(100, 'Thành phố không được vượt quá 100 ký tự').optional(),
-    country: z.string().max(100, 'Quốc gia không được vượt quá 100 ký tự').optional(),
-  }).optional(),
+  size: z.string().optional(),
+  website: z.string().url("Website không hợp lệ").optional().or(z.literal("")),
+  taxCode: z.string().optional(),
   contactInfo: z.object({
-    email: z.string().email('Email không hợp lệ').or(z.literal('')).optional(),
-    phone: z.string().regex(/^[+]?[\d]{1,15}$/, 'Số điện thoại không hợp lệ').or(z.literal('')).optional(),
-  }).optional(),
+    email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
+    phone: z.string().optional()
+  }),
+  address: z.object({
+    street: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional()
+  })
 });

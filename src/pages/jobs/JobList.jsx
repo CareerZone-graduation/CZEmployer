@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import * as jobService from '@/services/jobService';
 import * as utils from '@/utils';
@@ -6,9 +7,20 @@ import * as utils from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2 } from 'lucide-react';
 
 import JobForm from '@/components/jobs/JobForm';
 import JobListSkeleton from '@/components/common/JobListSkeleton';
@@ -18,6 +30,8 @@ import EmptyState from '@/components/common/EmptyState';
 const JobList = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
@@ -39,14 +53,38 @@ const JobList = () => {
         status: filters.status === 'all' ? '' : filters.status,
       };
       const response = await jobService.getMyJobs(apiFilters);
-      if (response.data) {
-        setJobs(response.data);
-        setMeta(response.meta || {});
+      
+      // Handle both response formats: {data: [...], meta: {...}} or just the array
+      if (response && response.data) {
+        // Standard API response with data and meta
+        setJobs(Array.isArray(response.data) ? response.data : []);
+        setMeta(response.meta || {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: Array.isArray(response.data) ? response.data.length : 0,
+          limit: filters.limit
+        });
+      } else if (Array.isArray(response)) {
+        // Direct array response (legacy format)
+        setJobs(response);
+        setMeta({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: response.length,
+          limit: filters.limit
+        });
       } else {
+        // Empty or invalid response
         setJobs([]);
-        setMeta({});
+        setMeta({
+          currentPage: 1,
+          totalPages: 0,
+          totalItems: 0,
+          limit: filters.limit
+        });
       }
     } catch (err) {
+      console.error("Error fetching jobs:", err);
       const errorMessage = err.response?.data?.message || 'Không thể tải danh sách công việc.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -85,6 +123,26 @@ const JobList = () => {
     setIsDialogOpen(true);
   }, []);
 
+  const handleDeleteClick = (jobId) => {
+    setSelectedJobId(jobId);
+    setIsAlertOpen(true);
+  };
+
+  const handleDeleteJob = async () => {
+    if (!selectedJobId) return;
+    try {
+      await jobService.deleteJob(selectedJobId);
+      toast.success('Xóa tin tuyển dụng thành công!');
+      fetchJobs(); // Refresh the list
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể xóa tin tuyển dụng.';
+      toast.error(errorMessage);
+    } finally {
+      setIsAlertOpen(false);
+      setSelectedJobId(null);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', variant: 'default', className: 'bg-green-100 text-green-800' },
@@ -110,24 +168,6 @@ const JobList = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div />
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => setEditingJob(null)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Tạo Tin Mới
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingJob ? 'Cập nhật Tin Tuyển Dụng' : 'Tạo Tin Tuyển Dụng Mới'}</DialogTitle>
-            </DialogHeader>
-            <JobForm onClose={handleCloseDialog} job={editingJob} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
@@ -168,11 +208,25 @@ const JobList = () => {
 
       {/* Job List */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-gray-800">
             <Briefcase className="h-5 w-5" />
             Danh sách Tin Tuyển Dụng ({meta.totalItems || 0})
           </CardTitle>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => setEditingJob(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Tạo Tin Mới
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingJob ? 'Cập nhật Tin Tuyển Dụng' : 'Tạo Tin Tuyển Dụng Mới'}</DialogTitle>
+              </DialogHeader>
+              <JobForm onClose={handleCloseDialog} job={editingJob} />
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -195,7 +249,7 @@ const JobList = () => {
                               <div className="flex items-center gap-1.5">
                                 <MapPin className="h-4 w-4" />
                                 <span>
-                                  {job.location.city}, {job.location.district}
+                                  {job.location?.province || job.location?.city}, {job.location?.ward || job.location?.district}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -235,17 +289,21 @@ const JobList = () => {
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Clock className="h-4 w-4" />
-                              <span>Tạo: {utils.formatDate(job.createdAt || job.createAt)}</span>
+                              <span>Tạo: {utils.formatDate(job.createdAt)}</span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                              Xem chi tiết
+                            <Button asChild variant="outline" size="sm">
+                              <Link to={`/jobs/recruiter/${job._id}`}>Xem chi tiết</Link>
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleEditJob(job)}>
                               <Edit className="h-4 w-4 mr-1" />
                               Sửa
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(job._id)}>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Xóa
                             </Button>
                           </div>
                         </div>
@@ -305,6 +363,23 @@ const JobList = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Tin tuyển dụng sẽ bị xóa vĩnh viễn khỏi hệ thống.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedJobId(null)}>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteJob} className="bg-red-600 hover:bg-red-700">
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

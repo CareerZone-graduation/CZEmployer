@@ -2,3 +2,5 @@ node_modules
 .vscode/
 digest.txt
 .github
+src/data/tree.json
+src\data\tree.json

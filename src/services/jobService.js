@@ -29,3 +29,8 @@ export const updateJob = async (jobId, jobData) => {
 export const deleteJob = async (jobId) => {
   return await apiClient.delete(`/jobs/${jobId}`, { showToast: true })
 }
+
+// Lấy chi tiết tin tuyển dụng cho nhà tuyển dụng
+export const getRecruiterJobById = async (jobId) => {
+  return await apiClient.get(`/jobs/recruiter/${jobId}`);
+};

@@ -4,11 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
-
-import { cn } from '@/lib/utils';
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from '@/components/ui/button';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/style.css';
 import {
   Form,
   FormControl,
@@ -28,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 import * as jobService from '@/services/jobService';
 import {
@@ -35,12 +33,14 @@ import {
   workTypeEnum,
   experienceEnum,
   jobCategoryEnum,
-  LOCATIONS,
 } from '@/constants';
 import { createJobSchema } from '@/utils/validation';
+import { provinceNames, locationMap } from '@/constants/locations.enum';
 
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm({
     resolver: zodResolver(createJobSchema),
     defaultValues: isEditMode
@@ -48,10 +48,10 @@ const JobForm = ({ onSuccess, job }) => {
           ...job,
           deadline: job.deadline ? new Date(job.deadline) : undefined,
           location: {
-            city: job.location?.city || '',
-            district: job.location?.district || '',
-            address: job.location?.address || '',
+            province: job.location?.province || job.location?.city || '', // Compatibility with old data
+            ward: job.location?.ward || job.location?.district || '', // Compatibility with old data
           },
+          address: job.address || job.location?.address || '', // Move address to separate field
         }
       : {
           title: '',
@@ -59,10 +59,10 @@ const JobForm = ({ onSuccess, job }) => {
           requirements: '',
           benefits: '',
           location: {
-            city: '',
-            district: '',
-            address: '',
+            province: '',
+            ward: '',
           },
+          address: '',
           type: 'FULL_TIME',
           workType: 'ON_SITE',
           minSalary: undefined,
@@ -73,7 +73,24 @@ const JobForm = ({ onSuccess, job }) => {
         },
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Watch province changes to reset ward
+  const watchedProvince = form.watch('location.province');
+  const [availableWards, setAvailableWards] = useState([]);
+  
+  React.useEffect(() => {
+    if (watchedProvince) {
+      const provinceData = locationMap.get(watchedProvince);
+      const wards = provinceData ? provinceData.wards : [];
+      setAvailableWards(wards);
+      // Reset ward when province changes
+      const currentWard = form.getValues('location.ward');
+      if (currentWard && !wards.includes(currentWard)) {
+        form.setValue('location.ward', '');
+      }
+    } else {
+      setAvailableWards([]);
+    }
+  }, [watchedProvince, form]);
 
   const onSubmit = useCallback(
     async (values) => {
@@ -97,11 +114,10 @@ const JobForm = ({ onSuccess, job }) => {
     [isEditMode, job, onSuccess],
   );
 
-  const districtsForSelectedCity = LOCATIONS.DISTRICTS; // Assuming all districts are available for now, or filter based on city if needed.
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* ... các FormField khác giữ nguyên ... */}
         <FormField
           control={form.control}
           name="title"
@@ -174,23 +190,23 @@ const JobForm = ({ onSuccess, job }) => {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="location.city"
+            name="location.province"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Thành phố</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Tỉnh/Thành phố *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn thành phố" />
+                      <SelectValue placeholder="Chọn tỉnh/thành phố" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {LOCATIONS.CITIES.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
+                    {provinceNames.map((province) => (
+                      <SelectItem key={province} value={province}>
+                        {province}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -201,42 +217,53 @@ const JobForm = ({ onSuccess, job }) => {
           />
           <FormField
             control={form.control}
-            name="location.district"
+            name="location.ward"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quận/Huyện</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Phường/Xã *</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                  disabled={!watchedProvince}
+                >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn quận/huyện" />
+                      <SelectValue 
+                        placeholder={
+                          !watchedProvince 
+                            ? "Chọn tỉnh/thành phố trước" 
+                            : "Chọn phường/xã"
+                        } 
+                      />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {districtsForSelectedCity.map((district) => (
-                      <SelectItem key={district} value={district}>
-                        {district}
+                    {availableWards.map((ward) => (
+                      <SelectItem key={ward} value={ward}>
+                        {ward}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="location.address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Địa chỉ chi tiết</FormLabel>
-                <FormControl>
-                  <Input placeholder="123 Đường ABC, Phường XYZ" {...field} />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Địa chỉ chi tiết *</FormLabel>
+              <FormControl>
+                <Input placeholder="123 Đường ABC, Tòa nhà XYZ, Khu vực DEF" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -297,7 +324,12 @@ const JobForm = ({ onSuccess, job }) => {
               <FormItem>
                 <FormLabel>Lương tối thiểu (VND)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="10,000,000" {...field} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                  <Input 
+                    type="number" 
+                    placeholder="10,000,000" 
+                    {...field} 
+                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -310,7 +342,12 @@ const JobForm = ({ onSuccess, job }) => {
               <FormItem>
                 <FormLabel>Lương tối đa (VND)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="50,000,000" {...field} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                  <Input 
+                    type="number" 
+                    placeholder="50,000,000" 
+                    {...field} 
+                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -318,6 +355,7 @@ const JobForm = ({ onSuccess, job }) => {
           />
         </div>
 
+        {/* --- KHỐI ĐÚNG ĐƯỢC GIỮ LẠI --- */}
         <FormField
           control={form.control}
           name="deadline"
@@ -328,42 +366,46 @@ const JobForm = ({ onSuccess, job }) => {
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
-                      variant={'outline'}
+                      variant="outline"
                       className={cn(
-                        'w-[240px] pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground',
+                        "w-[240px] justify-start text-left font-normal",
+                        !field.value && "text-muted-foreground"
                       )}
                     >
-                      {field.value ? format(field.value, 'PPP') : <span>Chọn ngày</span>}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {field.value ? format(field.value, "dd/MM/yyyy") : "Chọn ngày"}
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <DayPicker
-                    showOutsideDays
-                    fixedWeeks
+                  <Calendar
+                    captionLayout="dropdown"
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Đặt giờ mặc định là 23:59 cho deadline
+                        const newDate = new Date(date);
+                        newDate.setHours(23, 59, 59, 999);
+                        field.onChange(newDate);
+                      } else {
+                        field.onChange(undefined);
+                      }
+                    }}
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
-                    animate
-                    footer={
-                      field.value
-                        ? `Ngày đã chọn: ${format(field.value, 'PPP')}`
-                        : 'Vui lòng chọn một ngày.'
-                    }
                   />
                 </PopoverContent>
               </Popover>
               <FormDescription>
-                Ngày cuối cùng ứng viên có thể nộp hồ sơ.
+                Ngày cuối cùng ứng viên có thể nộp hồ sơ (deadline sẽ là 23:59 của ngày được chọn).
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        {/* --- KHỐI BỊ TRÙNG LẶP ĐÃ ĐƯỢC XÓA --- */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
