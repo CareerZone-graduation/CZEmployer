@@ -171,9 +171,14 @@ const RecruiterJobDetail = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <BarChart2 className="h-5 w-5" />
-                Thống kê
+              <CardTitle className="flex items-center justify-between text-lg">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5" />
+                  Thống kê
+                </div>
+                <Button asChild variant="link" className="p-0 h-auto">
+                  <Link to={`/jobs/${job._id}/applications`}>Xem tất cả ứng viên</Link>
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">

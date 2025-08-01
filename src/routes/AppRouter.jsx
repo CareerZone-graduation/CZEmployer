@@ -16,7 +16,9 @@ import JobList from '@/pages/jobs/JobList';
 import CreateJob from '@/pages/jobs/CreateJob';
 import ArchivedJobs from '@/pages/jobs/ArchivedJobs';
 import RecruiterJobDetail from '@/pages/jobs/RecruiterJobDetail';
-import Notifications from '@/pages/Notifications';
+import JobApplications from '@/pages/jobs/JobApplications';
+import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
+import Notifications from '@/pages/notifications';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 
@@ -81,6 +83,8 @@ const AppRouter = () => {
             <Route path="archived" element={<ArchivedJobs />} />
           </Route>
           <Route path="jobs/recruiter/:jobId" element={<RecruiterJobDetail />} />
+          <Route path="jobs/:jobId/applications" element={<JobApplications />} />
+          <Route path="jobs/:jobId/applications/:applicationId" element={<ApplicationDetail />} />
 
           <Route path="candidates" element={<PlaceholderPage title="Quản lý Ứng viên" />} />
           <Route path="interviews" element={<PlaceholderPage title="Lịch phỏng vấn" />} />
