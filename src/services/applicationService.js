@@ -48,3 +48,13 @@ export const updateCandidateRating = async (applicationId, rating) => {
 export const updateApplicationNotes = async (applicationId, notes) => {
   return await apiClient.patch(`/applications/${applicationId}/notes`, { notes });
 };
+
+/**
+ * Lên lịch phỏng vấn cho một đơn ứng tuyển.
+ * @param {string} applicationId - ID của đơn ứng tuyển.
+ * @param {string} scheduledTime - Thời gian phỏng vấn (ISO string).
+ * @returns {Promise<object>}
+ */
+export const scheduleInterview = async (applicationId, scheduledTime) => {
+  return await apiClient.post(`/applications/${applicationId}/interviews`, { scheduledTime });
+};

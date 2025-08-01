@@ -87,6 +87,7 @@ const JobApplications = () => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
       REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
       INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
@@ -137,6 +138,7 @@ const JobApplications = () => {
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
                 <SelectItem value="PENDING">Chờ duyệt</SelectItem>
                 <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
+                <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
                 <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
                 <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
                 <SelectItem value="REJECTED">Đã từ chối</SelectItem>

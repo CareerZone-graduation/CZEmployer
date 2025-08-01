@@ -14,7 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Phone, FileText, Star, Calendar, Edit2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ArrowLeft, Mail, Phone, FileText, Star, Calendar as CalendarIconAlt, Edit2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { format } from 'date-fns';
 
 const ApplicationDetail = () => {
   const { applicationId, jobId } = useParams();
@@ -26,9 +30,13 @@ const ApplicationDetail = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [newRating, setNewRating] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [interviewDate, setInterviewDate] = useState(null);
+  const [interviewTime, setInterviewTime] = useState('');
+
 
   const fetchApplication = useCallback(async () => {
     setIsLoading(true);
@@ -94,6 +102,26 @@ const ApplicationDetail = () => {
     }
   };
 
+  const handleScheduleInterview = async () => {
+    if (!interviewDate || !interviewTime) {
+      toast.error('Vui lòng chọn ngày và giờ phỏng vấn.');
+      return;
+    }
+    const [hours, minutes] = interviewTime.split(':');
+    const scheduledTime = new Date(interviewDate);
+    scheduledTime.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+
+    try {
+      await applicationService.scheduleInterview(applicationId, scheduledTime.toISOString());
+      toast.success('Lên lịch phỏng vấn thành công!');
+      fetchApplication(); // Refetch to update status
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi khi lên lịch phỏng vấn.');
+    } finally {
+      setIsInterviewModalOpen(false);
+    }
+  };
+
   useEffect(() => {
     fetchApplication();
   }, [fetchApplication]);
@@ -102,6 +130,7 @@ const ApplicationDetail = () => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
       REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
       INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
@@ -154,7 +183,7 @@ const ApplicationDetail = () => {
                 <span>{application.candidatePhone}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-gray-500" />
+                <CalendarIconAlt className="h-4 w-4 text-gray-500" />
                 <span>Nộp ngày: {utils.formatDate(application.appliedAt)}</span>
               </div>
             </CardContent>
@@ -183,6 +212,7 @@ const ApplicationDetail = () => {
                                 <SelectContent>
                                     <SelectItem value="PENDING">Chờ duyệt</SelectItem>
                                     <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
+                                    <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
                                     <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
                                     <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
                                     <SelectItem value="REJECTED">Đã từ chối</SelectItem>
@@ -230,7 +260,7 @@ const ApplicationDetail = () => {
                 </Dialog>
                 <Dialog open={isNotesModalOpen} onOpenChange={setIsNotesModalOpen}>
                     <DialogTrigger asChild>
-                        <Button className="w-full justify-start" variant="outline" onClick={() => setNewNotes(application.notes || '')}>
+                <Button className="w-full justify-start" variant="outline" onClick={() => setNewNotes(application.notes || '')}>
                             Thêm ghi chú
                         </Button>
                     </DialogTrigger>
@@ -251,6 +281,42 @@ const ApplicationDetail = () => {
                         <DialogFooter>
                             <DialogClose asChild><Button variant="ghost">Hủy</Button></DialogClose>
                             <Button onClick={handleNotesChange}>Lưu</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="w-full justify-start" variant="default" disabled={!!application.interviewInfo}>
+                            {application.interviewInfo ? 'Đã lên lịch' : 'Lên lịch phỏng vấn'}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Lên lịch phỏng vấn</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <div>
+                                <Label>Chọn ngày</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant={"outline"} className="w-full justify-start text-left font-normal">
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {interviewDate ? format(interviewDate, "PPP") : <span>Chọn ngày</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar mode="single" selected={interviewDate} onSelect={setInterviewDate} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div>
+                                <Label htmlFor="interview-time">Chọn giờ</Label>
+                                <Input id="interview-time" type="time" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="ghost">Hủy</Button></DialogClose>
+                            <Button onClick={handleScheduleInterview}>Xác nhận</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -297,6 +363,19 @@ const ApplicationDetail = () => {
               </div>
             </CardContent>
           </Card>
+
+          {application.interviewInfo && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Thông tin phỏng vấn</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p><strong>Tên phòng:</strong> {application.interviewInfo.roomName}</p>
+                <p><strong>Thời gian:</strong> {utils.formatDate(application.interviewInfo.scheduledTime, "dd/MM/yyyy 'lúc' HH:mm")}</p>
+                <p><strong>Trạng thái:</strong> <Badge variant="secondary">{application.interviewInfo.status}</Badge></p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
