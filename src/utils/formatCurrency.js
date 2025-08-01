@@ -2,10 +2,8 @@ export const formatCurrency = (value) => {
   if (typeof value !== 'number') {
     return value;
   }
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency: 'VND',
   }).format(value);
 };

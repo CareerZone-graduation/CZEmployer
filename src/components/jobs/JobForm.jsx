@@ -1,12 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/style.css';
 import {
   Form,
   FormControl,
@@ -29,13 +31,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 import * as jobService from '@/services/jobService';
 import {
-  createJobSchema,
   jobTypeEnum,
   workTypeEnum,
   experienceEnum,
   jobCategoryEnum,
   LOCATIONS,
-} from '@/utils';
+} from '@/constants';
+import { createJobSchema } from '@/utils/validation';
 
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
@@ -95,7 +97,6 @@ const JobForm = ({ onSuccess, job }) => {
     [isEditMode, job, onSuccess],
   );
 
-  const selectedCity = form.watch('location.city');
   const districtsForSelectedCity = LOCATIONS.DISTRICTS; // Assuming all districts are available for now, or filter based on city if needed.
 
   return (
@@ -294,9 +295,9 @@ const JobForm = ({ onSuccess, job }) => {
             name="minSalary"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lương tối thiểu (USD)</FormLabel>
+                <FormLabel>Lương tối thiểu (VND)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="1000" {...field} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                  <Input type="number" placeholder="10,000,000" {...field} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -307,9 +308,9 @@ const JobForm = ({ onSuccess, job }) => {
             name="maxSalary"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lương tối đa (USD)</FormLabel>
+                <FormLabel>Lương tối đa (VND)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="2000" {...field} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                  <Input type="number" placeholder="50,000,000" {...field} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -339,12 +340,20 @@ const JobForm = ({ onSuccess, job }) => {
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
+                  <DayPicker
+                    showOutsideDays
+                    fixedWeeks
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
+                    animate
+                    footer={
+                      field.value
+                        ? `Ngày đã chọn: ${format(field.value, 'PPP')}`
+                        : 'Vui lòng chọn một ngày.'
+                    }
                   />
                 </PopoverContent>
               </Popover>

@@ -27,8 +27,8 @@ export const createJobSchema = z.object({
   location: locationSchema,
   type: z.enum(jobTypeEnum),
   workType: z.enum(workTypeEnum),
-  minSalary: z.coerce.number().min(0, 'Mức lương không thể là số âm').optional(),
-  maxSalary: z.coerce.number().min(0, 'Mức lương không thể là số âm').optional(),
+  minSalary: z.coerce.number().min(1000000, 'Mức lương tối thiểu phải là 1,000,000 VND').optional(),
+  maxSalary: z.coerce.number().min(1000000, 'Mức lương tối đa phải là 1,000,000 VND').optional(),
   deadline: z.coerce.date().refine((date) => date > new Date(), 'Hạn chót phải là một ngày trong tương lai'),
   experience: z.enum(experienceEnum),
   category: z.enum(jobCategoryEnum),
@@ -45,8 +45,8 @@ export const updateJobSchema = z.object({
   location: locationSchema.optional(),
   type: z.enum(jobTypeEnum).optional(),
   workType: z.enum(workTypeEnum).optional(),
-  minSalary: z.coerce.number().min(0, 'Mức lương không thể là số âm').optional(),
-  maxSalary: z.coerce.number().min(0, 'Mức lương không thể là số âm').optional(),
+  minSalary: z.coerce.number().min(1000000, 'Mức lương tối thiểu phải là 1,000,000 VND').optional(),
+  maxSalary: z.coerce.number().min(1000000, 'Mức lương tối đa phải là 1,000,000 VND').optional(),
   deadline: z.coerce.date().refine((date) => date > new Date(), 'Hạn chót phải là một ngày trong tương lai').optional(),
   experience: z.enum(experienceEnum).optional(),
   category: z.enum(jobCategoryEnum).optional(),
@@ -74,11 +74,29 @@ export const applyToJobSchema = z.object({
   // Thông tin cá nhân từ form
   candidateName: z.string().trim().min(1, 'Họ tên là bắt buộc').max(100, 'Họ tên không được vượt quá 100 ký tự'),
   candidateEmail: z.string().trim().email('Email không hợp lệ'),
-  candidatePhone: z.string().trim().regex(/^[\+]?[\d]{1,15}$/, 'Số điện thoại không hợp lệ'),
+  candidatePhone: z.string().trim().regex(/^[+]?[\d]{1,15}$/, 'Số điện thoại không hợp lệ'),
 }).refine(data => {
   // Điều kiện XOR: một trong hai trường phải tồn tại, nhưng không phải cả hai.
   return (data.cvId && !data.cvTemplateId) || (!data.cvId && data.cvTemplateId);
 }, {
   message: 'Bạn phải cung cấp `cvId` (cho CV tải lên) hoặc `cvTemplateId` (cho CV tạo từ mẫu). Không thể cung cấp cả hai hoặc không cung cấp trường nào.',
   path: ['cvId'], // Báo lỗi ở trường đầu tiên để dễ xử lý
+});
+
+export const updateCompanySchema = z.object({
+  name: z.string().trim().min(2, 'Tên công ty phải có ít nhất 2 ký tự').max(200, 'Tên công ty không được vượt quá 200 ký tự'),
+  about: z.string().trim().min(20, 'Giới thiệu công ty phải có ít nhất 20 ký tự').max(2000, 'Giới thiệu không được vượt quá 2000 ký tự'),
+  industry: z.string().optional(),
+  size: z.string().max(50, 'Quy mô công ty không được vượt quá 50 ký tự').optional(),
+  website: z.string().url('URL trang web không hợp lệ').or(z.literal('')).optional(),
+  taxCode: z.string().max(50, 'Mã số thuế không được vượt quá 50 ký tự').optional(),
+  address: z.object({
+    street: z.string().max(200, 'Địa chỉ không được vượt quá 200 ký tự').optional(),
+    city: z.string().max(100, 'Thành phố không được vượt quá 100 ký tự').optional(),
+    country: z.string().max(100, 'Quốc gia không được vượt quá 100 ký tự').optional(),
+  }).optional(),
+  contactInfo: z.object({
+    email: z.string().email('Email không hợp lệ').or(z.literal('')).optional(),
+    phone: z.string().regex(/^[+]?[\d]{1,15}$/, 'Số điện thoại không hợp lệ').or(z.literal('')).optional(),
+  }).optional(),
 });

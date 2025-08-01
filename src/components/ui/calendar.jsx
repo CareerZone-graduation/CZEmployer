@@ -1,9 +1,18 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, useDayPicker, useNavigation } from "react-day-picker"
+import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 
 function Calendar({
   className,
@@ -20,6 +29,7 @@ function Calendar({
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium",
+        caption_dropdowns: "flex justify-center gap-1",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -32,7 +42,13 @@ function Calendar({
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        cell: cn(
+          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
+          "h-9 w-9",
+          props.mode === "range"
+            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
+            : "[&:has([aria-selected])]:rounded-md"
+        ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
           "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
@@ -50,8 +66,83 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
+        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        Caption: ({ ...props }) => {
+          const { fromDate, toDate } = useDayPicker();
+          const { goToMonth, nextMonth, previousMonth } = useNavigation();
+          const fromYear = fromDate?.getFullYear();
+          const toYear = toDate?.getFullYear();
+          if (props.captionLayout === 'dropdown-buttons') {
+            return (
+              <div className="flex justify-center items-center space-x-2">
+                <button
+                  disabled={!previousMonth}
+                  onClick={() => previousMonth && previousMonth()}
+                  className={cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0')}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <Select
+                  onValueChange={(value) => {
+                    const newMonth = new Date(props.displayMonth);
+                    newMonth.setMonth(parseInt(value));
+                    goToMonth(newMonth);
+                  }}
+                  value={props.displayMonth.getMonth().toString()}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <SelectItem key={i} value={i.toString()}>
+                        {format(new Date(1970, i), "MMMM")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  onValueChange={(value) => {
+                    const newMonth = new Date(props.displayMonth);
+                    newMonth.setFullYear(parseInt(value));
+                    goToMonth(newMonth);
+                  }}
+                  value={props.displayMonth.getFullYear().toString()}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fromYear && toYear && Array.from(
+                      { length: toYear - fromYear + 1 },
+                      (_, i) => fromYear + i
+                    ).map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <button
+                  disabled={!nextMonth}
+                  onClick={() => nextMonth && nextMonth()}
+                  className={cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0')}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )
+          }
+          // Default caption
+          return (
+            <div className="flex justify-center pt-1 relative items-center">
+              <h2 className="text-sm font-medium">
+                {format(props.displayMonth, "MMMM yyyy")}
+              </h2>
+            </div>
+          )
+        },
       }}
       {...props}
     />

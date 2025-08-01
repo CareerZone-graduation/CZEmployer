@@ -16,3 +16,10 @@ export const LOCATIONS = {
     'Van Don', 'Hoang Sa', 'Truong Sa'
   ]
 };
+
+export const jobTypeEnum = ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT', 'FREELANCE'];
+export const workTypeEnum = ['ON_SITE', 'HYBRID', 'REMOTE'];
+export const experienceEnum = ['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR', 'LEADERSHIP'];
+export const jobCategoryEnum = [
+  'IT', 'ENGINEERING', 'MARKETING', 'SALES', 'DESIGN', 'HR', 'FINANCE', 'CUSTOMER_SERVICE', 'OTHER'
+];

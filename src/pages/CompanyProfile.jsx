@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Building, Mail, Phone, Link as LinkIcon, MapPin, User, FileText, Tag, Users, Globe, Edit } from 'lucide-react';
+import { Building, Mail, Phone, Link as LinkIcon, MapPin, User, FileText, Globe, Edit } from 'lucide-react';
 
 import * as companyService from '@/services/companyService';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,10 +39,11 @@ const CompanyProfile = () => {
     fetchCompanyProfile();
   }, [fetchCompanyProfile]);
 
-  const handleEditSuccess = useCallback((updatedCompany) => {
-    setCompany(updatedCompany);
+  const handleEditSuccess = useCallback(() => {
     setIsEditDialogOpen(false);
-  }, []);
+    // Refetch the data to ensure it's the freshest version
+    fetchCompanyProfile();
+  }, [fetchCompanyProfile]);
 
   const handleEditClick = useCallback(() => {
     setIsEditDialogOpen(true);
@@ -61,7 +62,8 @@ const CompanyProfile = () => {
   }
 
   if (!company) {
-    return <div>Không tìm thấy thông tin công ty.</div>;
+    // This can be an empty state or a prompt to create a company profile
+    return <ErrorState onRetry={fetchCompanyProfile} message="Không tìm thấy thông tin công ty. Vui lòng thử lại." />;
   }
 
   return (
@@ -78,10 +80,12 @@ const CompanyProfile = () => {
               {company.verified && <Badge className="bg-green-500 text-white">Đã xác thực</Badge>}
             </div>
             <CardDescription className="mt-2 text-lg">{company.industry}</CardDescription>
-            <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center mt-2">
-              <Globe className="mr-2 h-4 w-4" />
-              {company.website}
-            </a>
+            {company.website && (
+              <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center mt-2">
+                <Globe className="mr-2 h-4 w-4" />
+                {company.website}
+              </a>
+            )}
           </div>
           <Button onClick={handleEditClick}>
             <Edit className="h-4 w-4 mr-2" />
@@ -97,14 +101,16 @@ const CompanyProfile = () => {
 
       <div className="grid md:grid-cols-2 gap-6">
         <InfoCard title="Thông tin liên hệ">
-          <InfoItem icon={Mail} label="Email" value={company.contactInfo.email} />
-          <InfoItem icon={Phone} label="Điện thoại" value={company.contactInfo.phone} />
-          <InfoItem icon={MapPin} label="Địa chỉ" value={`${company.address.street}, ${company.address.city}, ${company.address.country}`} />
+          <InfoItem icon={Mail} label="Email" value={company.contactInfo?.email} />
+          <InfoItem icon={Phone} label="Điện thoại" value={company.contactInfo?.phone} />
+          <InfoItem icon={MapPin} label="Địa chỉ" value={`${company.address?.street || ''}${company.address?.city ? `, ${company.address.city}` : ''}${company.address?.country ? `, ${company.address.country}` : ''}`} />
         </InfoCard>
         <InfoCard title="Thông tin pháp lý">
           <InfoItem icon={User} label="Người đại diện" value={company.representativeName} />
           <InfoItem icon={FileText} label="Mã số thuế" value={company.taxCode} />
-          <InfoItem icon={LinkIcon} label="Giấy phép kinh doanh" value={<a href={company.businessRegistrationUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Xem tài liệu</a>} />
+          {company.businessRegistrationUrl && (
+            <InfoItem icon={LinkIcon} label="Giấy phép kinh doanh" value={<a href={company.businessRegistrationUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Xem tài liệu</a>} />
+          )}
         </InfoCard>
       </div>
 
@@ -133,15 +139,19 @@ const InfoCard = ({ title, children }) => (
   </Card>
 );
 
-const InfoItem = ({ icon: Icon, label, value }) => (
-  <div className="flex items-start">
-    <Icon className="h-5 w-5 text-gray-500 mt-1 mr-4 flex-shrink-0" />
-    <div>
-      <p className="font-semibold text-gray-800">{label}</p>
-      <p className="text-gray-600">{value}</p>
+const InfoItem = ({ icon: Icon, label, value }) => {
+  if (!value) return null;
+  return (
+    <div className="flex items-start">
+      <Icon className="h-5 w-5 text-gray-500 mt-1 mr-4 flex-shrink-0" />
+      <div>
+        <p className="font-semibold text-gray-800">{label}</p>
+        <p className="text-gray-600 break-words">{value}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 const CompanyProfileSkeleton = () => (
   <div className="space-y-6">
