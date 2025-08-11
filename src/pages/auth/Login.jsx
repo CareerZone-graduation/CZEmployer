@@ -13,21 +13,32 @@ import { useAuth } from '@/hooks/useAuth';
 
 const Login = () => {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleLogin = useCallback(
     async (e) => {
       e.preventDefault();
-      if (!username || !password) {
-        toast.error('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.');
+      
+      if (!email || !password) {
+        toast.error('Vui lòng nhập đầy đủ email và mật khẩu.');
+        return;
+      }
+
+      if (!validateEmail(email)) {
+        toast.error('Vui lòng nhập email hợp lệ.');
         return;
       }
 
       setIsLoading(true);
       try {
-        const response = await authService.login({ username, password });
+        const response = await authService.login({ email, password });
         const { data } = response;
 
         if (data && data.accessToken) {
@@ -45,14 +56,20 @@ const Login = () => {
           throw new Error('Phản hồi từ server không hợp lệ.');
         }
       } catch (err) {
-        // The API client interceptor already shows a toast on error.
-        // We can log it here for debugging if needed.
+        // Handle specific error messages from server
+        if (err.response?.data?.message) {
+          toast.error(err.response.data.message);
+        } else if (err.response?.status === 401) {
+          toast.error('Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+        } else {
+          toast.error('Đăng nhập thất bại. Vui lòng thử lại sau.');
+        }
         console.error('Login page error:', err);
       } finally {
         setIsLoading(false);
       }
     },
-    [username, password, login],
+    [email, password, login],
   );
 
   return (
@@ -65,16 +82,16 @@ const Login = () => {
       </div>
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="grid gap-2">
-          <Label htmlFor="username">Tên đăng nhập</Label>
+          <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              id="username"
-              type="text"
-              placeholder="tendangnhap"
+              id="email"
+              type="email"
+              placeholder="example@email.com"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value.trim())}
               disabled={isLoading}
               className="pl-10"
             />

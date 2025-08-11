@@ -11,8 +11,8 @@ export const logoutServer = () =>
   apiClient.post('/auth/logout', null, { withCredentials: true });
 
 /**
- * Login with username and password
- * @param {{ username: string, password: string }} credentials 
+ * Login with email and password
+ * @param {{ email: string, password: string }} credentials 
  * @returns {Promise<import('axios').AxiosResponse<{
  *   success: boolean,
  *   message: string,
