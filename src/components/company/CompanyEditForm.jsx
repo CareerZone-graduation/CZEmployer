@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'react-toastify';
-import { Save, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { Save } from 'lucide-react';
 
 import { updateCompanySchema } from '@/utils/validation';
 import * as companyService from '@/services/companyService';
@@ -10,151 +10,161 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { INDUSTRIES, COMPANY_SIZES } from '@/constants';
+import LocationPicker from '@/components/common/LocationPicker';
 
-// Constants for dropdown options
-const INDUSTRY_OPTIONS = [
-  'Công nghệ thông tin', 'Tài chính', 'Y tế', 'Giáo dục', 'Sản xuất',
-  'Bán lẻ', 'Xây dựng', 'Du lịch', 'Nông nghiệp', 'Truyền thông',
-  'Vận tải', 'Bất động sản', 'Dịch vụ', 'Khởi nghiệp', 'Nhà hàng - Khách sạn',
-  'Bảo hiểm', 'Logistics', 'Năng lượng', 'Viễn thông', 'Dược phẩm',
-  'Hóa chất', 'Ô tô - Xe máy', 'Thực phẩm - Đồ uống', 'Thời trang - Mỹ phẩm',
-  'Thể thao - Giải trí', 'Công nghiệp nặng', 'Công nghiệp điện tử', 'Công nghiệp cơ khí',
-  'Công nghiệp dệt may', 'Đa lĩnh vực', 'Khác'
-];
+// Helper function to validate company size
+const getValidSize = (companySize) => {
+  if (companySize && COMPANY_SIZES.includes(companySize)) {
+    return companySize;
+  }
+  return '11-50 nhân viên'; // Default value
+};
 
-const SIZE_OPTIONS = [
-  '1-10 employees',
-  '11-50 employees',
-  '51-100 employees',
-  '101-500 employees',
-  '501-1000 employees',
-  '1000+ employees'
-];
+const CompanyEditForm = ({ company, onSuccess }) => {
+  const defaultValues = useMemo(() => ({
+    name: company?.name || '',
+    about: company?.about || '',
+    industry: company?.industry || '',
+    size: getValidSize(company?.size),
+    website: company?.website || '',
+    taxCode: company?.taxCode || '',
+    location: {
+      province: company?.location?.province || '',
+      ward: company?.location?.ward || ''
+    },
+    address: company?.address || '',
+    contactInfo: {
+      email: company?.contactInfo?.email || '',
+      phone: company?.contactInfo?.phone || ''
+    }
+  }), [company]);
 
-const CompanyEditForm = ({ company, onClose, onSuccess }) => {
+  const industryOptions = useMemo(() => 
+    INDUSTRIES.map((industry) => (
+      <SelectItem key={industry} value={industry}>
+        {industry}
+      </SelectItem>
+    )), []
+  );
+
+  const companySizeOptions = useMemo(() => 
+    COMPANY_SIZES.map((size) => (
+      <SelectItem key={size} value={size}>
+        {size}
+      </SelectItem>
+    )), []
+  );
+  
   const form = useForm({
     resolver: zodResolver(updateCompanySchema),
-    defaultValues: {
-      name: company?.name || '',
-      about: company?.about || '',
-      industry: company?.industry || '',
-      size: company?.size || '',
-      website: company?.website || '',
-      taxCode: company?.taxCode || '',
-      address: {
-        street: company?.address?.street || '',
-        city: company?.address?.city || '',
-        country: company?.address?.country || ''
-      },
-      contactInfo: {
-        email: company?.contactInfo?.email || '',
-        phone: company?.contactInfo?.phone || ''
-      }
-    },
+    defaultValues,
+    // Re-initialize form when defaultValues (i.e., company prop) changes
+    enableReinitialize: true,
   });
+
+  // Reset form when company data changes (more robust with enableReinitialize)
+  useEffect(() => {
+    form.reset(defaultValues);
+  }, [defaultValues, form]);
 
   const { isSubmitting } = form.formState;
 
   const handleSubmit = useCallback(async (values) => {
     try {
+      // Tạo FormData với companyData key chứa JSON
       const formData = new FormData();
       formData.append('companyData', JSON.stringify(values));
       
       const response = await companyService.updateMyCompany(formData);
-      toast.success(response.data?.message || 'Cập nhật thông tin công ty thành công');
+      toast.success('Cập nhật thành công!', {
+        description: response.data?.message || 'Thông tin công ty đã được cập nhật.'
+      });
       onSuccess?.();
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Cập nhật thông tin công ty thất bại';
-      toast.error(errorMessage);
+      toast.error('Cập nhật thất bại', {
+        description: errorMessage
+      });
     }
   }, [onSuccess]);
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Chỉnh sửa thông tin công ty</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tên công ty *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nhập tên công ty" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tên công ty *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nhập tên công ty" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="about"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Giới thiệu công ty *</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Mô tả về công ty" rows={4} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="about"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Giới thiệu công ty *</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Mô tả về công ty" rows={4} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            {/* Business Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="industry"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lĩnh vực</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Chọn lĩnh vực" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {INDUSTRY_OPTIONS.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
+                        {industryOptions}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              
               <FormField
                 control={form.control}
                 name="size"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Quy mô công ty</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || ''}
+                    >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Chọn quy mô" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {SIZE_OPTIONS.map((size) => (
-                          <SelectItem key={size} value={size}>
-                            {size}
-                          </SelectItem>
-                        ))}
+                        {companySizeOptions}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -163,7 +173,7 @@ const CompanyEditForm = ({ company, onClose, onSuccess }) => {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="website"
@@ -171,12 +181,13 @@ const CompanyEditForm = ({ company, onClose, onSuccess }) => {
                   <FormItem>
                     <FormLabel>Website</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com" {...field} />
+                      <Input placeholder="https://example.com" {...field} className="w-full" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              
               <FormField
                 control={form.control}
                 name="taxCode"
@@ -184,7 +195,7 @@ const CompanyEditForm = ({ company, onClose, onSuccess }) => {
                   <FormItem>
                     <FormLabel>Mã số thuế</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nhập mã số thuế" {...field} />
+                      <Input placeholder="Nhập mã số thuế" {...field} className="w-full" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,29 +203,59 @@ const CompanyEditForm = ({ company, onClose, onSuccess }) => {
               />
             </div>
 
-            <h3 className="text-lg font-semibold">Thông tin liên hệ</h3>
-            <div className="grid md:grid-cols-2 gap-4">
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Thông tin liên hệ</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="contactInfo.email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="contact@company.com" {...field} className="w-full" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contactInfo.phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Điện thoại</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+84901234567" {...field} className="w-full" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Address */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Địa chỉ</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <LocationPicker
+                    control={form.control}
+                    provinceFieldName="location.province"
+                    wardFieldName="location.ward"
+                  />
+              </div>
+              
               <FormField
                 control={form.control}
-                name="contactInfo.email"
+                name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Địa chỉ chi tiết</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="contact@company.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="contactInfo.phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Điện thoại</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+84901234567" {...field} />
+                      <Input placeholder="Số nhà, tên đường" {...field} className="w-full" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -222,61 +263,14 @@ const CompanyEditForm = ({ company, onClose, onSuccess }) => {
               />
             </div>
 
-            <h3 className="text-lg font-semibold">Địa chỉ</h3>
-            <FormField
-              control={form.control}
-              name="address.street"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Địa chỉ chi tiết</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Số nhà, tên đường" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="address.city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thành phố</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Hà Nội" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address.country"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quốc gia</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Việt Nam" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex justify-end space-x-4 pt-6">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                Hủy
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
+            <div className="flex justify-end pt-6 border-t">
+              <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
                 {isSubmitting ? 'Đang lưu...' : <><Save className="h-4 w-4 mr-2" />Lưu thay đổi</>}
               </Button>
             </div>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 

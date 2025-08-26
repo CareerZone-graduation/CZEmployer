@@ -6,7 +6,7 @@ import * as utils from '@/utils';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -223,6 +223,9 @@ const JobList = () => {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingJob ? 'Cập nhật Tin Tuyển Dụng' : 'Tạo Tin Tuyển Dụng Mới'}</DialogTitle>
+                <DialogDescription>
+                  {editingJob ? 'Chỉnh sửa thông tin tin tuyển dụng hiện tại' : 'Tạo tin tuyển dụng mới cho công ty của bạn'}
+                </DialogDescription>
               </DialogHeader>
               <JobForm onClose={handleCloseDialog} job={editingJob} />
             </DialogContent>

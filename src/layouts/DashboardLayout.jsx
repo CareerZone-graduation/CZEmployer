@@ -23,6 +23,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import CompanyRegisterForm from '@/components/company/CompanyRegisterForm';
+import { cn } from '@/lib/utils';
 
 const mainNavLinks = [
   { 
@@ -73,6 +74,11 @@ const DashboardLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasCompany, setHasCompany] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(true);
+
+  const toggleSidebarPin = () => {
+    setIsSidebarPinned(prev => !prev);
+  };
 
   const checkCompany = useCallback(async () => {
     setIsInitializing(true);
@@ -105,7 +111,7 @@ const DashboardLayout = () => {
       <div className="flex flex-1">
         {/* Desktop Compact Sidebar */}
         <div className="hidden md:block">
-          <CompactSidebar />
+          <CompactSidebar isPinned={isSidebarPinned} onTogglePin={toggleSidebarPin} />
         </div>
 
         {/* Mobile Sidebar using Sheet */}
@@ -138,23 +144,12 @@ const DashboardLayout = () => {
         </Sheet>
 
         {/* Main Content */}
-        <div 
-          className="flex-1 transition-all duration-300 ml-0 md:ml-16"
-          style={{ 
-            '--sidebar-width': '64px'
-          }}
-        >
-          <style>{`
-            @media (min-width: 768px) {
-              .main-content-responsive {
-                margin-left: var(--sidebar-width, 64px) !important;
-              }
-            }
-          `}</style>
-          <main className="main-content-responsive p-4 md:p-6 lg:p-8">
-            <Outlet />
-          </main>
-        </div>
+        <main className={cn(
+          "flex-1 transition-all duration-300 p-4 md:p-6 lg:p-8",
+          isSidebarPinned ? "md:ml-64" : "md:ml-16"
+        )}>
+          <Outlet />
+        </main>
       </div>
 
       {/* AI Chatbot */}

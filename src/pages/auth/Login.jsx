@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { LogIn, Loader2, Mail, Lock } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 

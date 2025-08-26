@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -202,6 +202,9 @@ const ApplicationDetail = () => {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Cập nhật trạng thái ứng tuyển</DialogTitle>
+                            <DialogDescription>
+                                Thay đổi trạng thái xử lý hồ sơ ứng tuyển của ứng viên
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
                             <Label htmlFor="status-select">Trạng thái mới</Label>
@@ -236,6 +239,9 @@ const ApplicationDetail = () => {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Đánh giá ứng viên</DialogTitle>
+                            <DialogDescription>
+                                Đánh giá chất lượng và khả năng phù hợp của ứng viên
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
                             <Label htmlFor="rating-select">Đánh giá</Label>
@@ -267,6 +273,9 @@ const ApplicationDetail = () => {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Ghi chú cho ứng viên</DialogTitle>
+                            <DialogDescription>
+                                Thêm ghi chú nội bộ về ứng viên và quá trình tuyển dụng
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
                             <Label htmlFor="notes-textarea">Nội dung ghi chú</Label>
@@ -293,6 +302,9 @@ const ApplicationDetail = () => {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Lên lịch phỏng vấn</DialogTitle>
+                            <DialogDescription>
+                                Thiết lập thời gian và thông tin chi tiết cho buổi phỏng vấn
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="py-4 space-y-4">
                             <div>

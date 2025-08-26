@@ -21,6 +21,8 @@ import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
 import Notifications from '@/pages/notifications';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
+import CompanyRegister from '@/pages/company/CompanyRegister';
+import TestCompanyForm from '@/pages/test/TestCompanyForm';
 
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
@@ -74,6 +76,8 @@ const AppRouter = () => {
         <Route element={<DashboardLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="company-profile" element={<CompanyProfile />} />
+          <Route path="company-register" element={<CompanyRegister />} />
+          <Route path="test-company-form" element={<TestCompanyForm />} />
           <Route path="billing" element={<PlaceholderPage title="Thanh toán & Hóa đơn" />} />
           
           {/* Module Jobs với các tab */}

@@ -1,23 +1,28 @@
 import { z } from 'zod';
-import { provinceNames, locationMap } from '@/constants/locations.enum';
+import { jobTypeEnum, workTypeEnum, experienceEnum, jobCategoryEnum } from '@/constants';
 
-const jobTypeEnum = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY', 'VOLUNTEER', 'FREELANCE'];
-const workTypeEnum = ['ON_SITE', 'REMOTE', 'HYBRID'];
-const experienceEnum = ['ENTRY_LEVEL', 'MID_LEVEL', 'SENIOR_LEVEL', 'EXECUTIVE', 'NO_EXPERIENCE', 'INTERN', 'FRESHER'];
-const jobCategoryEnum = [
-  'IT', 'SOFTWARE_DEVELOPMENT', 'DATA_SCIENCE', 'MACHINE_LEARNING', 'WEB_DEVELOPMENT',
-  'SALES', 'MARKETING', 'ACCOUNTING', 'GRAPHIC_DESIGN', 'CONTENT_WRITING',
-  'MEDICAL', 'TEACHING', 'ENGINEERING', 'PRODUCTION', 'LOGISTICS',
-  'HOSPITALITY', 'REAL_ESTATE', 'LAW', 'FINANCE', 'HUMAN_RESOURCES',
-  'CUSTOMER_SERVICE', 'ADMINISTRATION', 'MANAGEMENT', 'OTHER'
-];
 const jobStatusEnum = ['ACTIVE', 'INACTIVE', 'EXPIRED'];
 
+const industryEnum = z.enum([
+    'Công nghệ thông tin', 'Tài chính', 'Y tế', 'Giáo dục', 'Sản xuất',
+    'Bán lẻ', 'Xây dựng', 'Du lịch', 'Nông nghiệp', 'Truyền thông',
+    'Vận tải', 'Bất động sản', 'Dịch vụ', 'Khởi nghiệp', 'Nhà hàng - Khách sạn',
+    'Bảo hiểm', 'Logistics', 'Năng lượng', 'Viễn thông', 'Dược phẩm',
+    'Hóa chất', 'Ô tô - Xe máy', 'Thực phẩm - Đồ uống', 'Thời trang - Mỹ phẩm',
+    'Thể thao - Giải trí', 'Công nghiệp nặng', 'Công nghiệp điện tử', 'Công nghiệp cơ khí',
+    'Công nghiệp dệt may', "Đa lĩnh vực", 'Khác'
+]);
+
+// Schema for location - Simplified as the LocationPicker component ensures valid selections.
 const locationSchema = z.object({
-  province: z.enum(provinceNames, { required_error: 'Tỉnh/Thành phố là bắt buộc' }),
-  // Tạm thời cho phép ward là string, sẽ validate trong .refine()
-  ward: z.string({ required_error: 'Phường/Xã là bắt buộc' }),
+  province: z.string({ required_error: 'Tỉnh/Thành phố là bắt buộc' }).trim().min(1, 'Tỉnh/Thành phố là bắt buộc'),
+  ward: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
 });
+
+const contactInfoSchema = z.object({
+    email: z.string().email('Please enter a valid email').trim().toLowerCase().optional(),
+    phone: z.string().regex(/^[+]?[\d]{1,15}$/, 'Please enter a valid phone number').trim().optional(),
+}).optional();
 
 export const createJobSchema = z.object({
   title: z.string().trim().min(5, 'Tiêu đề phải có ít nhất 5 ký tự').max(200),
@@ -41,10 +46,9 @@ export const createJobSchema = z.object({
   category: z.enum(jobCategoryEnum),
   skills: z.array(z.string().trim().max(50, 'Kỹ năng không được vượt quá 50 ký tự')).optional(),
   approved: z.boolean().optional(),
-  id: z.string().optional(), // Thêm id field (duplicate của _id)
+  id: z.string().optional(),
 })
 .refine(data => {
-  // Extract numeric values for comparison
   const getNumericValue = (salary) => {
     if (!salary) return null;
     if (typeof salary === 'number') return salary;
@@ -62,16 +66,6 @@ export const createJobSchema = z.object({
 }, {
   message: 'Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu',
   path: ['maxSalary'],
-})
-.refine(data => {
-    const provinceData = locationMap.get(data.location.province);
-    if (!provinceData) {
-      return false; // Tỉnh không hợp lệ (dù enum đã check, đây là lớp bảo vệ thứ 2)
-    }
-    return provinceData.wards.includes(data.location.ward);
-}, {
-    message: 'Phường/Xã không thuộc Tỉnh/Thành phố đã chọn.',
-    path: ['location', 'ward'],
 });
 
 export const updateJobSchema = z.object({
@@ -98,10 +92,9 @@ export const updateJobSchema = z.object({
   skills: z.array(z.string().trim().max(50, 'Kỹ năng không được vượt quá 50 ký tự')).optional(),
   approved: z.boolean().optional(),
   recruiterProfileId: z.string().optional(),
-  id: z.string().optional(), // Thêm id field (duplicate của _id)
+  id: z.string().optional(),
 })
 .refine(data => {
-  // Extract numeric values for comparison
   const getNumericValue = (salary) => {
     if (!salary) return null;
     if (typeof salary === 'number') return salary;
@@ -119,24 +112,6 @@ export const updateJobSchema = z.object({
 }, {
     message: 'Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu',
     path: ['maxSalary'],
-})
-.refine(data => {
-    // Chỉ validate location nếu nó được cung cấp
-    if (!data.location) {
-      return true;
-    }
-    // Cả province và ward đều phải được cung cấp nếu location tồn tại
-    if (!data.location.province || !data.location.ward) {
-      return false; // Hoặc có thể đặt message cụ thể hơn
-    }
-    const provinceData = locationMap.get(data.location.province);
-    if (!provinceData) {
-      return false; // Tỉnh không hợp lệ
-    }
-    return provinceData.wards.includes(data.location.ward);
-}, {
-    message: 'Phường/Xã không thuộc Tỉnh/Thành phố đã chọn.',
-    path: ['location', 'ward'],
 });
 
 export const jobQuerySchema = z.object({
@@ -147,40 +122,45 @@ export const jobQuerySchema = z.object({
 });
 
 export const applyToJobSchema = z.object({
-  // CV ID
   cvId: z.string().trim().optional(),
   cvTemplateId: z.string().trim().optional(),
-  
-  // Thư xin việc
   coverLetter: z.string().trim().max(2000, 'Thư xin việc không được vượt quá 2000 ký tự').optional(),
-  
-  // Thông tin cá nhân từ form
   candidateName: z.string().trim().min(1, 'Họ tên là bắt buộc').max(100, 'Họ tên không được vượt quá 100 ký tự'),
   candidateEmail: z.string().trim().email('Email không hợp lệ'),
   candidatePhone: z.string().trim().regex(/^[+]?[\d]{1,15}$/, 'Số điện thoại không hợp lệ'),
 }).refine(data => {
-  // Điều kiện XOR: một trong hai trường phải tồn tại, nhưng không phải cả hai.
   return (data.cvId && !data.cvTemplateId) || (!data.cvId && data.cvTemplateId);
 }, {
   message: 'Bạn phải cung cấp `cvId` (cho CV tải lên) hoặc `cvTemplateId` (cho CV tạo từ mẫu). Không thể cung cấp cả hai hoặc không cung cấp trường nào.',
-  path: ['cvId'], // Báo lỗi ở trường đầu tiên để dễ xử lý
+  path: ['cvId'],
 });
 
-// Company update schema
-export const updateCompanySchema = z.object({
-  name: z.string().min(1, "Tên công ty là bắt buộc"),
-  about: z.string().min(1, "Giới thiệu công ty là bắt buộc"),
-  industry: z.string().optional(),
-  size: z.string().optional(),
-  website: z.string().url("Website không hợp lệ").optional().or(z.literal("")),
-  taxCode: z.string().optional(),
-  contactInfo: z.object({
-    email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
-    phone: z.string().optional()
-  }),
-  address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    country: z.string().optional()
-  })
+const baseCompanySchema = z.object({
+  name: z.string({ required_error: 'Tên công ty là bắt buộc' })
+    .min(2, 'Tên công ty phải có ít nhất 2 ký tự')
+    .max(200, 'Tên công ty không được vượt quá 200 ký tự')
+    .trim(),
+  about: z.string({ required_error: 'Giới thiệu công ty là bắt buộc' })
+    .min(20, 'Giới thiệu công ty phải có ít nhất 20 ký tự')
+    .max(2000, 'Giới thiệu không được vượt quá 2000 ký tự')
+    .trim(),
+  industry: industryEnum.optional(),
+  taxCode: z.string()
+    .max(50, 'Mã số thuế không được vượt quá 50 ký tự')
+    .trim()
+    .optional(),
+  size: z.string()
+    .max(50, 'Quy mô công ty không được vượt quá 50 ký tự')
+    .trim()
+    .optional(),
+  website: z.string()
+    .url('URL trang web không hợp lệ')
+    .trim()
+    .optional(),
+  location: locationSchema,
+  address: z.string().max(200, 'Địa chỉ chi tiết không được quá 200 ký tự').trim().optional(),
+  contactInfo: contactInfoSchema,
 });
+
+export const createCompanySchema = baseCompanySchema;
+export const updateCompanySchema = baseCompanySchema;

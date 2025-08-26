@@ -66,7 +66,7 @@ apiClient.interceptors.response.use(
         
         // 🚨 THAY ĐỔI Ở ĐÂY 🚨
         // refreshResponse bây giờ là data, không phải là response object đầy đủ
-        const { accessToken } = refreshResponse.data; 
+        const { accessToken } = refreshResponse; 
         console.log("Refreshed access token:", accessToken);
         
         saveAccessToken(accessToken);

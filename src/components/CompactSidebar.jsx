@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -29,37 +29,37 @@ const sidebarItems = [
     icon: Home,
     description: 'Tổng quan hệ thống'
   },
-  { 
+  {
     href: '/company-profile', 
     label: 'Quản lý công ty', 
     icon: Building2,
     description: 'Hồ sơ và thông tin công ty'
   },
-  { 
+  {
     href: '/jobs', 
     label: 'Tin tuyển dụng', 
     icon: Briefcase,
     description: 'Quản lý tin tuyển dụng'
   },
-  { 
+  {
     href: '/candidates', 
     label: 'Ứng viên', 
     icon: Users,
     description: 'Quản lý ứng viên'
   },
-  { 
+  {
     href: '/interviews', 
     label: 'Phỏng vấn', 
     icon: CalendarCheck,
     description: 'Lịch phỏng vấn'
   },
-  { 
+  {
     href: '/billing', 
     label: 'Thanh toán', 
     icon: CreditCard,
     description: 'Thanh toán và hóa đơn'
   },
-  { 
+  {
     href: '/notifications', 
     label: 'Thông báo', 
     icon: Bell,
@@ -67,21 +67,9 @@ const sidebarItems = [
   },
 ];
 
-const CompactSidebar = () => {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [isPinned, setIsPinned] = useState(true);
+const CompactSidebar = ({ isPinned, onTogglePin }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
-
-  useEffect(() => {
-    // Set initial sidebar width on mount
-    const mainContainer = document.querySelector('.main-content-responsive');
-    if (mainContainer) {
-      const parentDiv = mainContainer.parentElement;
-      if (parentDiv) {
-        parentDiv.style.setProperty('--sidebar-width', isPinned ? '256px' : '64px');
-      }
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleMouseEnter = () => {
     if (!isPinned) {
@@ -92,22 +80,6 @@ const CompactSidebar = () => {
   const handleMouseLeave = () => {
     if (!isPinned) {
       setIsExpanded(false);
-    }
-  };
-
-  const togglePin = () => {
-    setIsPinned(!isPinned);
-    if (!isPinned) {
-      setIsExpanded(true);
-    }
-    
-    // Update CSS custom property for main content margin
-    const mainContainer = document.querySelector('.main-content-responsive');
-    if (mainContainer) {
-      const parentDiv = mainContainer.parentElement;
-      if (parentDiv) {
-        parentDiv.style.setProperty('--sidebar-width', !isPinned ? '256px' : '64px');
-      }
     }
   };
 
@@ -129,7 +101,7 @@ const CompactSidebar = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={togglePin}
+                  onClick={onTogglePin}
                   variant="ghost"
                   size="sm"
                   className={cn(

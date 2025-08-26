@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
@@ -35,11 +35,10 @@ import {
   jobCategoryEnum,
 } from '@/constants';
 import { createJobSchema } from '@/utils/validation';
-import { provinceNames, locationMap } from '@/constants/locations.enum';
+import LocationPicker from '@/components/common/LocationPicker';
 
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm({
     resolver: zodResolver(createJobSchema),
@@ -48,10 +47,10 @@ const JobForm = ({ onSuccess, job }) => {
           ...job,
           deadline: job.deadline ? new Date(job.deadline) : undefined,
           location: {
-            province: job.location?.province || job.location?.city || '', // Compatibility with old data
-            ward: job.location?.ward || job.location?.district || '', // Compatibility with old data
+            province: job.location?.province || job.location?.city || '',
+            ward: job.location?.ward || job.location?.district || '',
           },
-          address: job.address || job.location?.address || '', // Move address to separate field
+          address: job.address || job.location?.address || '',
         }
       : {
           title: '',
@@ -73,28 +72,10 @@ const JobForm = ({ onSuccess, job }) => {
         },
   });
 
-  // Watch province changes to reset ward
-  const watchedProvince = form.watch('location.province');
-  const [availableWards, setAvailableWards] = useState([]);
-  
-  React.useEffect(() => {
-    if (watchedProvince) {
-      const provinceData = locationMap.get(watchedProvince);
-      const wards = provinceData ? provinceData.wards : [];
-      setAvailableWards(wards);
-      // Reset ward when province changes
-      const currentWard = form.getValues('location.ward');
-      if (currentWard && !wards.includes(currentWard)) {
-        form.setValue('location.ward', '');
-      }
-    } else {
-      setAvailableWards([]);
-    }
-  }, [watchedProvince, form]);
+  const { isSubmitting } = form.formState;
 
   const onSubmit = useCallback(
     async (values) => {
-      setIsSubmitting(true);
       try {
         let response;
         if (isEditMode) {
@@ -102,13 +83,15 @@ const JobForm = ({ onSuccess, job }) => {
         } else {
           response = await jobService.createJob(values);
         }
-        toast.success(response.message || `Job ${isEditMode ? 'updated' : 'created'} successfully!`);
+        toast.success(isEditMode ? 'Cập nhật thành công!' : 'Tạo tin tuyển dụng thành công!', {
+          description: response.message || `Tin tuyển dụng đã được ${isEditMode ? 'cập nhật' : 'tạo'} thành công.`
+        });
         onSuccess && onSuccess(response.data);
       } catch (error) {
         const errorMessage = error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} job.`;
-        toast.error(errorMessage);
-      } finally {
-        setIsSubmitting(false);
+        toast.error(isEditMode ? 'Cập nhật thất bại' : 'Tạo tin tuyển dụng thất bại', {
+          description: errorMessage
+        });
       }
     },
     [isEditMode, job, onSuccess],
@@ -117,7 +100,6 @@ const JobForm = ({ onSuccess, job }) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* ... các FormField khác giữ nguyên ... */}
         <FormField
           control={form.control}
           name="title"
@@ -191,63 +173,10 @@ const JobForm = ({ onSuccess, job }) => {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
+          <LocationPicker
             control={form.control}
-            name="location.province"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tỉnh/Thành phố *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn tỉnh/thành phố" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {provinceNames.map((province) => (
-                      <SelectItem key={province} value={province}>
-                        {province}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="location.ward"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phường/Xã *</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value}
-                  disabled={!watchedProvince}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue 
-                        placeholder={
-                          !watchedProvince 
-                            ? "Chọn tỉnh/thành phố trước" 
-                            : "Chọn phường/xã"
-                        } 
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {availableWards.map((ward) => (
-                      <SelectItem key={ward} value={ward}>
-                        {ward}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            provinceFieldName="location.province"
+            wardFieldName="location.ward"
           />
         </div>
 
@@ -355,7 +284,6 @@ const JobForm = ({ onSuccess, job }) => {
           />
         </div>
 
-        {/* --- KHỐI ĐÚNG ĐƯỢC GIỮ LẠI --- */}
         <FormField
           control={form.control}
           name="deadline"
@@ -384,7 +312,6 @@ const JobForm = ({ onSuccess, job }) => {
                     selected={field.value}
                     onSelect={(date) => {
                       if (date) {
-                        // Đặt giờ mặc định là 23:59 cho deadline
                         const newDate = new Date(date);
                         newDate.setHours(23, 59, 59, 999);
                         field.onChange(newDate);
@@ -405,8 +332,6 @@ const JobForm = ({ onSuccess, job }) => {
           )}
         />
         
-        {/* --- KHỐI BỊ TRÙNG LẶP ĐÃ ĐƯỢC XÓA --- */}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}

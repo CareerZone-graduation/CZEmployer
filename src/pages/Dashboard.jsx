@@ -1,18 +1,24 @@
 
 import { useState, useEffect, useCallback } from "react"
+import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { Briefcase, Users, Eye, TrendingUp, Plus, Calendar, MapPin } from "lucide-react"
+import { Briefcase, Users, Eye, TrendingUp, Plus, Calendar, MapPin, Building2, AlertCircle } from "lucide-react"
 import * as authService from "@/services/authService"
+import * as companyService from "@/services/companyService"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [company, setCompany] = useState(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true)
 
   const fetchUser = useCallback(async () => {
-    setIsLoading(true)
+    setIsLoadingUser(true)
     try {
       const response = await authService.getMe()
       if (response?.data) {
@@ -21,13 +27,31 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Failed to fetch user profile:", error)
     } finally {
-      setIsLoading(false)
+      setIsLoadingUser(false)
+    }
+  }, [])
+
+  const fetchCompany = useCallback(async () => {
+    setIsLoadingCompany(true)
+    try {
+      const response = await companyService.getMyCompany();
+      if (response?.success) {
+        setCompany(response.data)
+      }
+    } catch (error) {
+      // If error is 404, it means user doesn't have a company yet
+      if (error.response?.status !== 404) {
+        console.error("Failed to fetch company:", error)
+      }
+    } finally {
+      setIsLoadingCompany(false)
     }
   }, [])
 
   useEffect(() => {
     fetchUser()
-  }, [fetchUser])
+    fetchCompany()
+  }, [fetchUser, fetchCompany])
 
   const stats = [
     {
@@ -91,7 +115,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-green-700 to-green-800 rounded-lg p-6 text-white">
-        {isLoading ? (
+        {isLoadingUser ? (
           <Skeleton className="h-8 w-1/2 bg-white/20" />
         ) : (
           <h2 className="text-2xl font-bold mb-2">
@@ -104,6 +128,85 @@ const Dashboard = () => {
           Post New Job
         </Button>
       </div>
+
+      {/* Company Status Section */}
+      {user?.role === 'recruiter' && (
+        <div>
+          {isLoadingCompany ? (
+            <Card className="border-gray-200">
+              <CardContent className="p-6">
+                <Skeleton className="h-6 w-1/3 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ) : company ? (
+            <Card className="border-gray-200">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Building2 className="h-5 w-5 text-green-600" />
+                    <div>
+                      <CardTitle className="text-lg">{company.name}</CardTitle>
+                      <CardDescription>{company.industry}</CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant={company.verified ? "default" : "secondary"}>
+                    {company.verified ? "Đã xác thực" : "Chờ xác thực"}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">
+                  {company.about?.length > 150 
+                    ? `${company.about.substring(0, 150)}...` 
+                    : company.about
+                  }
+                </p>
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  {company.size && (
+                    <span>{company.size}</span>
+                  )}
+                  {company.location?.province && (
+                    <span>
+                      {company.location.province}
+                      {company.location.ward && `, ${company.location.ward}`}
+                    </span>
+                  )}
+                  {company.website && (
+                    <a 
+                      href={company.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Website
+                    </a>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Chưa có thông tin công ty</strong>
+                    <p className="mt-1">Bạn cần đăng ký thông tin công ty để bắt đầu tuyển dụng.</p>
+                  </div>
+                  <Button 
+                    onClick={() => navigate('/company-register')}
+                    className="ml-4 bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Đăng ký công ty
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

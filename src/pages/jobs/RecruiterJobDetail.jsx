@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -211,6 +211,9 @@ const RecruiterJobDetail = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cập nhật Tin Tuyển Dụng</DialogTitle>
+            <DialogDescription>
+              Chỉnh sửa thông tin chi tiết của tin tuyển dụng
+            </DialogDescription>
           </DialogHeader>
           <JobForm onClose={handleCloseDialog} job={job} />
         </DialogContent>

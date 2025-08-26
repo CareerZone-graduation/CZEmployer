@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import ErrorState from '@/components/common/ErrorState';
 import CompanyEditForm from '@/components/company/CompanyEditForm';
 
@@ -47,10 +47,6 @@ const CompanyProfile = () => {
 
   const handleEditClick = useCallback(() => {
     setIsEditDialogOpen(true);
-  }, []);
-
-  const handleCloseEditDialog = useCallback(() => {
-    setIsEditDialogOpen(false);
   }, []);
 
   if (isLoading) {
@@ -117,9 +113,14 @@ const CompanyProfile = () => {
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin công ty</DialogTitle>
+            <DialogDescription>
+              Cập nhật thông tin chi tiết về công ty của bạn
+            </DialogDescription>
+          </DialogHeader>
           <CompanyEditForm
             company={company}
-            onClose={handleCloseEditDialog}
             onSuccess={handleEditSuccess}
           />
         </DialogContent>
@@ -139,11 +140,11 @@ const InfoCard = ({ title, children }) => (
   </Card>
 );
 
-const InfoItem = ({ icon: Icon, label, value }) => {
+const InfoItem = ({ icon: IconComponent, label, value }) => {
   if (!value) return null;
   return (
     <div className="flex items-start">
-      <Icon className="h-5 w-5 text-gray-500 mt-1 mr-4 flex-shrink-0" />
+      <IconComponent className="h-5 w-5 text-gray-500 mt-1 mr-4 flex-shrink-0" />
       <div>
         <p className="font-semibold text-gray-800">{label}</p>
         <p className="text-gray-600 break-words">{value}</p>
