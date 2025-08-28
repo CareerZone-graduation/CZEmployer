@@ -10,7 +10,7 @@ const CreateJob = () => {
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>Tạo Tin Tuyển Dụng Mới</CardTitle>
       </CardHeader>

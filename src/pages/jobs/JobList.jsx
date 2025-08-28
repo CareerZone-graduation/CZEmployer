@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import * as jobService from '@/services/jobService';
 import * as utils from '@/utils';
@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2, Search } from 'lucide-react';
 
 import JobForm from '@/components/jobs/JobForm';
 import JobListSkeleton from '@/components/common/JobListSkeleton';
@@ -28,15 +29,16 @@ import ErrorState from '@/components/common/ErrorState';
 import EmptyState from '@/components/common/EmptyState';
 
 const JobList = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingJob, setEditingJob] = useState(null);
+  const navigate = useNavigate();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
     status: 'ACTIVE',
     sortBy: 'createdAt:desc',
+    search: '',
   });
 
   const [jobs, setJobs] = useState([]);
@@ -97,19 +99,14 @@ const JobList = () => {
     fetchJobs();
   }, [fetchJobs]);
 
-  const handleCloseDialog = useCallback(() => {
-    setIsDialogOpen(false);
-    setEditingJob(null);
-    fetchJobs(); // Refetch jobs after closing dialog
-  }, [fetchJobs]);
 
   const handleFilterChange = useCallback((key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      page: 1,
-    }));
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   }, []);
+
+  const handleSearch = () => {
+    handleFilterChange('search', searchTerm);
+  };
 
   const handlePageChange = useCallback((newPage) => {
     setFilters((prev) => ({
@@ -119,9 +116,8 @@ const JobList = () => {
   }, []);
 
   const handleEditJob = useCallback((job) => {
-    setEditingJob(job);
-    setIsDialogOpen(true);
-  }, []);
+    navigate(`/jobs/recruiter/${job._id}`);
+  }, [navigate]);
 
   const handleDeleteClick = (jobId) => {
     setSelectedJobId(jobId);
@@ -146,8 +142,7 @@ const JobList = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', variant: 'default', className: 'bg-green-100 text-green-800' },
-      INACTIVE: { label: 'Tạm ngưng', variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
-      EXPIRED: { label: 'Hết hạn', variant: 'destructive', className: 'bg-red-100 text-red-800' },
+      INACTIVE: { label: 'Đã ẩn', variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
     };
     const config = statusConfig[status] || statusConfig.ACTIVE;
     return (
@@ -171,37 +166,44 @@ const JobList = () => {
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Trạng thái:</label>
+          <div className="flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-1 w-full sm:w-auto">
+              <Input
+                placeholder="Tìm kiếm theo tiêu đề, kỹ năng..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="h-10"
+              />
+            </div>
+            <div className="w-full sm:w-auto">
               <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Tất cả" />
+                <SelectTrigger className="w-full sm:w-40 h-10">
+                  <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ACTIVE">Đang tuyển</SelectItem>
-                  <SelectItem value="INACTIVE">Tạm ngưng</SelectItem>
                   <SelectItem value="EXPIRED">Hết hạn</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Sắp xếp:</label>
+            <div className="w-full sm:w-auto">
               <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange('sortBy', value)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
+                <SelectTrigger className="w-full sm:w-48 h-10">
+                  <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="createdAt:desc">Mới nhất</SelectItem>
                   <SelectItem value="createdAt:asc">Cũ nhất</SelectItem>
                   <SelectItem value="deadline:desc">Hạn nộp gần nhất</SelectItem>
                   <SelectItem value="deadline:asc">Hạn nộp xa nhất</SelectItem>
-                  <SelectItem value="title:asc">Tên A-Z</SelectItem>
-                  <SelectItem value="title:desc">Tên Z-A</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            <Button onClick={handleSearch} className="h-10">
+              <Search className="h-4 w-4 mr-2" />
+              Tìm kiếm
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -213,23 +215,6 @@ const JobList = () => {
             <Briefcase className="h-5 w-5" />
             Danh sách Tin Tuyển Dụng ({meta.totalItems || 0})
           </CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => setEditingJob(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Tạo Tin Mới
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingJob ? 'Cập nhật Tin Tuyển Dụng' : 'Tạo Tin Tuyển Dụng Mới'}</DialogTitle>
-                <DialogDescription>
-                  {editingJob ? 'Chỉnh sửa thông tin tin tuyển dụng hiện tại' : 'Tạo tin tuyển dụng mới cho công ty của bạn'}
-                </DialogDescription>
-              </DialogHeader>
-              <JobForm onClose={handleCloseDialog} job={editingJob} />
-            </DialogContent>
-          </Dialog>
         </CardHeader>
         <CardContent>
           {isLoading ? (

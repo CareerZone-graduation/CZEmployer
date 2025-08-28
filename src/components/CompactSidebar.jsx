@@ -23,48 +23,12 @@ import {
 } from '@/components/ui/tooltip';
 
 const sidebarItems = [
-  { 
-    href: '/', 
-    label: 'Dashboard', 
-    icon: Home,
-    description: 'Tổng quan hệ thống'
-  },
-  {
-    href: '/company-profile', 
-    label: 'Quản lý công ty', 
-    icon: Building2,
-    description: 'Hồ sơ và thông tin công ty'
-  },
-  {
-    href: '/jobs', 
-    label: 'Tin tuyển dụng', 
-    icon: Briefcase,
-    description: 'Quản lý tin tuyển dụng'
-  },
-  {
-    href: '/candidates', 
-    label: 'Ứng viên', 
-    icon: Users,
-    description: 'Quản lý ứng viên'
-  },
-  {
-    href: '/interviews', 
-    label: 'Phỏng vấn', 
-    icon: CalendarCheck,
-    description: 'Lịch phỏng vấn'
-  },
-  {
-    href: '/billing', 
-    label: 'Thanh toán', 
-    icon: CreditCard,
-    description: 'Thanh toán và hóa đơn'
-  },
-  {
-    href: '/notifications', 
-    label: 'Thông báo', 
-    icon: Bell,
-    description: 'Thông báo hệ thống'
-  },
+  { href: '/', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
+  { href: '/company-profile', label: 'Công ty', icon: Building2, description: 'Hồ sơ và thông tin công ty' },
+  { href: '/jobs', label: 'Việc làm', icon: Briefcase, description: 'Quản lý tin tuyển dụng' },
+  { href: '/candidates', label: 'Ứng viên', icon: Users, description: 'Quản lý ứng viên' },
+  { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
+  { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
 ];
 
 const CompactSidebar = ({ isPinned, onTogglePin }) => {
@@ -89,15 +53,26 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
     <TooltipProvider>
       <div 
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 transition-all duration-300 z-40 hidden md:block",
+          "fixed top-0 left-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 hidden md:flex flex-col",
           shouldShowExpanded ? "w-64" : "w-16"
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Pin Button - Only show when expanded */}
+        <div className={cn(
+          "flex items-center h-16 px-4",
+          shouldShowExpanded ? "justify-start" : "justify-center"
+        )}>
+          <Link to="/" className="flex items-center gap-2">
+            {shouldShowExpanded && (
+              <span className="font-bold text-emerald-700 text-lg">CareerZone</span>
+            )}
+          </Link>
+        </div>
+
+        {/* Pin Button */}
         {shouldShowExpanded && (
-          <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-4 right-2 z-10">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -106,8 +81,8 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   size="sm"
                   className={cn(
                     "h-8 w-8 p-0 transition-colors",
-                    isPinned 
-                      ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" 
+                    isPinned
+                      ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                   )}
                 >
@@ -115,13 +90,13 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                {isPinned ? "Bỏ ghim sidebar" : "Ghim sidebar"}
+                {isPinned ? "Bỏ ghim" : "Ghim"}
               </TooltipContent>
             </Tooltip>
           </div>
         )}
 
-        <nav className="p-2 space-y-2 mt-10">
+        <nav className="flex-1 p-2 space-y-2 mt-4">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href || 

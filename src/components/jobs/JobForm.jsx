@@ -30,18 +30,22 @@ import { cn } from '@/lib/utils';
 import * as jobService from '@/services/jobService';
 import {
   jobTypeEnum,
+  jobTypeMap,
   workTypeEnum,
+  workTypeMap,
   experienceEnum,
+  experienceMap,
   jobCategoryEnum,
+  jobCategoryMap,
 } from '@/constants';
-import { createJobSchema } from '@/utils/validation';
+import { createJobSchema, updateJobSchema } from '@/utils/validation';
 import LocationPicker from '@/components/common/LocationPicker';
 
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
   
   const form = useForm({
-    resolver: zodResolver(createJobSchema),
+    resolver: zodResolver(isEditMode ? updateJobSchema : createJobSchema),
     defaultValues: isEditMode
       ? {
           ...job,
@@ -79,7 +83,16 @@ const JobForm = ({ onSuccess, job }) => {
       try {
         let response;
         if (isEditMode) {
-          response = await jobService.updateJob(job._id, values);
+          // Ensure we only send changed values for updates
+          const changedValues = Object.fromEntries(
+            Object.entries(values).filter(([key, value]) => {
+              if (key === 'location') {
+                return value.province !== job.location?.province || value.ward !== job.location?.ward;
+              }
+              return job[key] !== value;
+            })
+          );
+          response = await jobService.updateJob(job._id, changedValues);
         } else {
           response = await jobService.createJob(values);
         }
@@ -203,14 +216,14 @@ const JobForm = ({ onSuccess, job }) => {
                 <FormLabel>Loại công việc</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full truncate">
                       <SelectValue placeholder="Chọn loại công việc" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {jobTypeEnum.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type.replace(/_/g, ' ')}
+                        {jobTypeMap[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -227,14 +240,14 @@ const JobForm = ({ onSuccess, job }) => {
                 <FormLabel>Hình thức làm việc</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full truncate">
                       <SelectValue placeholder="Chọn hình thức làm việc" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {workTypeEnum.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type.replace(/_/g, ' ')}
+                        {workTypeMap[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -341,14 +354,14 @@ const JobForm = ({ onSuccess, job }) => {
                 <FormLabel>Cấp bậc kinh nghiệm</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full truncate">
                       <SelectValue placeholder="Chọn cấp bậc kinh nghiệm" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {experienceEnum.map((exp) => (
                       <SelectItem key={exp} value={exp}>
-                        {exp.replace(/_/g, ' ')}
+                        {experienceMap[exp]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -365,14 +378,14 @@ const JobForm = ({ onSuccess, job }) => {
                 <FormLabel>Ngành nghề</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full truncate">
                       <SelectValue placeholder="Chọn ngành nghề" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {jobCategoryEnum.map((cat) => (
                       <SelectItem key={cat} value={cat}>
-                        {cat.replace(/_/g, ' ')}
+                        {jobCategoryMap[cat]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -392,3 +405,4 @@ const JobForm = ({ onSuccess, job }) => {
 };
 
 export default JobForm;
+

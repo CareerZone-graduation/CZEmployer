@@ -73,7 +73,7 @@ const RecruiterJobDetail = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', className: 'bg-green-100 text-green-800' },
-      INACTIVE: { label: 'Tạm ngưng', className: 'bg-gray-100 text-gray-800' },
+      INACTIVE: { label: 'Đã ẩn', className: 'bg-gray-100 text-gray-800' },
       EXPIRED: { label: 'Hết hạn', className: 'bg-red-100 text-red-800' },
     };
     const config = statusConfig[status] || statusConfig.INACTIVE;
@@ -208,7 +208,7 @@ const RecruiterJobDetail = () => {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cập nhật Tin Tuyển Dụng</DialogTitle>
             <DialogDescription>
