@@ -21,6 +21,20 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   }, []);
 
+  const updateCoinBalance = useCallback((newBalance) => {
+    setUser((currentUser) => {
+      if (!currentUser) return null;
+      // Ensure we update the nested user object correctly
+      return {
+        ...currentUser,
+        user: {
+          ...currentUser.user,
+          coinBalance: newBalance,
+        },
+      };
+    });
+  }, []);
+
   useEffect(() => {
     const validateSession = async () => {
       const token = tokenUtil.getAccessToken();
@@ -35,6 +49,7 @@ export const AuthProvider = ({ children }) => {
         // The interceptor in apiClient will handle token refresh automatically
         const response = await getMe();
         if (response.data) {
+          // The response.data from getMe is expected to have { user, profile }
           setUser(response.data);
           setIsAuthenticated(true);
         } else {
@@ -60,6 +75,7 @@ export const AuthProvider = ({ children }) => {
     isInitializing,
     login: handleLogin,
     logout: handleLogout,
+    updateCoinBalance,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

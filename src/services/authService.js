@@ -29,24 +29,9 @@ export const login = (credentials) =>
   apiClient.post('/auth/login', credentials, { withCredentials: true });
 
 
-/**
- * Get current user profile
- * @param {Object} axiosConfig - Optional Axios config
- * @returns {Promise<import('axios').AxiosResponse<{
- *   success: boolean,
- *   message: string,
- *   data: {
- *     id: string,
- *     email: string,
- *     role: string,
- *     name: string,
- *     company: string,
- *     active: boolean
- *   }
- * }>>}
- */
+
 export const getMe = (axiosConfig = {}) =>
-  apiClient.get('/auth/me', { ...axiosConfig, withCredentials: true });
+  apiClient.get('/users/me', { ...axiosConfig, withCredentials: true });
 
 /**
  * Register a new user account

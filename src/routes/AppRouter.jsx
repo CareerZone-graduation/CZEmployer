@@ -19,10 +19,16 @@ import RecruiterJobDetail from '@/pages/jobs/RecruiterJobDetail';
 import JobApplications from '@/pages/jobs/JobApplications';
 import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
 import Notifications from '@/pages/notifications';
+import InterviewList from '@/pages/interviews/InterviewList';
+import InterviewDetail from '@/pages/interviews/InterviewDetail';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import CompanyRegister from '@/pages/company/CompanyRegister';
 import TestCompanyForm from '@/pages/test/TestCompanyForm';
+import CVViewer from '@/pages/CVViewer';
+import PaymentSuccess from '@/pages/PaymentSuccess';
+import PaymentFailure from '@/pages/PaymentFailure';
+import BillingPage from '@/pages/Billing';
 
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
@@ -78,7 +84,7 @@ const AppRouter = () => {
           <Route path="company-profile" element={<CompanyProfile />} />
           <Route path="company-register" element={<CompanyRegister />} />
           <Route path="test-company-form" element={<TestCompanyForm />} />
-          <Route path="billing" element={<PlaceholderPage title="Thanh toán & Hóa đơn" />} />
+          <Route path="billing" element={<BillingPage />} />
           
           {/* Module Jobs với các tab */}
           <Route path="jobs" element={<Jobs />}>
@@ -91,11 +97,17 @@ const AppRouter = () => {
           <Route path="jobs/:jobId/applications/:applicationId" element={<ApplicationDetail />} />
 
           <Route path="candidates" element={<PlaceholderPage title="Quản lý Ứng viên" />} />
-          <Route path="interviews" element={<PlaceholderPage title="Lịch phỏng vấn" />} />
+          <Route path="interviews" element={<InterviewList />} />
+          <Route path="interviews/:interviewId" element={<InterviewDetail />} />
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="cv-viewer" element={<CVViewer />} />
         </Route>
       </Route>
+
+     {/* Payment result routes */}
+     <Route path="/payment/success" element={<PaymentSuccess />} />
+     <Route path="/payment/failure" element={<PaymentFailure />} />
 
       {/* Route nhắn tin độc lập (cũng được bảo vệ) */}
       <Route

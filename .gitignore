@@ -6,13 +6,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+.env
+.github
+digest.txt
+.clineignore
+.kilocode
 .trae/*
 node_modules
 dist
 dist-ssr
 *.local
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -25,7 +28,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
-.github
-digest.txt
-.clineignore

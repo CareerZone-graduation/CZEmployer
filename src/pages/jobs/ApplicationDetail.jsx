@@ -1,42 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as utils from '@/utils';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar as CalendarIcon, ArrowLeft, Mail, Phone, FileText, Star, Calendar as CalendarIconAlt, Edit2 } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
+import CandidateRating from '@/components/jobs/CandidateRating';
+import ActivityHistory from '@/components/jobs/ActivityHistory';
 
 const ApplicationDetail = () => {
   const { applicationId, jobId } = useParams();
   const [application, setApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // State for inline editing
+  const [currentNotes, setCurrentNotes] = useState('');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  
   // State for modals
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState('');
-  const [newRating, setNewRating] = useState('');
-  const [newNotes, setNewNotes] = useState('');
   const [interviewDate, setInterviewDate] = useState(null);
   const [interviewTime, setInterviewTime] = useState('');
-
 
   const fetchApplication = useCallback(async () => {
     setIsLoading(true);
@@ -44,6 +43,7 @@ const ApplicationDetail = () => {
     try {
       const response = await applicationService.getApplicationById(applicationId);
       setApplication(response.data);
+      setCurrentNotes(response.data.notes || '');
     } catch (err) {
       console.error("Error fetching application:", err);
       const errorMessage = err.response?.data?.message || 'Không thể tải chi tiết đơn ứng tuyển.';
@@ -54,54 +54,38 @@ const ApplicationDetail = () => {
     }
   }, [applicationId]);
 
-  const handleStatusChange = async () => {
-    if (!newStatus || newStatus === application.status) {
-      setIsStatusModalOpen(false);
-      return;
-    }
-    try {
-      const response = await applicationService.updateApplicationStatus(applicationId, newStatus);
-      setApplication(response.data);
-      toast.success('Cập nhật trạng thái thành công!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái.');
-    } finally {
-      setIsStatusModalOpen(false);
-    }
-  };
+  useEffect(() => {
+    fetchApplication();
+  }, [fetchApplication]);
 
-  const handleRatingChange = async () => {
-    if (!newRating || newRating === application.candidateRating) {
-      setIsRatingModalOpen(false);
-      return;
-    }
+  const handleRatingSave = async (newRating) => {
+    setIsSubmitting(true);
     try {
       const response = await applicationService.updateCandidateRating(applicationId, newRating);
-      setApplication(response.data);
+      setApplication((prev) => ({ ...prev, candidateRating: response.data.candidateRating }));
       toast.success('Cập nhật đánh giá thành công!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi khi cập nhật đánh giá.');
     } finally {
-      setIsRatingModalOpen(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleNotesChange = async () => {
-    if (newNotes === application.notes) {
-      setIsNotesModalOpen(false);
-      return;
-    }
+  const handleNotesSave = async () => {
+    if (currentNotes === (application.notes || '')) return;
+    setIsSubmitting(true);
     try {
-      const response = await applicationService.updateApplicationNotes(applicationId, newNotes);
-      setApplication(response.data);
+      const response = await applicationService.updateApplicationNotes(applicationId, currentNotes);
+      setApplication((prev) => ({ ...prev, notes: response.data.notes }));
       toast.success('Cập nhật ghi chú thành công!');
+      setIsEditingNotes(false);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi khi cập nhật ghi chú.');
     } finally {
-      setIsNotesModalOpen(false);
+      setIsSubmitting(false);
     }
   };
-
+  
   const handleScheduleInterview = async () => {
     if (!interviewDate || !interviewTime) {
       toast.error('Vui lòng chọn ngày và giờ phỏng vấn.');
@@ -121,11 +105,7 @@ const ApplicationDetail = () => {
       setIsInterviewModalOpen(false);
     }
   };
-
-  useEffect(() => {
-    fetchApplication();
-  }, [fetchApplication]);
-
+  
   const getStatusBadge = (status) => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
@@ -152,7 +132,7 @@ const ApplicationDetail = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="container mx-auto max-w-6xl p-4 lg:p-6">
       <div className="mb-6">
         <Button asChild variant="outline" size="sm">
           <Link to={`/jobs/${jobId}/applications`}>
@@ -162,137 +142,39 @@ const ApplicationDetail = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column - Candidate Info */}
-        <div className="md:col-span-1 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader className="text-center">
-              <Avatar className="w-24 h-24 mx-auto mb-4">
+              <Avatar className="w-24 h-24 mx-auto mb-4 border-2 border-primary">
                 <AvatarImage src={application.candidateAvatar} alt={application.candidateName} />
                 <AvatarFallback>{application.candidateName?.charAt(0)}</AvatarFallback>
               </Avatar>
               <CardTitle>{application.candidateName}</CardTitle>
+              <CardDescription>Ứng tuyển cho vị trí: {application.jobSnapshot.title}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-gray-500" />
-                <a href={`mailto:${application.candidateEmail}`} className="text-blue-600 hover:underline">{application.candidateEmail}</a>
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <a href={`mailto:${application.candidateEmail}`} className="text-primary hover:underline">{application.candidateEmail}</a>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Phone className="h-4 w-4 text-gray-500" />
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 <span>{application.candidatePhone}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <CalendarIconAlt className="h-4 w-4 text-gray-500" />
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span>Nộp ngày: {utils.formatDate(application.appliedAt)}</span>
               </div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Hành động</CardTitle>
+                <CardTitle className="text-base">Hành động</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-                <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="w-full justify-start" variant="outline" onClick={() => setNewStatus(application.status)}>
-                            Đổi trạng thái
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Cập nhật trạng thái ứng tuyển</DialogTitle>
-                            <DialogDescription>
-                                Thay đổi trạng thái xử lý hồ sơ ứng tuyển của ứng viên
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <Label htmlFor="status-select">Trạng thái mới</Label>
-                            <Select value={newStatus} onValueChange={setNewStatus}>
-                                <SelectTrigger id="status-select">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PENDING">Chờ duyệt</SelectItem>
-                                    <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
-                                    <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
-                                    <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
-                                    <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
-                                    <SelectItem value="REJECTED">Đã từ chối</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button variant="ghost">Hủy</Button>
-                            </DialogClose>
-                            <Button onClick={handleStatusChange}>Lưu thay đổi</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                <Dialog open={isRatingModalOpen} onOpenChange={setIsRatingModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="w-full justify-start" variant="outline" onClick={() => setNewRating(application.candidateRating)}>
-                            Đánh giá
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Đánh giá ứng viên</DialogTitle>
-                            <DialogDescription>
-                                Đánh giá chất lượng và khả năng phù hợp của ứng viên
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <Label htmlFor="rating-select">Đánh giá</Label>
-                            <Select value={newRating} onValueChange={setNewRating}>
-                                <SelectTrigger id="rating-select">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
-                                    <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
-                                    <SelectItem value="MAYBE">Có thể</SelectItem>
-                                    <SelectItem value="SUITABLE">Phù hợp</SelectItem>
-                                    <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild><Button variant="ghost">Hủy</Button></DialogClose>
-                            <Button onClick={handleRatingChange}>Lưu</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                <Dialog open={isNotesModalOpen} onOpenChange={setIsNotesModalOpen}>
-                    <DialogTrigger asChild>
-                <Button className="w-full justify-start" variant="outline" onClick={() => setNewNotes(application.notes || '')}>
-                            Thêm ghi chú
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Ghi chú cho ứng viên</DialogTitle>
-                            <DialogDescription>
-                                Thêm ghi chú nội bộ về ứng viên và quá trình tuyển dụng
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <Label htmlFor="notes-textarea">Nội dung ghi chú</Label>
-                            <Textarea
-                                id="notes-textarea"
-                                value={newNotes}
-                                onChange={(e) => setNewNotes(e.target.value)}
-                                rows={5}
-                                placeholder="Nhập ghi chú của bạn ở đây..."
-                            />
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild><Button variant="ghost">Hủy</Button></DialogClose>
-                            <Button onClick={handleNotesChange}>Lưu</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+            <CardContent>
                 <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="w-full justify-start" variant="default" disabled={!!application.interviewInfo}>
@@ -334,23 +216,91 @@ const ApplicationDetail = () => {
                 </Dialog>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Đánh giá & Ghi chú</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <CandidateRating
+                initialRating={application.candidateRating || 'NOT_RATED'}
+                onRatingSave={handleRatingSave}
+                isSubmitting={isSubmitting}
+              />
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="notes-textarea">Ghi chú nội bộ</Label>
+                  {!isEditingNotes && (
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditingNotes(true)}>
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {isEditingNotes ? (
+                  <>
+                    <Textarea
+                      id="notes-textarea"
+                      value={currentNotes}
+                      onChange={(e) => setCurrentNotes(e.target.value)}
+                      rows={4}
+                      placeholder="Thêm ghi chú về ứng viên..."
+                      disabled={isSubmitting}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleNotesSave}
+                          disabled={isSubmitting || currentNotes === (application.notes || '')}
+                          className="flex-1"
+                        >
+                          {isSubmitting ? 'Đang lưu...' : 'Lưu'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                              setIsEditingNotes(false);
+                              setCurrentNotes(application.notes || '');
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          Hủy
+                        </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-md min-h-[100px]">
+                    {application.notes || <span className="italic">Chưa có ghi chú.</span>}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Column - Application Details */}
-        <div className="md:col-span-2 space-y-6">
+        {/* Right Column */}
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Thông tin ứng tuyển</CardTitle>
+              <div>
+                <CardTitle className="text-lg">Thông tin ứng tuyển</CardTitle>
+                <CardDescription>Trạng thái hiện tại của đơn ứng tuyển.</CardDescription>
+              </div>
               {getStatusBadge(application.status)}
             </CardHeader>
             <CardContent>
-              <a href={application.submittedCV.path} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                <FileText className="h-8 w-8 text-blue-600" />
+              <Link
+                to="/cv-viewer"
+                state={{ cvUrl: application.submittedCV.path }}
+                className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+              >
+                <FileText className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="font-semibold text-blue-700">Xem CV đính kèm</p>
-                  <p className="text-xs text-gray-500">{application.submittedCV.name}</p>
+                  <p className="font-semibold text-primary">Xem CV đính kèm</p>
+                  <p className="text-xs text-muted-foreground">{application.submittedCV.name}</p>
                 </div>
-              </a>
+              </Link>
             </CardContent>
           </Card>
 
@@ -359,35 +309,11 @@ const ApplicationDetail = () => {
               <CardTitle className="text-lg">Thư giới thiệu</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700 whitespace-pre-wrap">{application.coverLetter || 'Không có thư giới thiệu.'}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{application.coverLetter || 'Không có thư giới thiệu.'}</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Ghi chú & Đánh giá</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 italic">{application.notes || 'Chưa có ghi chú nào.'}</p>
-              <div className="mt-4 flex items-center gap-2">
-                <Star className="h-5 w-5 text-yellow-500" />
-                <span className="font-semibold">{application.candidateRating.replace('_', ' ')}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {application.interviewInfo && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Thông tin phỏng vấn</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p><strong>Tên phòng:</strong> {application.interviewInfo.roomName}</p>
-                <p><strong>Thời gian:</strong> {utils.formatDate(application.interviewInfo.scheduledTime, "dd/MM/yyyy 'lúc' HH:mm")}</p>
-                <p><strong>Trạng thái:</strong> <Badge variant="secondary">{application.interviewInfo.status}</Badge></p>
-              </CardContent>
-            </Card>
-          )}
+          <ActivityHistory history={application.activityHistory} />
         </div>
       </div>
     </div>
@@ -395,14 +321,15 @@ const ApplicationDetail = () => {
 };
 
 const ApplicationDetailSkeleton = () => (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4 lg:p-6">
         <div className="mb-6"><Skeleton className="h-9 w-48" /></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-6">
                 <Card>
                     <CardHeader className="text-center">
                         <Skeleton className="w-24 h-24 rounded-full mx-auto mb-4" />
                         <Skeleton className="h-7 w-3/4 mx-auto" />
+                        <Skeleton className="h-5 w-1/2 mx-auto mt-2" />
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <Skeleton className="h-5 w-full" />
@@ -410,8 +337,16 @@ const ApplicationDetailSkeleton = () => (
                         <Skeleton className="h-5 w-full" />
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-9 w-full" />
+                    </CardContent>
+                </Card>
             </div>
-            <div className="md:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-6">
                 <Card>
                     <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
                     <CardContent><Skeleton className="h-16 w-full" /></CardContent>
@@ -419,6 +354,10 @@ const ApplicationDetailSkeleton = () => (
                 <Card>
                     <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
                     <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
+                    <CardContent><Skeleton className="h-48 w-full" /></CardContent>
                 </Card>
             </div>
         </div>

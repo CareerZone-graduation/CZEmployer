@@ -6,6 +6,7 @@ import {
   MessageCircle,
   User,
   Search,
+  Coins,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,14 +19,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { clearAccessToken } from '@/utils/token';
+import { useAuth } from '@/hooks/useAuth';
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    clearAccessToken();
-    window.location.reload();
+    logout();
   };
 
   const handleChatClick = () => {
@@ -50,17 +51,17 @@ const DashboardHeader = () => {
       <div className="flex items-center gap-4 ml-auto">
         <Button onClick={handleChatClick} variant="outline" size="icon" className="relative">
           <MessageCircle className="h-5 w-5" />
-          <span className="sr-only">Tin nhắn</span>
-          <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">3</Badge>
-        </Button>
+            <span className="sr-only">Tin nhắn</span>
+            <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">3</Badge>
+          </Button>
 
-        <Button variant="outline" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Thông báo</span>
-          <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">5</Badge>
-        </Button>
+          <Button variant="outline" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Thông báo</span>
+            <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">5</Badge>
+          </Button>
 
-        <DropdownMenu>
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <img src="/placeholder-user.jpg" alt="User" className="h-10 w-10 rounded-full" />
