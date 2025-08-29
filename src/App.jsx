@@ -16,7 +16,7 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-gray-50">
         <AppRouter />
-        <Toaster position="bottom-right" richColors />
+        <Toaster position="top-right" richColors />
       </div>
     </BrowserRouter>
   );

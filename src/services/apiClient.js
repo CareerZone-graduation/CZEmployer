@@ -46,7 +46,12 @@ apiClient.interceptors.response.use(
     const { response, config } = error;
 
     // ----- Logic Refresh Token cho lỗi 401 -----
-    if (response?.status === 401 && !config._retry) {
+    // Thêm điều kiện kiểm tra URL tại đây
+    if (
+      response?.status === 401 &&
+      !config._retry &&
+      !config.url.includes('/auth/login')
+    ) {
       config._retry = true;
 
       if (isRefreshing) {
@@ -63,10 +68,11 @@ apiClient.interceptors.response.use(
       try {
         // Break the circular dependency by calling the refresh endpoint directly
         const refreshResponse = await refreshToken();
+        console.log("Refresh response:", refreshResponse);
         
         // 🚨 THAY ĐỔI Ở ĐÂY 🚨
         // refreshResponse bây giờ là data, không phải là response object đầy đủ
-        const { accessToken } = refreshResponse; 
+        const { accessToken } = refreshResponse.data; 
         console.log("Refreshed access token:", accessToken);
         
         saveAccessToken(accessToken);
