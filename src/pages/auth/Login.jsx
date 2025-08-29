@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { toast } from 'sonner';
 import { LogIn, Loader2, Mail, Lock } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
@@ -9,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import * as authService from '@/services/authService';
-import { useAuth } from '@/hooks/useAuth';
+import { fetchUser } from '@/redux/authSlice';
+import * as tokenUtil from '@/utils/token';
 
 const Login = () => {
-  const { login } = useAuth();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,17 +41,21 @@ const Login = () => {
       setIsLoading(true);
       try {
         const response = await authService.login({ email, password });
-        const { data } = response;
+        console.log("response", response);
+        const { data: loginData } = response;
 
-        if (data && data.accessToken) {
-          if (data.role !== 'recruiter') {
+        if (loginData && loginData.accessToken) {
+          if (loginData.role !== 'recruiter') {
             toast.error(
               'Quyền truy cập bị từ chối. Trang này chỉ dành cho nhà tuyển dụng.',
             );
             return;
           }
-          // The login function from context will handle token and state
-          login(data, data.accessToken);
+          // Save the token first
+          tokenUtil.saveAccessToken(loginData.accessToken);
+          // Then, dispatch fetchUser to get the full profile
+          console.log("test");
+          dispatch(fetchUser());
           toast.success('Đăng nhập thành công!');
           // Navigation will be handled automatically by the router reacting to auth state change
         } else {
@@ -69,7 +75,7 @@ const Login = () => {
         setIsLoading(false);
       }
     },
-    [email, password, login],
+    [email, password, dispatch],
   );
 
   return (

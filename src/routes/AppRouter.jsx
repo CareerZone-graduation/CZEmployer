@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useSelector } from 'react-redux';
 
 // Layouts
 import AuthLayout from '@/layouts/AuthLayout';
@@ -46,8 +46,17 @@ const ProtectedRoute = ({ isAuthenticated }) => {
   return <Outlet />;
 };
 
+import { shallowEqual } from 'react-redux';
+
 const AppRouter = () => {
-  const { isAuthenticated, isInitializing } = useAuth();
+  // Use shallowEqual to prevent re-renders when the user object changes
+  const { isAuthenticated, isInitializing } = useSelector(
+    (state) => ({
+      isAuthenticated: state.auth.isAuthenticated,
+      isInitializing: state.auth.isInitializing,
+    }),
+    shallowEqual
+  );
 
   // Hiển thị màn hình tải trong khi kiểm tra trạng thái đăng nhập
   if (isInitializing) {

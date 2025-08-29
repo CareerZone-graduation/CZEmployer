@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Bell,
   LogOut,
@@ -19,14 +20,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/useAuth';
+import { logoutSuccess } from '@/redux/authSlice';
+import { forcedLogout } from '@/utils/auth';
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
-  const handleLogout = () => {
-    logout();
+  const coinBalance = user?.user?.coinBalance ?? 0;
+
+  const handleLogout = async () => {
+    await forcedLogout();
+    dispatch(logoutSuccess());
   };
 
   const handleChatClick = () => {
@@ -49,6 +55,10 @@ const DashboardHeader = () => {
 
       {/* Right side icons */}
       <div className="flex items-center gap-4 ml-auto">
+        <div className="flex items-center gap-2 border-r pr-4">
+            <Coins className="h-5 w-5 text-yellow-500" />
+            <span className="font-semibold">{coinBalance.toLocaleString()}</span>
+        </div>
         <Button onClick={handleChatClick} variant="outline" size="icon" className="relative">
           <MessageCircle className="h-5 w-5" />
             <span className="sr-only">Tin nhắn</span>

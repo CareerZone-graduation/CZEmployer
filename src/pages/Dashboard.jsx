@@ -1,57 +1,17 @@
 
-import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
+import { useSelector } from "react-redux"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
 import { Briefcase, Users, Eye, TrendingUp, Plus, Calendar, MapPin, Building2, AlertCircle } from "lucide-react"
-import * as authService from "@/services/authService"
-import * as companyService from "@/services/companyService"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
-  const [company, setCompany] = useState(null)
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
-  const [isLoadingCompany, setIsLoadingCompany] = useState(true)
-
-  const fetchUser = useCallback(async () => {
-    setIsLoadingUser(true)
-    try {
-      const response = await authService.getMe()
-      if (response?.data) {
-        setUser(response.data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch user profile:", error)
-    } finally {
-      setIsLoadingUser(false)
-    }
-  }, [])
-
-  const fetchCompany = useCallback(async () => {
-    setIsLoadingCompany(true)
-    try {
-      const response = await companyService.getMyCompany();
-      if (response?.success) {
-        setCompany(response.data)
-      }
-    } catch (error) {
-      // If error is 404, it means user doesn't have a company yet
-      if (error.response?.status !== 404) {
-        console.error("Failed to fetch company:", error)
-      }
-    } finally {
-      setIsLoadingCompany(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchUser()
-    fetchCompany()
-  }, [fetchUser, fetchCompany])
+  const { user, isInitializing } = useSelector((state) => state.auth)
+  const company = user?.profile?.company
 
   const stats = [
     {
@@ -115,11 +75,11 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-green-700 to-green-800 rounded-lg p-6 text-white">
-        {isLoadingUser ? (
+        {isInitializing ? (
           <Skeleton className="h-8 w-1/2 bg-white/20" />
         ) : (
           <h2 className="text-2xl font-bold mb-2">
-            Welcome back, {user?.name || "Recruiter"}!
+            Welcome back, {user?.profile?.fullname || user?.user?.username || "Recruiter"}!
           </h2>
         )}
         <p className="text-green-100 mb-4">Here's what's happening with your recruitment activities today.</p>
@@ -130,9 +90,9 @@ const Dashboard = () => {
       </div>
 
       {/* Company Status Section */}
-      {user?.role === 'recruiter' && (
+      {user?.user?.role === 'recruiter' && (
         <div>
-          {isLoadingCompany ? (
+          {isInitializing ? (
             <Card className="border-gray-200">
               <CardContent className="p-6">
                 <Skeleton className="h-6 w-1/3 mb-2" />

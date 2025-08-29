@@ -16,7 +16,7 @@ import { updateCompanySchema } from '@/utils/validation';
 import { INDUSTRIES, COMPANY_SIZES } from '@/constants';
 import LocationPicker from '@/components/common/LocationPicker';
 
-const CompanyRegisterForm = () => {
+const CompanyRegisterForm = ({ onRegistrationSuccess }) => {
   const navigate = useNavigate();
   const form = useForm({
     resolver: zodResolver(updateCompanySchema), // Reuse schema, or create a specific one for creation
@@ -43,7 +43,10 @@ const CompanyRegisterForm = () => {
       toast.success('Đăng ký thành công!', {
         description: response.message || 'Thông tin công ty của bạn đã được gửi để xem xét.',
       });
-      navigate('/company-profile');
+      if (onRegistrationSuccess) {
+        onRegistrationSuccess();
+      }
+      // navigate('/company-profile'); // Navigation is now handled by the layout reacting to state change
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Đã có lỗi xảy ra.';
       toast.error('Đăng ký thất bại', {

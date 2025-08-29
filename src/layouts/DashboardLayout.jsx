@@ -1,40 +1,29 @@
 import { Outlet } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { cn } from '@/lib/utils';
-import * as companyService from '@/services/companyService';
 import DashboardHeader from '@/components/DashboardHeader';
 import CompactSidebar from '@/components/CompactSidebar';
 import AIChatbot from '@/components/common/AIChatbot';
 import CompanyRegisterForm from '@/components/company/CompanyRegisterForm';
+import { fetchUser } from '@/redux/authSlice';
 
 const DashboardLayout = () => {
-  const [hasCompany, setHasCompany] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const dispatch = useDispatch();
+  const { user, isInitializing: isAuthInitializing } = useSelector((state) => state.auth);
   const [isSidebarPinned, setIsSidebarPinned] = useState(true);
 
   const toggleSidebarPin = () => {
     setIsSidebarPinned(prev => !prev);
   };
 
-  const checkCompany = useCallback(async () => {
-    setIsInitializing(true);
-    try {
-      await companyService.getMyCompany();
-      setHasCompany(true);
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        setHasCompany(false);
-      } else {
-        console.error('Failed to check for company', error);
-      }
-    } finally {
-      setIsInitializing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkCompany();
-  }, [checkCompany]);
+  // The user object from Redux now contains the profile with company info
+  const hasCompany = !!user?.profile?.company;
+  
+  // The registration form will now dispatch the fetchUser action on success
+  const handleRegistrationSuccess = () => {
+    dispatch(fetchUser());
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-gray-50">
@@ -53,20 +42,15 @@ const DashboardLayout = () => {
       <AIChatbot />
 
       {/* Conditional overlay for company registration */}
-      {!isInitializing && !hasCompany && (
+      {!isAuthInitializing && !hasCompany && (
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="w-full max-w-4xl bg-white rounded-lg shadow-2xl">
-            <CompanyRegisterForm onRegistrationSuccess={checkCompany} />
+            <CompanyRegisterForm onRegistrationSuccess={handleRegistrationSuccess} />
           </div>
         </div>
       )}
 
-      {/* Loading spinner overlay */}
-      {isInitializing && (
-        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
-          <div className="w-12 h-12 border-4 border-emerald-700 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
+      {/* The main loading spinner is now handled by the AppRouter */}
     </div>
   );
 };

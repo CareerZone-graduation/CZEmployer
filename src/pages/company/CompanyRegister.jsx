@@ -1,16 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useSelector } from 'react-redux';
 import CompanyRegisterForm from '../../components/company/CompanyRegisterForm';
 import { Button } from '../../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 const CompanyRegister = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
 
   // Check if user is a recruiter
-  if (user?.role !== 'recruiter') {
+  if (user?.user?.role !== 'recruiter') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full space-y-6 text-center">
