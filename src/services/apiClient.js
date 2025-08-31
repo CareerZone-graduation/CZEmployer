@@ -1,7 +1,15 @@
 import axios from 'axios';
 import { getAccessToken, saveAccessToken } from '@/utils/token';
-import { forcedLogout } from '@/utils/auth';
 import { refreshToken } from './authService';
+import { logoutSuccess } from '@/redux/authSlice';
+
+// 1. Create a variable to hold the store.
+let store;
+
+// 2. Create an exported function to allow the store to be injected.
+export const setupApiClient = (appStore) => {
+  store = appStore;
+};
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL, // Lấy URL từ biến môi trường
@@ -83,7 +91,10 @@ apiClient.interceptors.response.use(
         return apiClient(config);
       } catch (refreshErr) {
         publishRefresh(null);
-        await forcedLogout();
+        // 3. Use the injected store.
+        if (store) {
+          store.dispatch(logoutSuccess());
+        }
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

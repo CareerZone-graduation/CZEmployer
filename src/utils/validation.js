@@ -1,13 +1,8 @@
+import { COMPANY_SIZES, experienceEnum, INDUSTRIES, jobCategoryEnum, jobTypeEnum, workTypeEnum} from '@/constants';
 import { z } from 'zod';
-import { jobTypeEnum, workTypeEnum, experienceEnum, jobCategoryEnum, INDUSTRIES, COMPANY_SIZES } from '@/constants';
-
-// =================================================================
-// JOB RELATED SCHEMAS
-// =================================================================
-
 const jobStatusEnum = ['ACTIVE', 'INACTIVE', 'EXPIRED'];
 
-// LocationPicker component ensures valid selections, so we only need to check for presence.
+
 const locationSchema = z.object({
   province: z.string({ required_error: 'Tỉnh/Thành phố là bắt buộc' }).trim().min(1, 'Tỉnh/Thành phố là bắt buộc'),
   ward: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
@@ -88,7 +83,56 @@ const baseCompanySchema = z.object({
     .min(20, 'Giới thiệu công ty phải có ít nhất 20 ký tự')
     .max(2000, 'Giới thiệu không được vượt quá 2000 ký tự')
     .trim(),
-  industry: z.enum(INDUSTRIES, { required_error: 'Ngành nghề là bắt buộc' }),
+  industry: z.string().min(1  , 'Lĩnh vực là bắt buộc').max(100, 'Lĩnh vực không được vượt quá 100 ký tự').trim(),
+  taxCode: z.string()
+    .min(1, 'Mã số thuế là bắt buộc')
+    .max(50, 'Mã số thuế không được vượt quá 50 ký tự')
+    .trim(),
+  size: z.string().optional(),
+  website: z.string()
+    .url('URL trang web không hợp lệ')
+    .trim(),
+  location: companyLocationSchema,
+  address: z.string().trim().min(1, 'Địa chỉ chi tiết là bắt buộc').max(200),
+  
+
+  contactInfo: contactInfoSchema,
+});
+
+export const createCompanySchema = baseCompanySchema.extend({
+    businessRegistrationFile: z
+      .any()
+      .refine((files) => files instanceof FileList && files.length > 0, 'Tệp đăng ký kinh doanh là bắt buộc.')
+      .refine((files) => files?.[0]?.size <= 5 * 1024 * 1024, `Kích thước tệp tối đa là 5MB.`)
+      .refine(
+        (files) => ['image/jpeg', 'image/png', 'application/pdf'].includes(files?.[0]?.type),
+        'Chỉ hỗ trợ các định dạng .jpg, .png, .pdf'
+      ),
+    email: z.string().email('Vui lòng nhập email hợp lệ').trim().toLowerCase().optional().or(z.literal('')),
+    phone: z.string().regex(/^[+]?[\d]{1,15}$/, 'Vui lòng nhập số điện thoại hợp lệ').trim().optional().or(z.literal('')),
+  })
+  .refine(data => data.industry && INDUSTRIES.includes(data.industry), {
+    message: 'Vui lòng chọn lĩnh vực',
+    path: ['industry'],
+  })
+  .refine(data => data.size && COMPANY_SIZES.includes(data.size), {
+    message: 'Vui lòng chọn quy mô',
+    path: ['size'],
+  });
+
+
+export const updateCompanySchema = z.object({
+  name: z.string({ required_error: 'Tên công ty là bắt buộc' })
+    .min(2, 'Tên công ty phải có ít nhất 2 ký tự')
+    .max(200, 'Tên công ty không được vượt quá 200 ký tự')
+    .trim()
+    .optional(),
+  about: z.string({ required_error: 'Giới thiệu công ty là bắt buộc' })
+    .min(20, 'Giới thiệu công ty phải có ít nhất 20 ký tự')
+    .max(2000, 'Giới thiệu không được vượt quá 2000 ký tự')
+    .trim()
+    .optional(),
+  industry: z.enum(INDUSTRIES).optional(),
   taxCode: z.string()
     .max(50, 'Mã số thuế không được vượt quá 50 ký tự')
     .trim()
@@ -97,12 +141,11 @@ const baseCompanySchema = z.object({
   website: z.string()
     .url('URL trang web không hợp lệ')
     .trim()
-    .optional()
-    .or(z.literal('')),
-  location: companyLocationSchema,
-  address: z.string().max(200, 'Địa chỉ chi tiết không được quá 200 ký tự').trim().optional(),
+    .optional(),
+
+  // Location và address optional cho update
+  location: locationSchema.optional(),
+  address: z.string().trim().min(1, 'Địa chỉ chi tiết là bắt buộc').max(200).optional(),
+  
   contactInfo: contactInfoSchema,
 });
-
-export const createCompanySchema = baseCompanySchema;
-export const updateCompanySchema = baseCompanySchema.partial();

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { logoutSuccess } from '@/redux/authSlice';
-import { forcedLogout } from '@/utils/auth';
+import { logoutServer } from '@/services/authService';
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
@@ -31,8 +31,14 @@ const DashboardHeader = () => {
   const coinBalance = user?.user?.coinBalance ?? 0;
 
   const handleLogout = async () => {
-    await forcedLogout();
-    dispatch(logoutSuccess());
+    try {
+      await logoutServer();
+    } catch (error) {
+      console.error('Server logout failed:', error);
+      // Vẫn tiếp tục logout ở client dù server có lỗi
+    } finally {
+      dispatch(logoutSuccess());
+    }
   };
 
   const handleChatClick = () => {

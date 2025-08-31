@@ -12,6 +12,10 @@ export default defineConfig({
   },
 
   server: {
+    allowedHosts: [
+    '.serveo.net',
+    '.ngrok-free.app'
+  ],
     port: 3000,
     open: true,
     host: true,

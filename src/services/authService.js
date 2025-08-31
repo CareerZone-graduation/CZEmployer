@@ -39,3 +39,11 @@ export const getMe = (axiosConfig = {}) =>
  * @returns {Promise<import('axios').AxiosResponse>}
  */
 export const register = (userData) => apiClient.post('/auth/register', userData);
+
+/**
+ * Resend verification email
+ * @param {{ email: string }} payload
+ * @returns {Promise<import('axios').AxiosResponse>}
+ */
+export const resendVerificationEmail = (payload) =>
+  apiClient.post('/auth/resend-verification', payload);

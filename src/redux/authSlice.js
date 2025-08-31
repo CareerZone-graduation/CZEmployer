@@ -20,6 +20,7 @@ export const fetchUser = createAsyncThunk('auth/fetchUser', async (_, { rejectWi
 const initialState = {
   user: null, // Will hold { user, profile }
   isAuthenticated: false,
+  isEmailVerified: false, // NEW: Track email verification status
   isInitializing: true, // To track the initial user fetch
   error: null,
 };
@@ -37,6 +38,7 @@ const authSlice = createSlice({
       tokenUtil.clearAccessToken();
       state.user = null;
       state.isAuthenticated = false;
+      state.isEmailVerified = false;
     },
     updateCoinBalance: (state, action) => {
       if (state.user && state.user.user) {
@@ -51,12 +53,14 @@ const authSlice = createSlice({
       .addCase(fetchUser.fulfilled, (state, action) => {
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.isEmailVerified = action.payload.user?.isEmailVerified || false;
         state.isInitializing = false; // Chỉ set về false
         state.error = null;
       })
       .addCase(fetchUser.rejected, (state, action) => {
         state.user = null;
         state.isAuthenticated = false;
+        state.isEmailVerified = false;
         state.isInitializing = false;
         state.error = action.payload;
       });

@@ -12,41 +12,59 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { createCompany } from '@/services/companyService';
-import { updateCompanySchema } from '@/utils/validation';
+import { createCompanySchema } from '@/utils/validation';
 import { INDUSTRIES, COMPANY_SIZES } from '@/constants';
 import LocationPicker from '@/components/common/LocationPicker';
 
-const CompanyRegisterForm = ({ onRegistrationSuccess }) => {
+const CompanyRegisterForm = () => {
   const navigate = useNavigate();
   const form = useForm({
-    resolver: zodResolver(updateCompanySchema), // Reuse schema, or create a specific one for creation
+    resolver: zodResolver(createCompanySchema),
     defaultValues: {
       name: '',
       about: '',
       industry: '',
-      taxCode: '',
       size: '',
       website: '',
-      location: { province: '', ward: '' },
+      taxCode: '',
       address: '',
-      contactInfo: { email: '', phone: '' },
+      location: {
+        province: '',
+        ward: '',
+      },
+      businessRegistrationFile: null,
+      email: '',
+      phone: '',
     },
   });
 
   const { isSubmitting } = form.formState;
 
   const handleSubmit = async (values) => {
+    const { businessRegistrationFile, address, location, email, phone, ...rest } = values;
+
+    const companyData = {
+      ...rest,
+      address,
+      location,
+      contactInfo: {
+        email,
+        phone,
+      },
+    };
+
+    const formData = new FormData();
+    formData.append('companyData', JSON.stringify(companyData));
+
+    // Handle FileList from register
+    if (businessRegistrationFile && businessRegistrationFile.length > 0) {
+      formData.append('businessRegistrationFile', businessRegistrationFile[0]);
+    }
+
     try {
-      // FormData is needed if you upload files, but the logic for that is removed for simplicity here.
-      // The service should be adapted to handle pure JSON if no file is sent.
-      const response = await createCompany(values);
-      toast.success('Đăng ký thành công!', {
-        description: response.message || 'Thông tin công ty của bạn đã được gửi để xem xét.',
-      });
-      if (onRegistrationSuccess) {
-        onRegistrationSuccess();
-      }
-      // navigate('/company-profile'); // Navigation is now handled by the layout reacting to state change
+      await createCompany(formData);
+      toast.success('Đăng ký công ty thành công! Vui lòng chờ duyệt.');
+      navigate('/dashboard');
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Đã có lỗi xảy ra.';
       toast.error('Đăng ký thất bại', {
@@ -109,7 +127,7 @@ const CompanyRegisterForm = ({ onRegistrationSuccess }) => {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Chọn lĩnh vực" />
+                            <SelectValue placeholder="Vui lòng chọn lĩnh vực" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -131,7 +149,7 @@ const CompanyRegisterForm = ({ onRegistrationSuccess }) => {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Chọn quy mô" />
+                            <SelectValue placeholder="Vui lòng chọn quy mô" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -172,6 +190,39 @@ const CompanyRegisterForm = ({ onRegistrationSuccess }) => {
                 />
               </div>
 
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Thông tin liên hệ</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email liên hệ</FormLabel>
+                        <FormControl>
+                          <Input placeholder="contact@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Số điện thoại</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nhập số điện thoại" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
               {/* Address */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Địa chỉ</h3>
@@ -181,53 +232,38 @@ const CompanyRegisterForm = ({ onRegistrationSuccess }) => {
                     provinceFieldName="location.province"
                     wardFieldName="location.ward"
                   />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Địa chỉ chi tiết (Số nhà, tên đường)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ví dụ: 123 Đường Nguyễn Huệ" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Địa chỉ chi tiết</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Số nhà, tên đường" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
-              {/* Contact Info */}
+              {/* File Upload */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Thông tin liên hệ</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="contactInfo.email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="contact@company.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="contactInfo.phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Điện thoại</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+84901234567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <h3 className="text-lg font-semibold">Giấy tờ pháp lý</h3>
+                <FormItem>
+                  <FormLabel>Giấy phép đăng ký kinh doanh *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept=".png,.jpg,.jpeg"
+                      {...form.register('businessRegistrationFile')}
+                    />
+                  </FormControl>
+                  <FormMessage>
+                    {form.formState.errors.businessRegistrationFile?.message}
+                  </FormMessage>
+                </FormItem>
               </div>
 
               <div className="flex justify-end pt-6 border-t">

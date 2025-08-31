@@ -74,6 +74,8 @@ const CompanyProfile = () => {
             <div className="flex items-center space-x-4">
               <CardTitle className="text-3xl font-bold">{company.name}</CardTitle>
               {company.verified && <Badge className="bg-green-500 text-white">Đã xác thực</Badge>}
+              {/* chưa xác thực */}
+              {!company.verified && <Badge className="bg-yellow-500 text-white">Chưa xác thực</Badge>}
             </div>
             <CardDescription className="mt-2 text-lg">{company.industry}</CardDescription>
             {company.website && (

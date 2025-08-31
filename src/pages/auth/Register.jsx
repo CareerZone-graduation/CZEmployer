@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { UserPlus, Loader2, User, Mail, Lock, Briefcase } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -12,7 +12,6 @@ import * as authService from '@/services/authService';
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
     password: '',
     fullname: '',
     email: '',
@@ -29,9 +28,9 @@ const Register = () => {
   const handleRegister = useCallback(
     async (e) => {
       e.preventDefault();
-      const { username, password, fullname, email, role } = formData;
+      const { password, fullname, email, role } = formData;
 
-      if (!username || !password || !fullname || !email || !role) {
+      if (!password || !fullname || !email || !role) {
         toast.error('Vui lòng điền đầy đủ thông tin.');
         return;
       }
@@ -39,10 +38,12 @@ const Register = () => {
       setIsLoading(true);
       try {
         const response = await authService.register(formData);
-        const successMessage = response?.data?.message || 'Đăng ký thành công! Vui lòng đăng nhập.';
+        console.log(response);
+        const successMessage = response?.message || 'Đăng ký thành công! Vui lòng đăng nhập.';
         toast.success(successMessage);
-        navigate('/login');
+        navigate('/register-success', { state: { email: formData.email } });
       } catch (err) {
+        console.error(err);
         const errorMessage =
           err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
         toast.error(errorMessage);
@@ -68,20 +69,11 @@ const Register = () => {
           </div>
           <form onSubmit={handleRegister}>
             <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="fullname">Họ và tên</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="fullname" name="fullname" placeholder="Nguyễn Văn A" required value={formData.fullname} onChange={handleChange} disabled={isLoading} className="pl-10" />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="username">Tên đăng nhập</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="username" name="username" placeholder="nguyenvana" required value={formData.username} onChange={handleChange} disabled={isLoading} className="pl-10" />
-                  </div>
+              <div className="grid gap-2">
+                <Label htmlFor="fullname">Họ và tên</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input id="fullname" name="fullname" placeholder="Nguyễn Văn A" required value={formData.fullname} onChange={handleChange} disabled={isLoading} className="pl-10" />
                 </div>
               </div>
               <div className="grid gap-2">

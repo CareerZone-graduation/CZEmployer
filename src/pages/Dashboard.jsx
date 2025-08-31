@@ -79,7 +79,7 @@ const Dashboard = () => {
           <Skeleton className="h-8 w-1/2 bg-white/20" />
         ) : (
           <h2 className="text-2xl font-bold mb-2">
-            Welcome back, {user?.profile?.fullname || user?.user?.username || "Recruiter"}!
+            Welcome back, {user?.profile?.fullname || "Recruiter"}!
           </h2>
         )}
         <p className="text-green-100 mb-4">Here's what's happening with your recruitment activities today.</p>

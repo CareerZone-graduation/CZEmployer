@@ -24,6 +24,9 @@ import InterviewDetail from '@/pages/interviews/InterviewDetail';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import CompanyRegister from '@/pages/company/CompanyRegister';
+import RegistrationSuccess from '@/pages/auth/RegistrationSuccess';
+import VerifyEmail from '@/pages/auth/VerifyEmail';
+import VerifyEmailPrompt from '@/pages/auth/VerifyEmailPrompt';
 import TestCompanyForm from '@/pages/test/TestCompanyForm';
 import CVViewer from '@/pages/CVViewer';
 import PaymentSuccess from '@/pages/PaymentSuccess';
@@ -39,9 +42,13 @@ const PlaceholderPage = ({ title }) => (
 );
 
 // Component để bảo vệ các route yêu cầu đăng nhập
-const ProtectedRoute = ({ isAuthenticated }) => {
+const ProtectedRoute = ({ isAuthenticated, isEmailVerified }) => {
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
+  }
+  // Nếu đã đăng nhập nhưng chưa xác thực email, chuyển hướng đến trang yêu cầu xác thực
+  if (!isEmailVerified) {
+    return <Navigate to="/verify-prompt" replace />;
   }
   return <Outlet />;
 };
@@ -50,12 +57,13 @@ import { shallowEqual } from 'react-redux';
 
 const AppRouter = () => {
   // Use shallowEqual to prevent re-renders when the user object changes
-  const { isAuthenticated, isInitializing } = useSelector(
+  const { isAuthenticated, isInitializing, isEmailVerified } = useSelector(
     (state) => ({
       isAuthenticated: state.auth.isAuthenticated,
       isInitializing: state.auth.isInitializing,
+      isEmailVerified: state.auth.isEmailVerified,
     }),
-    shallowEqual
+    shallowEqual,
   );
 
   // Hiển thị màn hình tải trong khi kiểm tra trạng thái đăng nhập
@@ -85,9 +93,17 @@ const AppRouter = () => {
         <Route path="register" element={<Register />} />
         <Route index element={<Navigate to="login" replace />} />
       </Route>
+      <Route path="/register-success" element={<RegistrationSuccess />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/verify-prompt" element={<VerifyEmailPrompt />} />
+
 
       {/* Các route được bảo vệ bên trong DashboardLayout */}
-      <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+      <Route
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated} isEmailVerified={isEmailVerified} />
+        }
+      >
         <Route element={<DashboardLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="company-profile" element={<CompanyProfile />} />
