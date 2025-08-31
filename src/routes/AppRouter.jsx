@@ -23,6 +23,8 @@ import InterviewList from '@/pages/interviews/InterviewList';
 import InterviewDetail from '@/pages/interviews/InterviewDetail';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
+import ForgotPassword from '@/pages/auth/ForgotPassword';
+import ResetPassword from '@/pages/auth/ResetPassword';
 import CompanyRegister from '@/pages/company/CompanyRegister';
 import RegistrationSuccess from '@/pages/auth/RegistrationSuccess';
 import VerifyEmail from '@/pages/auth/VerifyEmail';
@@ -91,8 +93,10 @@ const AppRouter = () => {
       >
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
         <Route index element={<Navigate to="login" replace />} />
       </Route>
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register-success" element={<RegistrationSuccess />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/verify-prompt" element={<VerifyEmailPrompt />} />

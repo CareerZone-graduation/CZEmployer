@@ -106,12 +106,7 @@ const Login = () => {
         <div className="grid gap-2">
           <div className="flex items-center">
             <Label htmlFor="password">Mật khẩu</Label>
-            <Link
-              to="/forgot-password"
-              className="ml-auto inline-block text-sm underline"
-            >
-              Quên mật khẩu?
-            </Link>
+            
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -127,6 +122,17 @@ const Login = () => {
             />
           </div>
         </div>
+        
+        <div className="flex items-center justify-between">
+          <div></div>
+          <Link 
+            to="/auth/forgot-password" 
+            className="text-sm text-primary hover:underline"
+          >
+            Quên mật khẩu?
+          </Link>
+        </div>
+
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

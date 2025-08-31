@@ -46,7 +46,6 @@ function publishRefresh(token) {
 
 apiClient.interceptors.response.use(
   (res) => {
-    // ----- Toast cho request thành công -----
     const { data } = res;
     return data;
   },

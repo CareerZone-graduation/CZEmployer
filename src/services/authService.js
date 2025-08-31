@@ -47,3 +47,25 @@ export const register = (userData) => apiClient.post('/auth/register', userData)
  */
 export const resendVerificationEmail = (payload) =>
   apiClient.post('/auth/resend-verification', payload);
+
+/**
+ * Send forgot password email
+ * @param {{ email: string }} payload
+ * @returns {Promise<import('axios').AxiosResponse<{
+ *   success: boolean,
+ *   message: string
+ * }>>}
+ */
+export const forgotPassword = (payload) =>
+  apiClient.post('/auth/forgot-password', payload);
+
+/**
+ * Reset password with token
+ * @param {{ token: string, newPassword: string }} payload
+ * @returns {Promise<import('axios').AxiosResponse<{
+ *   success: boolean,
+ *   message: string
+ * }>>}
+ */
+export const resetPassword = (payload) =>
+  apiClient.post('/auth/reset-password', payload);
