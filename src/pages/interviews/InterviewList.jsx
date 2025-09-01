@@ -157,7 +157,7 @@ const InterviewList = () => {
                   <div className="font-medium">{interview.candidate.fullName}</div>
                   <div className="text-sm text-muted-foreground">{interview.candidate.email}</div>
                 </TableCell>
-                <TableCell>{interview.job.title}</TableCell>
+                <TableCell>{interview.roomName}</TableCell>
                 <TableCell>{formatDate(interview.scheduledTime)}</TableCell>
                 <TableCell>
                   <Badge
