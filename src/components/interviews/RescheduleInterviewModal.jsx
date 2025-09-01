@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,25 +15,47 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { formatDate } from '@/utils/formatDate';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const RescheduleInterviewModal = ({ isOpen, onClose, onSubmit, loading }) => {
-  const [scheduledTime, setScheduledTime] = useState(new Date());
-  const [message, setMessage] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [hour, setHour] = useState(new Date().getHours());
+  const [minute, setMinute] = useState(new Date().getMinutes());
+  const [reason, setReason] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      const now = new Date();
+      setSelectedDate(now);
+      setHour(now.getHours());
+      setMinute(now.getMinutes());
+      setReason('');
+    }
+  }, [isOpen]);
 
   const handleSubmit = () => {
-    if (!scheduledTime) {
-      // Có thể thêm toast thông báo lỗi ở đây nếu cần
+    if (!selectedDate) {
+      toast.error('Vui lòng chọn ngày phỏng vấn.');
       return;
     }
+
+    const newScheduledTime = new Date(selectedDate);
+    newScheduledTime.setHours(hour, minute, 0, 0);
+
+    if (newScheduledTime <= new Date()) {
+      toast.error('Thời gian dời lịch phải ở trong tương lai.');
+      return;
+    }
+
     onSubmit({
-      scheduledTime: scheduledTime.toISOString(),
-      message: message,
+      scheduledTime: newScheduledTime.toISOString(),
+      reason: reason,
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Dời lịch phỏng vấn</DialogTitle>
           <DialogDescription>
@@ -41,42 +63,62 @@ const RescheduleInterviewModal = ({ isOpen, onClose, onSubmit, loading }) => {
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="scheduledTime" className="text-right">
-              Thời gian
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="scheduledTime">Ngày phỏng vấn</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-[280px] justify-start text-left font-normal",
-                    !scheduledTime && "text-muted-foreground"
+                    "w-full justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {scheduledTime ? formatDate(scheduledTime, "PPP") : <span>Chọn ngày</span>}
+                  {selectedDate ? formatDate(selectedDate, "PPP") : <span>Chọn ngày</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={scheduledTime}
-                  onSelect={setScheduledTime}
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
                   initialFocus
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 />
               </PopoverContent>
             </Popover>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="message" className="text-right">
-              Lý do
-            </Label>
+          <div className="space-y-2">
+            <Label>Giờ phỏng vấn</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="0"
+                max="23"
+                value={hour}
+                onChange={(e) => setHour(parseInt(e.target.value, 10))}
+                className="w-full"
+                placeholder="Giờ"
+              />
+              <span>:</span>
+              <Input
+                type="number"
+                min="0"
+                max="59"
+                value={minute}
+                onChange={(e) => setMinute(parseInt(e.target.value, 10))}
+                className="w-full"
+                placeholder="Phút"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Lý do dời lịch</Label>
             <Input
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="col-span-3"
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               placeholder="VD: Bận việc đột xuất"
             />
           </div>

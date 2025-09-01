@@ -24,10 +24,11 @@ export const rescheduleInterview = (id, data) => {
 /**
  * Cancels an interview.
  * @param {string} id - The ID of the interview.
+ * @param {object} data - The cancellation data, e.g., { reason: '...' }.
  * @returns {Promise<object>} The response data.
  */
-export const cancelInterview = (id) => {
-  return apiClient.patch(`${API_URL}/${id}/cancel`);
+export const cancelInterview = (id, data) => {
+  return apiClient.patch(`${API_URL}/${id}/cancel`, data);
 };
 
 /**

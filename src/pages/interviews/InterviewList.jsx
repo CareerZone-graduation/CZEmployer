@@ -9,6 +9,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +40,9 @@ const InterviewList = () => {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   const fetchInterviews = useCallback(async () => {
     setLoading(true);
@@ -82,6 +95,33 @@ const InterviewList = () => {
 
   const handleViewDetails = (interviewId) => {
     navigate(`/interviews/${interviewId}`);
+  };
+
+  const openCancelDialog = (interview) => {
+    setSelectedInterview(interview);
+    setIsCancelDialogOpen(true);
+    setCancelReason('');
+  };
+
+  const handleCancelInterview = async () => {
+    if (!selectedInterview) return;
+
+    if (!cancelReason.trim()) {
+      toast.error('Vui lòng nhập lý do hủy phỏng vấn.');
+      return;
+    }
+
+    try {
+      await interviewService.cancelInterview(selectedInterview.id, { reason: cancelReason });
+      toast.success('Hủy lịch phỏng vấn thành công.');
+      fetchInterviews(); // Refresh the list
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Đã xảy ra lỗi khi hủy phỏng vấn.';
+      toast.error(errorMessage);
+    } finally {
+      setIsCancelDialogOpen(false);
+      setSelectedInterview(null);
+    }
   };
 
   if (loading) {
@@ -137,7 +177,14 @@ const InterviewList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleViewDetails(interview.id)}>Xem chi tiết</DropdownMenuItem>
-                      {/* Các hành động khác có thể được thêm lại ở đây nếu cần */}
+                      {interview.status === 'SCHEDULED' && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => openCancelDialog(interview)}
+                        >
+                          Hủy phỏng vấn
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -146,6 +193,40 @@ const InterviewList = () => {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Hủy buổi phỏng vấn</DialogTitle>
+            <DialogDescription>
+              Vui lòng cung cấp lý do hủy. Hành động này sẽ thông báo cho ứng viên.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="cancel-reason">Lý do hủy</Label>
+              <Textarea
+                id="cancel-reason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Ví dụ: Thay đổi lịch trình nội bộ..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+              Bỏ qua
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelInterview}
+              disabled={!cancelReason.trim()}
+            >
+              Xác nhận hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

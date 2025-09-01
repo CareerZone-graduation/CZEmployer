@@ -3,21 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as interviewService from '@/services/interviewService';
 import { toast } from 'sonner';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/utils/formatDate';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle } from 'lucide-react';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
 
 const DetailItem = ({ label, children, className }) => (
@@ -28,19 +28,49 @@ const DetailItem = ({ label, children, className }) => (
 );
 
 const HistoryItem = ({ item }) => {
-  if (!item || item.action !== 'RESCHEDULED') return null;
+  if (!item) return null;
+
+  const renderActionDetails = () => {
+    switch (item.action) {
+      case 'CREATED':
+        return (
+          <div className="flex items-center text-sm mt-1">
+            <FilePlus className="h-4 w-4 mr-2 text-green-500" />
+            <span>Cuộc phỏng vấn đã được tạo.</span>
+          </div>
+        );
+      case 'RESCHEDULED':
+        return (
+          <>
+            <div className="flex flex-wrap items-center text-sm mt-1">
+              <Clock className="h-4 w-4 mr-2 text-gray-500" />
+              <span className="line-through text-gray-500">{formatDate(item.fromTime)}</span>
+              <ArrowRight className="h-4 w-4 mx-2 text-primary" />
+              <span className="font-semibold text-primary">{formatDate(item.toTime)}</span>
+            </div>
+            {item.reason && <p className="text-sm mt-1 pl-6"><strong>Lý do:</strong> {item.reason}</p>}
+          </>
+        );
+      case 'CANCELLED':
+        return (
+          <>
+            <div className="flex items-center text-sm mt-1">
+              <XCircle className="h-4 w-4 mr-2 text-destructive" />
+              <span className="text-destructive">Cuộc phỏng vấn đã bị hủy.</span>
+            </div>
+            {item.reason && <p className="text-sm mt-1 pl-6"><strong>Lý do:</strong> {item.reason}</p>}
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="relative pl-8 py-4 border-l border-gray-200 dark:border-gray-700 last:border-l-transparent">
       <div className="absolute left-[-9px] top-5 h-4 w-4 bg-gray-200 rounded-full dark:bg-gray-600"></div>
       <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(item.timestamp)}</p>
-      <div className="flex flex-wrap items-center text-sm mt-1">
-        <Clock className="h-4 w-4 mr-2 text-gray-500" />
-        <span className="line-through text-gray-500">{formatDate(item.fromTime)}</span>
-        <ArrowRight className="h-4 w-4 mx-2 text-primary" />
-        <span className="font-semibold text-primary">{formatDate(item.toTime)}</span>
-      </div>
-      {item.reason && <p className="text-sm mt-1"><strong>Lý do:</strong> {item.reason}</p>}
+      {renderActionDetails()}
     </div>
   );
 };
@@ -54,6 +84,7 @@ const InterviewDetail = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const fetchInterviewDetail = useCallback(async () => {
     setLoading(true);
@@ -99,11 +130,17 @@ const InterviewDetail = () => {
   };
 
   const confirmCancel = async () => {
+    if (!cancelReason.trim()) {
+      toast.error('Vui lòng nhập lý do hủy.');
+      return;
+    }
+
     setActionLoading(true);
     try {
-      await interviewService.cancelInterview(interviewId);
+      await interviewService.cancelInterview(interviewId, { reason: cancelReason });
       toast.success('Hủy phỏng vấn thành công!');
       setCancelAlertOpen(false);
+      setCancelReason('');
       fetchInterviewDetail(); // Refresh details
     } catch (error) {
       toast.error(error.response?.data?.message || 'Không thể hủy phỏng vấn.');
@@ -171,10 +208,10 @@ const InterviewDetail = () => {
 
           <DetailItem label="Lịch sử thay đổi" className="mb-6">
             <div>
-              {(interview.changeHistory && interview.changeHistory.filter(item => item.action === 'RESCHEDULED').length > 0) ? (
+              {(interview.changeHistory && interview.changeHistory.length > 0) ? (
                 interview.changeHistory
-                  .slice() // Tạo một bản sao để tránh thay đổi mảng gốc
-                  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) // Sắp xếp từ mới nhất đến cũ nhất
+                  .slice()
+                  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                   .map((item) => (
                     <HistoryItem key={item._id} item={item} />
                   ))
@@ -212,22 +249,39 @@ const InterviewDetail = () => {
         loading={actionLoading}
       />
 
-      <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Bạn có chắc chắn muốn hủy?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Hành động này không thể hoàn tác. Cuộc phỏng vấn sẽ bị hủy vĩnh viễn.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Không</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel} disabled={actionLoading}>
-              {actionLoading ? 'Đang hủy...' : 'Có, hủy phỏng vấn'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Hủy buổi phỏng vấn</DialogTitle>
+            <DialogDescription>
+              Vui lòng cung cấp lý do hủy. Hành động này sẽ thông báo cho ứng viên.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="cancel-reason">Lý do hủy</Label>
+              <Textarea
+                id="cancel-reason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Ví dụ: Thay đổi lịch trình nội bộ..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelAlertOpen(false)}>
+              Bỏ qua
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancel}
+              disabled={actionLoading || !cancelReason.trim()}
+            >
+              {actionLoading ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

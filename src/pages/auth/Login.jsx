@@ -15,8 +15,8 @@ import * as tokenUtil from '@/utils/token';
 
 const Login = () => {
   const dispatch = useDispatch();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('r1@gmail.com');
+  const [password, setPassword] = useState('a');
   const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (email) => {
