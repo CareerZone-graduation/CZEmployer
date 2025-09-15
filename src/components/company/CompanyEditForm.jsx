@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Save } from 'lucide-react';
 
 import { updateCompanySchema } from '@/utils/validation';
+import { getProvinces, getDistrictsForProvince, getCommunesForDistrict } from '@/utils/locationUtils';
 import * as companyService from '@/services/companyService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,58 @@ const getValidSize = (companySize) => {
     return companySize;
   }
   return '11-50 nhân viên'; // Default value
+};
+
+// Custom hook to manage location data
+const useLocationData = (form) => {
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [communes, setCommunes] = useState([]);
+
+  const selectedProvince = form.watch('location.province');
+  const selectedDistrict = form.watch('location.district');
+
+  // Populate provinces on mount
+  useEffect(() => {
+    setProvinces(getProvinces());
+  }, []);
+
+  // Populate districts when province changes
+  useEffect(() => {
+    if (selectedProvince) {
+      setDistricts(getDistrictsForProvince(selectedProvince));
+    } else {
+      setDistricts([]);
+    }
+  }, [selectedProvince]);
+
+  // Populate communes when district changes
+  useEffect(() => {
+    if (selectedProvince && selectedDistrict) {
+      setCommunes(getCommunesForDistrict(selectedProvince, selectedDistrict));
+    } else {
+      setCommunes([]);
+    }
+  }, [selectedProvince, selectedDistrict]);
+
+  // Handler for when user MANUALLY changes province in the picker
+  const handleProvinceChange = () => {
+    form.setValue('location.district', '');
+    form.setValue('location.commune', '');
+  };
+  
+  // Handler for when user MANUALLY changes district in the picker
+  const handleDistrictChange = () => {
+    form.setValue('location.commune', '');
+  };
+
+  return {
+    provinces,
+    districts,
+    communes,
+    handleProvinceChange,
+    handleDistrictChange,
+  };
 };
 
 const CompanyEditForm = ({ company, onSuccess }) => {
@@ -71,6 +124,13 @@ const CompanyEditForm = ({ company, onSuccess }) => {
   }, [defaultValues, form]);
 
   const { isSubmitting } = form.formState;
+  const {
+    provinces,
+    districts,
+    communes,
+    handleProvinceChange,
+    handleDistrictChange
+  } = useLocationData(form);
 
   const handleSubmit = useCallback(async (values) => {
     try {
@@ -247,6 +307,11 @@ const CompanyEditForm = ({ company, onSuccess }) => {
                     provinceFieldName="location.province"
                     districtFieldName="location.district"
                     communeFieldName="location.commune"
+                    provinces={provinces}
+                    districts={districts}
+                    communes={communes}
+                    onProvinceChange={handleProvinceChange}
+                    onDistrictChange={handleDistrictChange}
                   />
               </div>
               

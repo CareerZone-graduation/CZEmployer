@@ -7,6 +7,10 @@ const locationSchema = z.object({
   province: z.string({ required_error: 'Tỉnh/Thành phố là bắt buộc' }).trim().min(1, 'Tỉnh/Thành phố là bắt buộc'),
   district: z.string({ required_error: 'Quận/Huyện là bắt buộc' }).trim().min(1, 'Quận/Huyện là bắt buộc'),
   commune: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
+  coordinates: z.object({
+    type: z.literal('Point').default('Point'),
+    coordinates: z.array(z.number()).length(2)
+  }).optional(),
 });
 
 const baseJobSchema = z.object({

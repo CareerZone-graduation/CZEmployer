@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -28,7 +29,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as jobService from '@/services/jobService';
-import * as companyService from '@/services/companyService';
 import {
   jobTypeEnum,
   jobTypeMap,
@@ -61,6 +61,10 @@ const JobForm = ({ onSuccess, job }) => {
   const [isLocationLoading, setIsLocationLoading] = useState(true);
 
 
+  const { user: authUser } = useSelector((state) => state.auth);
+  const companyProfile = authUser?.profile.company;
+  console.log("Company Profile:", companyProfile);
+
   const form = useForm({
     resolver: zodResolver(isEditMode ? updateJobSchema : createJobSchema),
     defaultValues: isEditMode
@@ -72,6 +76,7 @@ const JobForm = ({ onSuccess, job }) => {
             province: job.location?.province || '',
             district: job.location?.district || '',
             commune: job.location?.commune || '',
+            coordinates: job.location?.coordinates || undefined,
           },
           address: job.address || job.location?.address || '',
         }
@@ -85,6 +90,7 @@ const JobForm = ({ onSuccess, job }) => {
             province: '',
             district: '',
             commune: '',
+            coordinates: undefined,
           },
           address: '',
           type: 'FULL_TIME',
@@ -97,7 +103,7 @@ const JobForm = ({ onSuccess, job }) => {
         },
   });
 
-  const { isSubmitting, control, setValue, trigger } = form;
+  const { isSubmitting, control, setValue } = form;
   const useCompanyAddress = useWatch({ control, name: 'useCompanyAddress' });
   const watchedProvince = useWatch({ control, name: 'location.province' });
   const watchedDistrict = useWatch({ control, name: 'location.district' });
@@ -133,33 +139,32 @@ const JobForm = ({ onSuccess, job }) => {
   }, [watchedProvince, watchedDistrict]);
 
 
-  const handleFetchCompanyAddress = useCallback(async () => {
-    try {
-      const response = await companyService.getMyCompanyAddress();
-      if (response.success) {
-        const { location, address } = response.data;
-        const mapped = mapGoongLocationToStandard(location);
+  // Effect to handle "Use Company Address" checkbox
+  useEffect(() => {
+    if (useCompanyAddress) {
+      if (companyProfile) {
+        const { location: companyLocation, address: companyAddress } = companyProfile;
         
-        setValue('location.province', mapped.province);
-        setValue('location.district', mapped.district);
-        setValue('location.commune', mapped.commune);
-        setValue('address', address);
-        
-        // Trigger validation for all fields at once after setting them
-        trigger(['location.province', 'location.district', 'location.commune', 'address']);
+        setValue('location.province', companyLocation?.province || '', { shouldValidate: true });
+        setValue('address', companyAddress || '', { shouldValidate: true });
+        if (companyLocation?.coordinates) {
+          setValue('location.coordinates', companyLocation.coordinates);
+        }
 
-        toast.success('Đã lấy địa chỉ công ty thành công!');
-      } else {
-        toast.error('Không thể lấy địa chỉ công ty.', {
-          description: response.message,
+        requestAnimationFrame(() => {
+          setValue('location.district', companyLocation?.district || '', { shouldValidate: true });
+          requestAnimationFrame(() => {
+            setValue('location.commune', companyLocation?.commune || '', { shouldValidate: true });
+          });
         });
+      } else {
+         toast.error('Chưa có thông tin công ty', {
+            description: 'Vui lòng cập nhật thông tin công ty để sử dụng tính năng này.',
+         });
+         setValue('useCompanyAddress', false); // Uncheck the box
       }
-    } catch (error) {
-      toast.error('Lỗi khi lấy địa chỉ công ty.', {
-        description: error.response?.data?.message || 'Vui lòng thử lại.',
-      });
     }
-  }, [setValue]);
+  }, [useCompanyAddress, companyProfile, setValue]);
   
   const onSubmit = useCallback(
     async (values) => {
@@ -279,9 +284,7 @@ const JobForm = ({ onSuccess, job }) => {
                     checked={field.value}
                     onCheckedChange={(checked) => {
                       field.onChange(checked);
-                      if (checked) {
-                        handleFetchCompanyAddress();
-                      }
+                      field.onChange(checked);
                     }}
                   />
                 </FormControl>
@@ -295,8 +298,7 @@ const JobForm = ({ onSuccess, job }) => {
             )}
           />
 
-          {!useCompanyAddress && (
-            <div className="space-y-4 pt-4">
+          <div className="space-y-4 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <LocationPicker
                     control={control}
@@ -307,12 +309,17 @@ const JobForm = ({ onSuccess, job }) => {
                     districts={districts}
                     communes={communes}
                     isLoading={isLocationLoading}
+                    disabled={useCompanyAddress}
                     onProvinceChange={() => {
-                        setValue('location.district', '');
-                        setValue('location.commune', '');
+                        if (!useCompanyAddress) {
+                            setValue('location.district', '');
+                            setValue('location.commune', '');
+                        }
                     }}
                     onDistrictChange={() => {
-                        setValue('location.commune', '');
+                        if (!useCompanyAddress) {
+                            setValue('location.commune', '');
+                        }
                     }}
                 />
               </div>
@@ -324,58 +331,67 @@ const JobForm = ({ onSuccess, job }) => {
                   <FormItem>
                     <FormLabel>Địa chỉ chi tiết</FormLabel>
                     <FormControl>
-                      <Input placeholder="Số nhà, tên đường, phường/xã..." {...field} />
+                      <Input
+                        placeholder="Số nhà, tên đường, phường/xã..."
+                        {...field}
+                        disabled={useCompanyAddress}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="show-map-checkbox"
-                  checked={showMap}
-                  onCheckedChange={setShowMap}
-                />
-                <label
-                  htmlFor="show-map-checkbox"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Hiển thị bản đồ để chọn địa chỉ chính xác
-                </label>
-              </div>
+              {!useCompanyAddress && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="show-map-checkbox"
+                      checked={showMap}
+                      onCheckedChange={setShowMap}
+                    />
+                    <label
+                      htmlFor="show-map-checkbox"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Hiển thị bản đồ để chọn địa chỉ chính xác
+                    </label>
+                  </div>
 
-              {showMap && (
-                 <FormField
-                  control={form.control}
-                  name="goong-location"
-                  render={({ field }) => (
-                    <GoongLocationPicker
-                      value={field.value}
-                      onLocationChange={(locationData) => {
-                        const mapped = mapGoongLocationToStandard(locationData);
-                        
-                        // Set province first, which will trigger the district list update
-                        setValue('location.province', mapped.province, { shouldValidate: true });
+                  {showMap && (
+                    <FormField
+                      control={form.control}
+                      name="goong-location"
+                      render={({ field }) => (
+                        <GoongLocationPicker
+                          value={field.value}
+                          onLocationChange={(locationData) => {
+                            console.log("Selected location data:", locationData);
+                            const mapped = mapGoongLocationToStandard(locationData);
+                            
+                            setValue('location.province', mapped.province, { shouldValidate: true });
 
-                        // Use requestAnimationFrame to delay setting district and commune
-                        // This ensures React has processed the state update for the district list
-                        requestAnimationFrame(() => {
-                          setValue('location.district', mapped.district, { shouldValidate: true });
-                          
-                          requestAnimationFrame(() => {
-                            setValue('location.commune', mapped.commune, { shouldValidate: true });
-                          });
-                        });
+                            requestAnimationFrame(() => {
+                              setValue('location.district', mapped.district, { shouldValidate: true });
+                              
+                              requestAnimationFrame(() => {
+                                setValue('location.commune', mapped.commune, { shouldValidate: true });
+                              });
+                            });
 
-                        setValue('address', mapped.address || locationData.address, { shouldValidate: true });
-                      }}
+                            setValue('address', mapped.address || locationData.address, { shouldValidate: true });
+                            setValue('location.coordinates', {
+                              type: 'Point',
+                              coordinates: [locationData.lng, locationData.lat]
+                            });
+                          }}
+                        />
+                      )}
                     />
                   )}
-                />
+                </>
               )}
             </div>
-          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

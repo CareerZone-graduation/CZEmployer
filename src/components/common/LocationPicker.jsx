@@ -15,6 +15,7 @@ const LocationPicker = ({
   onProvinceChange,
   onDistrictChange,
   isLoading,
+  disabled = false,
 }) => {
 
   if (isLoading) {
@@ -42,6 +43,7 @@ const LocationPicker = ({
                 onProvinceChange(value); 
               }}
               value={field.value || ''}
+              disabled={disabled}
             >
               <FormControl>
                 <SelectTrigger>
@@ -49,7 +51,7 @@ const LocationPicker = ({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                {(provinces || []).map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
             <FormMessage />
@@ -70,7 +72,7 @@ const LocationPicker = ({
                 onDistrictChange(value);
               }}
               value={field.value || ''}
-              disabled={!field.value && districts.length === 0}
+              disabled={disabled || (!field.value && districts.length === 0)}
             >
               <FormControl>
                 <SelectTrigger>
@@ -78,7 +80,7 @@ const LocationPicker = ({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {districts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                {(districts || []).map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
             <FormMessage />
@@ -96,7 +98,7 @@ const LocationPicker = ({
             <Select
               onValueChange={field.onChange}
               value={field.value || ''}
-              disabled={!field.value && communes.length === 0}
+              disabled={disabled || (!field.value && communes.length === 0)}
             >
               <FormControl>
                 <SelectTrigger>
@@ -104,7 +106,7 @@ const LocationPicker = ({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {communes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {(communes || []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
             <FormMessage />
