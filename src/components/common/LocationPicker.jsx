@@ -6,9 +6,6 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Tải dữ liệu địa điểm một cách linh động từ file JSON mới
-import { useMemo } from 'react';
-
 const processLocationData = (tree) => {
   if (!tree) return null;
 
@@ -33,20 +30,18 @@ const processLocationData = (tree) => {
   return { provinceNames, districtMap, communeMap };
 };
 
-
 const LocationPicker = ({ control, provinceFieldName, districtFieldName, communeFieldName }) => {
   const { setValue, getValues } = useFormContext();
-  const [rawLocationData, setRawLocationData] = useState(null);
+  const [locationData, setLocationData] = useState(null);
   const [availableDistricts, setAvailableDistricts] = useState([]);
   const [availableCommunes, setAvailableCommunes] = useState([]);
 
-  const locationData = useMemo(() => processLocationData(rawLocationData), [rawLocationData]);
-
-  // 1. Tải dữ liệu địa điểm khi component được mount
+  // 1. Tải và xử lý dữ liệu địa điểm khi component được mount
   useEffect(() => {
     const loadData = async () => {
       const { default: tree } = await import('../../data/oldtree.json');
-      setRawLocationData(tree);
+      const processedData = processLocationData(tree);
+      setLocationData(processedData);
     };
     loadData();
   }, []);
