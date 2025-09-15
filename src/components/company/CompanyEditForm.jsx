@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useEffect, useState } from 'react';
+import GoongLocationPicker from '@/components/common/GoongLocationPicker';
+import { mapGoongLocationToStandard } from '@/utils/locationUtils';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -76,6 +78,7 @@ const useLocationData = (form) => {
 };
 
 const CompanyEditForm = ({ company, onSuccess }) => {
+  const [showMap, setShowMap] = useState(false);
   const defaultValues = useMemo(() => ({
     name: company?.name || '',
     about: company?.about || '',
@@ -86,7 +89,8 @@ const CompanyEditForm = ({ company, onSuccess }) => {
     location: {
       province: company?.location?.province || '',
       district: company?.location?.district || '',
-      commune: company?.location?.commune || ''
+      commune: company?.location?.commune || '',
+      coordinates: company?.location?.coordinates || undefined,
     },
     address: company?.address || '',
     contactInfo: {
@@ -301,7 +305,7 @@ const CompanyEditForm = ({ company, onSuccess }) => {
             {/* Address */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Địa chỉ</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <LocationPicker
                     control={form.control}
                     provinceFieldName="location.province"
@@ -328,6 +332,49 @@ const CompanyEditForm = ({ company, onSuccess }) => {
                   </FormItem>
                 )}
               />
+
+              <div className="flex items-center space-x-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="show-map-checkbox-edit"
+                  checked={showMap}
+                  onChange={(e) => setShowMap(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label
+                  htmlFor="show-map-checkbox-edit"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Hiển thị bản đồ để chọn địa chỉ chính xác hơn
+                </label>
+              </div>
+
+              {showMap && (
+                <FormField
+                  control={form.control}
+                  name="goong-location"
+                  render={({ field }) => (
+                    <GoongLocationPicker
+                      value={field.value}
+                      onLocationChange={(locationData) => {
+                        const mapped = mapGoongLocationToStandard(locationData);
+                        form.setValue('location.province', mapped.province, { shouldValidate: true });
+                        form.setValue('address', locationData.address, { shouldValidate: true });
+                        form.setValue('location.coordinates', {
+                          type: 'Point',
+                          coordinates: [locationData.lng, locationData.lat]
+                        });
+                        requestAnimationFrame(() => {
+                          form.setValue('location.district', mapped.district, { shouldValidate: true });
+                          requestAnimationFrame(() => {
+                            form.setValue('location.commune', mapped.commune, { shouldValidate: true });
+                          });
+                        });
+                      }}
+                    />
+                  )}
+                />
+              )}
             </div>
 
             <div className="flex justify-end pt-6 border-t">
