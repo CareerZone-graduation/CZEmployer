@@ -53,6 +53,11 @@ const GoongLocationPicker = ({ value, onLocationChange }) => {
     loadStylesheet('https://cdn.jsdelivr.net/npm/@goongmaps/goong-geocoder@1.1.1/dist/goong-geocoder.css');
 
     const initializeMap = () => {
+      const GeocoderCtor = window.GoongGeocoder?.default || window.GoongGeocoder;
+      if (!GeocoderCtor) {
+        console.error('GoongGeocoder chưa sẵn sàng. Kiểm tra URL script hoặc thứ tự tải.');
+        return;
+      }
       if (!window.goongjs || mapRef.current || !mapContainerRef.current) return;
 
       window.goongjs.accessToken = GOONG_MAPS_KEY;
@@ -190,11 +195,11 @@ const GoongLocationPicker = ({ value, onLocationChange }) => {
     <div className="space-y-4 w-full">
       <div id="geocoder-container" ref={geocoderContainerRef} className="relative z-10"></div>
       
-       <Input 
+       {/* <Input 
           placeholder="Địa chỉ chi tiết (số nhà, tên đường, tòa nhà...)" 
           value={address}
           onChange={handleAddressChange}
-       />
+       /> */}
 
       <div
         ref={mapContainerRef}
