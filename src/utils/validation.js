@@ -14,8 +14,9 @@ const baseJobSchema = z.object({
   description: z.string().trim().min(20, 'Mô tả phải có ít nhất 20 ký tự').max(5000),
   requirements: z.string().trim().min(10, 'Yêu cầu phải có ít nhất 10 ký tự').max(2000),
   benefits: z.string().trim().min(10, 'Quyền lợi phải có ít nhất 10 ký tự').max(2000),
-  location: locationSchema,
-  address: z.string().trim().min(1, 'Địa chỉ chi tiết là bắt buộc').max(200),
+  location: locationSchema.optional(),
+  address: z.string().trim().max(200).optional(),
+  useCompanyAddress: z.boolean().default(false),
   type: z.enum(jobTypeEnum, { required_error: 'Loại công việc là bắt buộc' }),
   workType: z.enum(workTypeEnum, { required_error: 'Hình thức làm việc là bắt buộc' }),
   minSalary: z.coerce.number().min(0, 'Mức lương không thể là số âm').optional(),
@@ -30,6 +31,22 @@ export const createJobSchema = baseJobSchema
   .refine(data => !data.minSalary || !data.maxSalary || data.maxSalary >= data.minSalary, {
     message: 'Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu',
     path: ['maxSalary'],
+  })
+  .superRefine((data, ctx) => {
+    if (!data.useCompanyAddress) {
+      if (!data.location?.province) {
+        ctx.addIssue({ code: 'custom', message: 'Tỉnh/Thành phố là bắt buộc', path: ['location.province'] });
+      }
+      if (!data.location?.district) {
+        ctx.addIssue({ code: 'custom', message: 'Quận/Huyện là bắt buộc', path: ['location.district'] });
+      }
+      if (!data.location?.commune) {
+        ctx.addIssue({ code: 'custom', message: 'Phường/Xã là bắt buộc', path: ['location.commune'] });
+      }
+      if (!data.address || data.address.trim() === '') {
+        ctx.addIssue({ code: 'custom', message: 'Địa chỉ chi tiết là bắt buộc', path: ['address'] });
+      }
+    }
   });
 
 export const updateJobSchema = baseJobSchema.partial()
@@ -37,6 +54,22 @@ export const updateJobSchema = baseJobSchema.partial()
   .refine(data => !data.minSalary || !data.maxSalary || data.maxSalary >= data.minSalary, {
       message: 'Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu',
       path: ['maxSalary'],
+  })
+  .superRefine((data, ctx) => {
+    if (data.useCompanyAddress === false) { // only validate if explicitly set to false
+      if (!data.location?.province) {
+        ctx.addIssue({ code: 'custom', message: 'Tỉnh/Thành phố là bắt buộc', path: ['location.province'] });
+      }
+      if (!data.location?.district) {
+        ctx.addIssue({ code: 'custom', message: 'Quận/Huyện là bắt buộc', path: ['location.district'] });
+      }
+      if (!data.location?.commune) {
+        ctx.addIssue({ code: 'custom', message: 'Phường/Xã là bắt buộc', path: ['location.commune'] });
+      }
+      if (!data.address || data.address.trim() === '') {
+        ctx.addIssue({ code: 'custom', message: 'Địa chỉ chi tiết là bắt buộc', path: ['address'] });
+      }
+    }
   });
 
 export const jobQuerySchema = z.object({

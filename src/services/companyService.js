@@ -70,3 +70,9 @@ export const updateMyCompanyLogo = (formData) =>
       'Content-Type': 'multipart/form-data',
     },
   });
+
+/**
+ * Lấy địa chỉ công ty của người dùng hiện tại (recruiter).
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
+ */
+export const getMyCompanyAddress = async () => apiClient.get('/companies/my-company/address');
