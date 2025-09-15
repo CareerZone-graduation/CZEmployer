@@ -121,7 +121,7 @@ const RecruiterJobDetail = () => {
                 <div>
                   <CardTitle className="text-2xl font-bold text-gray-900">{job.title}</CardTitle>
                   <p className="text-md text-gray-600 mt-1">
-                    {job.location?.province}, {job.location?.ward}
+                    {`${job.location?.commune}, ${job.location?.district}, ${job.location?.province}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

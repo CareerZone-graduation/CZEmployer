@@ -101,7 +101,7 @@ const CompanyProfile = () => {
         <InfoCard title="Thông tin liên hệ">
           <InfoItem icon={Mail} label="Email" value={company.contactInfo?.email} />
           <InfoItem icon={Phone} label="Điện thoại" value={company.contactInfo?.phone} />
-          <InfoItem icon={MapPin} label="Địa chỉ" value={`${company.address?.street || ''}${company.address?.city ? `, ${company.address.city}` : ''}${company.address?.country ? `, ${company.address.country}` : ''}`} />
+          <InfoItem icon={MapPin} label="Địa chỉ" value={`${company.address || ''}, ${company.location?.commune || ''}, ${company.location?.district || ''}, ${company.location?.province || ''}`} />
         </InfoCard>
         <InfoCard title="Thông tin pháp lý">
           <InfoItem icon={User} label="Người đại diện" value={company.representativeName} />
@@ -142,11 +142,12 @@ const InfoCard = ({ title, children }) => (
   </Card>
 );
 
-const InfoItem = ({ icon: IconComponent, label, value }) => {
+const InfoItem = ({ icon, label, value }) => {
   if (!value) return null;
+  const Icon = icon;
   return (
     <div className="flex items-start">
-      <IconComponent className="h-5 w-5 text-gray-500 mt-1 mr-4 flex-shrink-0" />
+      <Icon className="h-5 w-5 text-gray-500 mt-1 mr-4 flex-shrink-0" />
       <div>
         <p className="font-semibold text-gray-800">{label}</p>
         <p className="text-gray-600 break-words">{value}</p>

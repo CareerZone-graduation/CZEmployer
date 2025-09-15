@@ -16,7 +16,7 @@ export default defineConfig({
     '.serveo.net',
     '.ngrok-free.app'
   ],
-    port: 3000,
+    port: 4000,
     open: true,
     host: true,
     proxy: {

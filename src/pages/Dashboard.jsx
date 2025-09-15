@@ -128,8 +128,7 @@ const Dashboard = () => {
                   )}
                   {company.location?.province && (
                     <span>
-                      {company.location.province}
-                      {company.location.ward && `, ${company.location.ward}`}
+                      {`${company.location?.commune}, ${company.location?.district}, ${company.location?.province}`}
                     </span>
                   )}
                   {company.website && (

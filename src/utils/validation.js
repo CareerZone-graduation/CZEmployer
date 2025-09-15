@@ -5,7 +5,8 @@ const jobStatusEnum = ['ACTIVE', 'INACTIVE', 'EXPIRED'];
 
 const locationSchema = z.object({
   province: z.string({ required_error: 'Tỉnh/Thành phố là bắt buộc' }).trim().min(1, 'Tỉnh/Thành phố là bắt buộc'),
-  ward: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
+  district: z.string({ required_error: 'Quận/Huyện là bắt buộc' }).trim().min(1, 'Quận/Huyện là bắt buộc'),
+  commune: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
 });
 
 const baseJobSchema = z.object({
@@ -66,7 +67,8 @@ export const applyToJobSchema = z.object({
 
 const companyLocationSchema = z.object({
   province: z.string({ required_error: 'Tỉnh/Thành phố là bắt buộc' }).trim().min(1, 'Tỉnh/Thành phố là bắt buộc'),
-  ward: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
+  district: z.string({ required_error: 'Quận/Huyện là bắt buộc' }).trim().min(1, 'Quận/Huyện là bắt buộc'),
+  commune: z.string({ required_error: 'Phường/Xã là bắt buộc' }).trim().min(1, 'Phường/Xã là bắt buộc'),
 });
 
 const contactInfoSchema = z.object({

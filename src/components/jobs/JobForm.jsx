@@ -51,8 +51,9 @@ const JobForm = ({ onSuccess, job }) => {
           ...job,
           deadline: job.deadline ? new Date(job.deadline) : undefined,
           location: {
-            province: job.location?.province || job.location?.city || '',
-            ward: job.location?.ward || job.location?.district || '',
+            province: job.location?.province || '',
+            district: job.location?.district || '',
+            commune: job.location?.commune || '',
           },
           address: job.address || job.location?.address || '',
         }
@@ -63,7 +64,8 @@ const JobForm = ({ onSuccess, job }) => {
           benefits: '',
           location: {
             province: '',
-            ward: '',
+            district: '',
+            commune: '',
           },
           address: '',
           type: 'FULL_TIME',
@@ -87,7 +89,7 @@ const JobForm = ({ onSuccess, job }) => {
           const changedValues = Object.fromEntries(
             Object.entries(values).filter(([key, value]) => {
               if (key === 'location') {
-                return value.province !== job.location?.province || value.ward !== job.location?.ward;
+                return value.province !== job.location?.province || value.district !== job.location?.district || value.commune !== job.location?.commune;
               }
               return job[key] !== value;
             })
@@ -189,7 +191,8 @@ const JobForm = ({ onSuccess, job }) => {
           <LocationPicker
             control={form.control}
             provinceFieldName="location.province"
-            wardFieldName="location.ward"
+            districtFieldName="location.district"
+            communeFieldName="location.commune"
           />
         </div>
 

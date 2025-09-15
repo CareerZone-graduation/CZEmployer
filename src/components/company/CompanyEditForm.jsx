@@ -32,7 +32,8 @@ const CompanyEditForm = ({ company, onSuccess }) => {
     taxCode: company?.taxCode || '',
     location: {
       province: company?.location?.province || '',
-      ward: company?.location?.ward || ''
+      district: company?.location?.district || '',
+      commune: company?.location?.commune || ''
     },
     address: company?.address || '',
     contactInfo: {
@@ -244,7 +245,8 @@ const CompanyEditForm = ({ company, onSuccess }) => {
                  <LocationPicker
                     control={form.control}
                     provinceFieldName="location.province"
-                    wardFieldName="location.ward"
+                    districtFieldName="location.district"
+                    communeFieldName="location.commune"
                   />
               </div>
               

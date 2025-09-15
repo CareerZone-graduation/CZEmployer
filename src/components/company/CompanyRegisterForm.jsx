@@ -30,7 +30,8 @@ const CompanyRegisterForm = () => {
       address: '',
       location: {
         province: '',
-        ward: '',
+        district: '',
+        commune: '',
       },
       businessRegistrationFile: null,
       email: '',
@@ -230,7 +231,8 @@ const CompanyRegisterForm = () => {
                   <LocationPicker
                     control={form.control}
                     provinceFieldName="location.province"
-                    wardFieldName="location.ward"
+                    districtFieldName="location.district"
+                    communeFieldName="location.commune"
                   />
                   <FormField
                     control={form.control}
