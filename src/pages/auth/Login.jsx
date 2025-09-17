@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import * as authService from '@/services/authService';
 import { fetchUser } from '@/redux/authSlice';
 import * as tokenUtil from '@/utils/token';
+import { VIETNAMESE_CONTENT } from '@/constants/vietnamese';
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -29,12 +30,12 @@ const Login = () => {
       e.preventDefault();
       
       if (!email || !password) {
-        toast.error('Vui lòng nhập đầy đủ email và mật khẩu.');
+        toast.error(VIETNAMESE_CONTENT.messages.error.required);
         return;
       }
 
       if (!validateEmail(email)) {
-        toast.error('Vui lòng nhập email hợp lệ.');
+        toast.error(VIETNAMESE_CONTENT.messages.error.invalidEmail);
         return;
       }
 
@@ -47,7 +48,7 @@ const Login = () => {
         if (loginData && loginData.accessToken) {
           if (loginData.role !== 'recruiter') {
             toast.error(
-              'Quyền truy cập bị từ chối. Trang này chỉ dành cho nhà tuyển dụng.',
+              'Quyền truy cập bị từ chối. Hệ thống này chỉ dành cho nhà tuyển dụng và HR.',
             );
             return;
           }
@@ -56,7 +57,7 @@ const Login = () => {
           // Then, dispatch fetchUser to get the full profile
           console.log("test");
           dispatch(fetchUser());
-          toast.success('Đăng nhập thành công!');
+          toast.success(VIETNAMESE_CONTENT.messages.success.login);
           // Navigation will be handled automatically by the router reacting to auth state change
         } else {
           throw new Error('Phản hồi từ server không hợp lệ.');
@@ -66,9 +67,9 @@ const Login = () => {
         if (err.response?.data?.message) {
           toast.error(err.response.data.message);
         } else if (err.response?.status === 401) {
-          toast.error('Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+          toast.error('Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại email và mật khẩu.');
         } else {
-          toast.error('Đăng nhập thất bại. Vui lòng thử lại sau.');
+          toast.error(VIETNAMESE_CONTENT.messages.error.loginFailed);
         }
         console.error('Login page error:', err);
       } finally {
@@ -80,77 +81,111 @@ const Login = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-2 text-center">
-        <h2 className="text-2xl font-bold">Đăng nhập</h2>
-        <p className="text-balance text-muted-foreground">
-          Nhập thông tin của bạn để truy cập tài khoản
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+          Chào mừng quý khách trở lại
+        </h2>
+        <p className="text-gray-600">
+          Đăng nhập để tiếp tục quản lý hoạt động tuyển dụng của doanh nghiệp
         </p>
       </div>
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+
+      <form onSubmit={handleLogin} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+            {VIETNAMESE_CONTENT.forms.email}
+          </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               id="email"
               type="email"
-              placeholder="example@email.com"
+              placeholder="recruiter@company.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value.trim())}
               disabled={isLoading}
-              className="pl-10"
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
             />
           </div>
         </div>
-        <div className="grid gap-2">
-          <div className="flex items-center">
-            <Label htmlFor="password">Mật khẩu</Label>
-            
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              {VIETNAMESE_CONTENT.forms.password}
+            </Label>
+            <Link 
+              to="/auth/forgot-password" 
+              className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline font-medium"
+            >
+              Quên mật khẩu?
+            </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="••••••••••"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="pl-10"
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
             />
           </div>
         </div>
-        
-        <div className="flex items-center justify-between">
-          <div></div>
-          <Link 
-            to="/auth/forgot-password" 
-            className="text-sm text-primary hover:underline"
-          >
-            Quên mật khẩu?
-          </Link>
-        </div>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <LogIn className="mr-2 h-4 w-4" />
-          )}
-          Đăng nhập
-        </Button>
-        <Button variant="outline" className="w-full" type="button">
-          <FcGoogle className="mr-2 h-4 w-4" />
-          Đăng nhập với Google
-        </Button>
+        <div className="space-y-3 pt-2">
+          <Button 
+            type="submit" 
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200" 
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {VIETNAMESE_CONTENT.messages.loading.login}
+              </>
+            ) : (
+              <>
+                <LogIn className="mr-2 h-5 w-5" />
+                {VIETNAMESE_CONTENT.navigation.login}
+              </>
+            )}
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-4 text-gray-500">Hoặc</span>
+            </div>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="w-full h-12 border-gray-300 hover:bg-gray-50 text-gray-700 font-medium text-base" 
+            type="button"
+          >
+            <FcGoogle className="mr-3 h-5 w-5" />
+            Đăng nhập với Google
+          </Button>
+        </div>
       </form>
-      <div className="mt-4 text-center text-sm">
-        Chưa có tài khoản?{' '}
-        <Link to="/auth/register" className="underline font-semibold text-emerald-700">
-          Đăng ký ngay
-        </Link>
+
+      <div className="text-center">
+        <p className="text-gray-600">
+          Chưa có tài khoản?{' '}
+          <Link 
+            to="/auth/register" 
+            className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
+          >
+            Đăng ký miễn phí
+          </Link>
+        </p>
       </div>
     </div>
   );

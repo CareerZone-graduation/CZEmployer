@@ -30,41 +30,63 @@ const RegistrationSuccess = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md text-center shadow-lg">
-        <CardHeader>
-          <div className="flex justify-center mb-4">
-            <CheckCircle2 className="w-16 h-16 text-green-500" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-foreground">Đăng ký thành công!</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-2">
-            Một email xác thực đã được gửi đến địa chỉ:
+    <div className="space-y-6">
+      <div className="text-center space-y-6">
+        <div className="mx-auto w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+        </div>
+        
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Đăng ký thành công!
+          </h2>
+          <p className="text-gray-600">
+            Tài khoản của bạn đã được tạo thành công
           </p>
-          <p className="font-semibold text-primary mb-6">{email || 'email của bạn'}</p>
-          <p className="text-muted-foreground mb-6">
-            Vui lòng kiểm tra hộp thư đến (và cả thư mục spam) để kích hoạt tài khoản.
-          </p>
+        </div>
 
-          <div className="space-y-4">
-            <Button asChild className="w-full">
-              <Link to="/auth/login">Quay lại trang đăng nhập</Link>
-            </Button>
-            <div className="text-sm text-muted-foreground">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-left">
+              <p className="text-sm text-blue-800 font-medium mb-2">
+                Email xác thực đã được gửi đến:
+              </p>
+              <p className="font-semibold text-emerald-600 mb-3">
+                {email || 'email của bạn'}
+              </p>
+              <p className="text-sm text-blue-700">
+                Vui lòng kiểm tra hộp thư đến (và cả thư mục spam) để kích hoạt tài khoản.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Button 
+            asChild 
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+          >
+            <Link to="/auth/login">
+              Quay lại trang đăng nhập
+            </Link>
+          </Button>
+          
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
               Chưa nhận được email?{' '}
               <Button
                 variant="link"
-                className="p-0 h-auto font-semibold text-primary"
+                className="p-0 h-auto font-semibold text-emerald-600 hover:text-emerald-700"
                 onClick={handleResendEmail}
                 disabled={isLoading}
               >
-                {isLoading ? 'Đang gửi...' : 'Gửi lại'}
+                {isLoading ? 'Đang gửi...' : 'Gửi lại email xác thực'}
               </Button>
-            </div>
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

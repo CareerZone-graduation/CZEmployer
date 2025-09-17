@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
+import { VIETNAMESE_CONTENT } from '@/constants/vietnamese'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -58,10 +59,10 @@ export default function Home() {
               </span>
             </a>
             <nav className="flex items-center gap-4 md:gap-6">
-              <a href="#features" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Tính năng</a>
-              <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Liên hệ</a>
-              <a href="/auth/login" className="font-medium text-gray-700 hover:text-emerald-600 transition-colors">Đăng nhập</a>
-              <a href="/auth/register" className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg hover:bg-emerald-700 transition-all duration-300">Đăng ký</a>
+              <a href="#features" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.features}</a>
+              <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.contact}</a>
+              <a href="/auth/login" className="font-medium text-gray-700 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.login}</a>
+              <a href="/auth/register" className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg hover:bg-emerald-700 transition-all duration-300">{VIETNAMESE_CONTENT.navigation.register}</a>
             </nav>
           </Container>
         </header>
@@ -77,9 +78,9 @@ export default function Home() {
                   variants={fadeUp}
                   className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight text-gray-900"
                 >
-                  <span className="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700 bg-clip-text text-transparent">Tuyển dụng thông minh</span>
+                  <span className="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700 bg-clip-text text-transparent">Tuyển dụng chuyên nghiệp</span>
                   <br />
-                  kết nối nhân tài hàng đầu
+                  kết nối nhân tài xuất sắc
                 </motion.h1>
                 <motion.p
                   initial="hidden"
@@ -88,7 +89,7 @@ export default function Home() {
                   variants={fadeUp}
                   className="mt-6 max-w-xl text-base md:text-lg text-gray-600"
                 >
-                  Nền tảng giúp nhà tuyển dụng tiếp cận ứng viên chất lượng, quản lý quy trình hiệu quả và mở rộng thương hiệu tuyển dụng.
+                  Nền tảng tuyển dụng hàng đầu giúp doanh nghiệp Việt Nam tiếp cận ứng viên chất lượng cao, tối ưu hóa quy trình tuyển dụng và xây dựng đội ngũ mạnh mẽ.
                 </motion.p>
                 <motion.div
                   initial="hidden"

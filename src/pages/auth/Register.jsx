@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { UserPlus, Loader2, User, Mail, Lock, Briefcase } from 'lucide-react';
+import { UserPlus, Loader2, User, Mail, Lock } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import * as authService from '@/services/authService';
+import { VIETNAMESE_CONTENT } from '@/constants/vietnamese';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const Register = () => {
       const { password, fullname, email, role } = formData;
 
       if (!password || !fullname || !email || !role) {
-        toast.error('Vui lòng điền đầy đủ thông tin.');
+        toast.error(VIETNAMESE_CONTENT.messages.error.required);
         return;
       }
 
@@ -39,13 +40,13 @@ const Register = () => {
       try {
         const response = await authService.register(formData);
         console.log(response);
-        const successMessage = response?.message || 'Đăng ký thành công! Vui lòng đăng nhập.';
+        const successMessage = response?.message || VIETNAMESE_CONTENT.messages.success.register;
         toast.success(successMessage);
         navigate('/register-success', { state: { email: formData.email } });
       } catch (err) {
         console.error(err);
         const errorMessage =
-          err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+          err.response?.data?.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.';
         toast.error(errorMessage);
       } finally {
         setIsLoading(false);
@@ -55,59 +56,119 @@ const Register = () => {
   );
 
   return (
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[400px] gap-6">
-          <div className="grid gap-2 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Briefcase className="h-8 w-8 text-emerald-700" />
-              <h1 className="text-3xl font-bold text-emerald-700">CareerZone</h1>
-            </div>
-            <h2 className="text-3xl font-bold">Tạo tài khoản Nhà tuyển dụng</h2>
-            <p className="text-balance text-muted-foreground">
-              Điền thông tin dưới đây để bắt đầu tìm kiếm ứng viên tài năng.
-            </p>
-          </div>
-          <form onSubmit={handleRegister}>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="fullname">Họ và tên</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="fullname" name="fullname" placeholder="Nguyễn Văn A" required value={formData.fullname} onChange={handleChange} disabled={isLoading} className="pl-10" />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" name="email" type="email" placeholder="email@congty.com" required value={formData.email} onChange={handleChange} disabled={isLoading} className="pl-10" />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" name="password" type="password" placeholder="••••••••" required value={formData.password} onChange={handleChange} disabled={isLoading} className="pl-10" />
-                </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                Tạo tài khoản
-              </Button>
-              <Button variant="outline" className="w-full" type="button">
-                <FcGoogle className="mr-2 h-4 w-4" />
-                Đăng ký với Google
-              </Button>
-            </div>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Đã có tài khoản?{' '}
-            <Link to="/login" className="underline font-semibold text-emerald-700">
-              Đăng nhập ngay
-            </Link>
+    <div className="space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+          Tạo tài khoản nhà tuyển dụng
+        </h2>
+        <p className="text-gray-600">
+          Bắt đầu hành trình tìm kiếm và kết nối với nhân tài xuất sắc
+        </p>
+      </div>
+
+      <form onSubmit={handleRegister} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="fullname" className="text-sm font-medium text-gray-700">
+            {VIETNAMESE_CONTENT.forms.fullName}
+          </Label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input 
+              id="fullname" 
+              name="fullname" 
+              placeholder={VIETNAMESE_CONTENT.forms.placeholder.name} 
+              required 
+              value={formData.fullname} 
+              onChange={handleChange} 
+              disabled={isLoading} 
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" 
+            />
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+            {VIETNAMESE_CONTENT.forms.companyEmail}
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder={VIETNAMESE_CONTENT.forms.placeholder.email} 
+              required 
+              value={formData.email} 
+              onChange={handleChange} 
+              disabled={isLoading} 
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" 
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+            {VIETNAMESE_CONTENT.forms.password}
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input 
+              id="password" 
+              name="password" 
+              type="password" 
+              placeholder="••••••••••" 
+              required 
+              value={formData.password} 
+              onChange={handleChange} 
+              disabled={isLoading} 
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" 
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Mật khẩu phải có ít nhất 8 ký tự
+          </p>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <Button 
+            type="submit" 
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200" 
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {VIETNAMESE_CONTENT.messages.loading.register}
+              </>
+            ) : (
+              <>
+                <UserPlus className="mr-2 h-5 w-5" />
+                Tạo tài khoản miễn phí
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+
+      <div className="text-center space-y-3">
+        <p className="text-xs text-gray-500">
+          Bằng cách đăng ký, bạn đồng ý với{' '}
+          <a href="#" className="text-emerald-600 hover:underline">Điều khoản dịch vụ</a>
+          {' '}và{' '}
+          <a href="#" className="text-emerald-600 hover:underline">Chính sách bảo mật</a>
+        </p>
+        
+        <p className="text-gray-600">
+          Đã có tài khoản?{' '}
+          <Link 
+            to="/auth/login" 
+            className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
+          >
+            Đăng nhập ngay
+          </Link>
+        </p>
       </div>
+    </div>
   );
 };
 

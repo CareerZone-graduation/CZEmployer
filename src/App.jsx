@@ -4,7 +4,6 @@ import { BrowserRouter } from "react-router-dom";
 import AppRouter from "./routes/AppRouter";
 import { Toaster } from "@/components/ui/sonner";
 import { fetchUser } from './redux/authSlice';
-
 function App() {
   const dispatch = useDispatch();
 

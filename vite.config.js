@@ -37,8 +37,34 @@ export default defineConfig({
           vendor: ["react", "react-dom"],
           router: ["react-router-dom"],
           icons: ["lucide-react"],
+          motion: ["framer-motion"],
+          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select"]
         },
       },
     },
+    // Performance optimizations
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    // Chunk size warnings
+    chunkSizeWarningLimit: 1000,
+    // Asset optimization
+    assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+  },
+
+  // Performance optimizations for development
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'framer-motion',
+      'lucide-react'
+    ],
   },
 })

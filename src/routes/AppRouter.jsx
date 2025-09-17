@@ -6,7 +6,7 @@ import AuthLayout from '@/layouts/AuthLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
 
 // Pages
-import Home from '@/pages/Home';
+import Homepage from '@/pages/Homepage';
 import Messaging from '@/pages/Messaging';
 import NotFound from '@/pages/NotFound';
 import Dashboard from '@/pages/Dashboard';
@@ -80,10 +80,10 @@ const AppRouter = () => {
   return (
     <Routes>
       {/* --- THAY ĐỔI CHÍNH Ở ĐÂY --- */}
-      {/* Route gốc '/': Nếu đã đăng nhập thì vào dashboard, nếu chưa thì hiển thị trang Home */}
+      {/* Route gốc '/': Nếu đã đăng nhập thì vào dashboard, nếu chưa thì hiển thị trang Homepage */}
       <Route
         path="/"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />}
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Homepage />}
       />
 
       {/* Route xác thực: /auth/login, /auth/register */}
@@ -93,9 +93,12 @@ const AppRouter = () => {
       >
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
-        <Route path="forgot-password" element={<ForgotPassword />} />
         <Route index element={<Navigate to="login" replace />} />
       </Route>
+      <Route 
+        path="/auth/forgot-password" 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} 
+      />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register-success" element={<RegistrationSuccess />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
