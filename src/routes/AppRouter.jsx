@@ -21,6 +21,8 @@ import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
 import Notifications from '@/pages/notifications';
 import InterviewList from '@/pages/interviews/InterviewList';
 import InterviewDetail from '@/pages/interviews/InterviewDetail';
+import Candidates from '@/pages/candidates/Candidates';
+import CandidateComparison from '@/pages/candidates/CandidateComparison';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
@@ -128,7 +130,8 @@ const AppRouter = () => {
           <Route path="jobs/:jobId/applications" element={<JobApplications />} />
           <Route path="jobs/:jobId/applications/:applicationId" element={<ApplicationDetail />} />
 
-          <Route path="candidates" element={<PlaceholderPage title="Quản lý Ứng viên" />} />
+          <Route path="candidates" element={<Candidates />} />
+          <Route path="candidates/compare" element={<CandidateComparison />} />
           <Route path="interviews" element={<InterviewList />} />
           <Route path="interviews/:interviewId" element={<InterviewDetail />} />
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />

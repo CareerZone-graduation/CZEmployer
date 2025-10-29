@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
+import * as talentPoolService from '@/services/talentPoolService';
 import * as utils from '@/utils';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import ErrorState from '@/components/common/ErrorState';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -20,9 +21,11 @@ import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import CandidateRating from '@/components/jobs/CandidateRating';
 import ActivityHistory from '@/components/jobs/ActivityHistory';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ApplicationDetail = () => {
   const { applicationId, jobId } = useParams();
+  const queryClient = useQueryClient();
   const [application, setApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +39,18 @@ const ApplicationDetail = () => {
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [interviewDate, setInterviewDate] = useState(null);
   const [interviewTime, setInterviewTime] = useState('');
+
+  // Add to talent pool mutation
+  const addToTalentPoolMutation = useMutation({
+    mutationFn: (applicationId) => talentPoolService.addToTalentPool(applicationId, [], ''),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['talentPool']);
+      toast.success('Đã thêm ứng viên vào Talent Pool');
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi thêm vào Talent Pool');
+    },
+  });
 
   const fetchApplication = useCallback(async () => {
     setIsLoading(true);
@@ -174,10 +189,21 @@ const ApplicationDetail = () => {
             <CardHeader>
                 <CardTitle className="text-base">Hành động</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => addToTalentPoolMutation.mutate(applicationId)}
+                  disabled={addToTalentPoolMutation.isLoading}
+                >
+                  <Star className="mr-2 h-4 w-4" />
+                  {addToTalentPoolMutation.isLoading ? 'Đang thêm...' : 'Thêm vào Talent Pool'}
+                </Button>
+                
                 <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="w-full justify-start" variant="default" disabled={!!application.interviewInfo}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
                             {application.interviewInfo ? 'Đã lên lịch' : 'Lên lịch phỏng vấn'}
                         </Button>
                     </DialogTrigger>

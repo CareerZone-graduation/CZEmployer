@@ -58,3 +58,62 @@ export const updateApplicationNotes = async (applicationId, notes) => {
 export const scheduleInterview = async (applicationId, scheduledTime) => {
   return await apiClient.post(`/applications/${applicationId}/interviews`, { scheduledTime });
 };
+
+// ==========================================================
+// === NEW: ALL CANDIDATES MANAGEMENT APIs ===
+// ==========================================================
+
+/**
+ * Lấy TẤT CẢ ứng viên từ tất cả các jobs của công ty
+ * @param {object} params - Các tham số truy vấn (page, limit, status, candidateRating, search, jobIds, fromDate, toDate, sort)
+ * @returns {Promise<object>}
+ */
+export const getAllApplications = async (params = {}) => {
+  return await apiClient.get('/applications/recruiter/all', { params });
+};
+
+/**
+ * Lấy thống kê tổng quan về applications
+ * @param {object} params - Filters (jobIds, fromDate, toDate)
+ * @returns {Promise<object>}
+ */
+export const getApplicationsStatistics = async (params = {}) => {
+  return await apiClient.get('/applications/recruiter/statistics', { params });
+};
+
+/**
+ * Bulk update status cho nhiều applications
+ * @param {Array<string>} applicationIds - Mảng các application IDs
+ * @param {string} status - Status mới
+ * @returns {Promise<object>}
+ */
+export const bulkUpdateStatus = async (applicationIds, status) => {
+  return await apiClient.patch('/applications/recruiter/bulk/status', { 
+    applicationIds, 
+    status 
+  });
+};
+
+/**
+ * Bulk update rating cho nhiều applications
+ * @param {Array<string>} applicationIds - Mảng các application IDs
+ * @param {string} rating - Rating mới
+ * @returns {Promise<object>}
+ */
+export const bulkUpdateRating = async (applicationIds, rating) => {
+  return await apiClient.patch('/applications/recruiter/bulk/rating', { 
+    applicationIds, 
+    rating 
+  });
+};
+
+/**
+ * Export applications to CSV
+ * @param {Array<string>} applicationIds - Mảng các application IDs
+ * @returns {Promise<object>}
+ */
+export const exportApplications = async (applicationIds) => {
+  return await apiClient.post('/applications/recruiter/export', { 
+    applicationIds 
+  });
+};

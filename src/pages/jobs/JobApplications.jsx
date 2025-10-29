@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as jobService from '@/services/jobService';
 import * as utils from '@/utils';
@@ -20,7 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const JobApplications = () => {
   const { jobId } = useParams();
@@ -31,6 +32,7 @@ const JobApplications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedApplications, setSelectedApplications] = useState([]);
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
@@ -81,6 +83,63 @@ const JobApplications = () => {
 
   const handlePageChange = (newPage) => {
     setFilters((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedApplications(applications.map(app => app._id));
+    } else {
+      setSelectedApplications([]);
+    }
+  };
+
+  const handleSelectApplication = (applicationId) => {
+    setSelectedApplications(prev => {
+      if (prev.includes(applicationId)) {
+        return prev.filter(id => id !== applicationId);
+      } else {
+        return [...prev, applicationId];
+      }
+    });
+  };
+
+  const handleExport = async () => {
+    if (selectedApplications.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một ứng viên');
+      return;
+    }
+
+    try {
+      const response = await applicationService.exportApplications(selectedApplications);
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `applications-${job?.title || 'export'}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Đã xuất CSV thành công');
+      setSelectedApplications([]);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi khi xuất CSV');
+    }
+  };
+
+  const handleCompare = () => {
+    if (selectedApplications.length < 2) {
+      toast.error('Vui lòng chọn ít nhất 2 ứng viên để so sánh');
+      return;
+    }
+    if (selectedApplications.length > 5) {
+      toast.error('Chỉ có thể so sánh tối đa 5 ứng viên');
+      return;
+    }
+
+    navigate('/candidates/compare', { 
+      state: { applicationIds: selectedApplications } 
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -181,6 +240,38 @@ const JobApplications = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Bulk Actions Toolbar */}
+          {selectedApplications.length > 0 && (
+            <Card className="mb-4 bg-blue-50 border-blue-200">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">
+                    Đã chọn {selectedApplications.length} ứng viên
+                  </span>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleExport}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Xuất CSV
+                    </Button>
+
+                    <Button 
+                      variant="default"
+                      onClick={handleCompare}
+                      disabled={selectedApplications.length < 2}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      So sánh ({selectedApplications.length})
+                    </Button>
+
+                    <Button variant="ghost" onClick={() => setSelectedApplications([])}>
+                      Bỏ chọn
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {applications.length === 0 ? (
             <EmptyState message="Chưa có ứng viên nào cho vị trí này." />
           ) : (
@@ -188,6 +279,12 @@ const JobApplications = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedApplications.length === applications.length}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Ứng viên</TableHead>
                     <TableHead>Thông tin liên hệ</TableHead>
                     <TableHead>Ngày nộp</TableHead>
@@ -199,13 +296,24 @@ const JobApplications = () => {
                   {applications.map((app) => (
                     <TableRow 
                       key={app._id} 
-                      onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
-                      className="cursor-pointer hover:bg-gray-50"
+                      className="hover:bg-gray-50"
                     >
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedApplications.includes(app._id)}
+                          onCheckedChange={() => handleSelectApplication(app._id)}
+                        />
+                      </TableCell>
+                      <TableCell 
+                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        className="cursor-pointer"
+                      >
                         <div className="font-medium">{app.candidateName}</div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell 
+                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        className="cursor-pointer"
+                      >
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Mail className="h-4 w-4" /> {app.candidateEmail}
                         </div>
@@ -213,9 +321,15 @@ const JobApplications = () => {
                           <Phone className="h-4 w-4" /> {app.candidatePhone}
                         </div>
                       </TableCell>
-                      <TableCell>{utils.formatDate(app.appliedAt)}</TableCell>
-                      <TableCell>{getStatusBadge(app.status)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell 
+                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        className="cursor-pointer"
+                      >{utils.formatDate(app.appliedAt)}</TableCell>
+                      <TableCell 
+                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        className="cursor-pointer"
+                      >{getStatusBadge(app.status)}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
