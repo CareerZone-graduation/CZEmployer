@@ -50,6 +50,39 @@ const BillingPage = () => {
           <CardTitle>Thanh toán & Hóa đơn</CardTitle>
           <CardDescription>Nạp xu vào tài khoản để sử dụng các tính năng cao cấp.</CardDescription>
         </CardHeader>
+        
+        {/* Usage Information Banner */}
+        <div className="px-6 pb-2">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white text-lg">
+                ℹ️
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-blue-900 mb-2">Bạn có thể sử dụng xu để:</h4>
+                <ul className="text-sm text-blue-800 space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span><strong>Đăng tin tuyển dụng</strong> - 100 xu/tin</span>
+                  </li>
+                  {/* <li className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span><strong>Xem thông tin ứng viên</strong> - Chi phí tùy theo gói</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span><strong>Mở khóa CV</strong> - Truy cập hồ sơ chi tiết ứng viên</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold mt-0.5">•</span>
+                    <span><strong>Các tính năng cao cấp khác</strong></span>
+                  </li> */}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <CardContent className="grid md:grid-cols-3 gap-8 pt-6">
           {/* Left Column: Coin Packages */}
           <div className="md:col-span-2 space-y-4">

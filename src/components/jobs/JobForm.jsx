@@ -200,6 +200,22 @@ const JobForm = ({ onSuccess, job }) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {!isEditMode && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white text-sm font-semibold">
+                💰
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-900">Thông báo về chi phí đăng tin</h4>
+                <p className="mt-1 text-sm text-amber-800">
+                  Đăng một tin tuyển dụng sẽ tốn <strong>100 xu</strong>. Vui lòng đảm bảo tài khoản của bạn có đủ số dư trước khi đăng tin.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <FormField
           control={form.control}
           name="title"

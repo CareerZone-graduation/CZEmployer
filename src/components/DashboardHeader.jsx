@@ -17,6 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -61,10 +67,31 @@ const DashboardHeader = () => {
 
       {/* Right side icons */}
       <div className="flex items-center gap-4 ml-auto">
-        <div className="flex items-center gap-2 border-r pr-4">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            <span className="font-semibold">{coinBalance.toLocaleString()}</span>
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div 
+                className="flex items-center gap-2 border-r pr-4 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
+                onClick={() => navigate('/billing')}
+              >
+                <Coins className="h-5 w-5 text-yellow-500" />
+                <span className="font-semibold">{coinBalance.toLocaleString()}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <div className="space-y-1 text-xs">
+                <p className="font-semibold">Số dư xu của bạn</p>
+                <p className="text-gray-600">Sử dụng xu để:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-gray-600">
+                  <li>Đăng tin tuyển dụng (100 xu/tin)</li>
+                  <li>Xem thông tin ứng viên</li>
+                  <li>Mở khóa CV</li>
+                </ul>
+                <p className="text-blue-600 font-semibold pt-1">Nhấn để nạp thêm xu</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Button onClick={handleChatClick} variant="outline" size="icon" className="relative">
           <MessageCircle className="h-5 w-5" />
             <span className="sr-only">Tin nhắn</span>
