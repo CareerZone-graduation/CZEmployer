@@ -19,7 +19,7 @@ const ArchivedJobs = () => {
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
-    status: 'INACTIVE', // Default to INACTIVE status
+    status: 'PENDING', // Default to PENDING status (awaiting approval)
     sortBy: 'createdAt:desc',
     search: '',
   });
@@ -33,25 +33,16 @@ const ArchivedJobs = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Fetch both INACTIVE and ARCHIVED jobs
-      const inactivePromise = jobService.getMyJobs({ ...filters, status: 'INACTIVE' });
+      const response = await jobService.getMyJobs(filters);
 
-      const [inactiveRes] = await Promise.all([inactivePromise]);
+      const jobs = response?.data || [];
 
-      const inactiveJobs = inactiveRes?.data || [];
-
-      const allJobs = [...inactiveJobs];
-
-      setJobs(allJobs);
-      setMeta({
-        // Meta from the first response should be fine for pagination purposes
-        ...(inactiveRes?.meta || {
-          currentPage: 1,
-          totalPages: 1,
-          totalItems: allJobs.length,
-          limit: filters.limit
-        }),
-        totalItems: allJobs.length,
+      setJobs(jobs);
+      setMeta(response?.meta || {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: jobs.length,
+        limit: filters.limit
       });
 
     } catch (err) {
@@ -83,12 +74,22 @@ const ArchivedJobs = () => {
     }));
   }, []);
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (job) => {
+    // Check if job is pending approval
+    if (job.approved === false) {
+      return (
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+          Chờ phê duyệt
+        </Badge>
+      );
+    }
+    
+    // Check status for approved jobs
     const statusConfig = {
-      INACTIVE: { label: 'Chờ phê duyệt', variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' },
-      ARCHIVED: { label: 'Đã ẩn', variant: 'outline', className: 'bg-gray-100 text-gray-800' },
+      INACTIVE: { label: 'Đã ẩn', variant: 'outline', className: 'bg-gray-100 text-gray-800' },
+      EXPIRED: { label: 'Hết hạn', variant: 'outline', className: 'bg-red-100 text-red-800' },
     };
-    const config = statusConfig[status] || { label: status, variant: 'default' };
+    const config = statusConfig[job.status] || { label: job.status, variant: 'default' };
     return (
       <Badge variant={config.variant} className={config.className}>
         {config.label}
