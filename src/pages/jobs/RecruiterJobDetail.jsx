@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import JobForm from '@/components/jobs/JobForm';
 import { Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, BarChart2, Edit, Trash2 } from 'lucide-react';
+import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
 
 const RecruiterJobDetail = () => {
   const { jobId } = useParams();
@@ -205,6 +206,23 @@ const RecruiterJobDetail = () => {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* AI Candidate Suggestions Section */}
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Top Ứng viên Phù hợp
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Hệ thống AI gợi ý các ứng viên phù hợp nhất với tin tuyển dụng của bạn
+            </p>
+          </CardHeader>
+          <CardContent>
+            <CandidateSuggestions jobId={jobId} />
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

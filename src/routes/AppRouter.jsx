@@ -23,6 +23,7 @@ import InterviewList from '@/pages/interviews/InterviewList';
 import InterviewDetail from '@/pages/interviews/InterviewDetail';
 import Candidates from '@/pages/candidates/Candidates';
 import CandidateComparison from '@/pages/candidates/CandidateComparison';
+import CandidateProfile from '@/pages/candidates/CandidateProfile';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
@@ -132,6 +133,7 @@ const AppRouter = () => {
 
           <Route path="candidates" element={<Candidates />} />
           <Route path="candidates/compare" element={<CandidateComparison />} />
+          <Route path="candidates/:userId" element={<CandidateProfile />} />
           <Route path="interviews" element={<InterviewList />} />
           <Route path="interviews/:interviewId" element={<InterviewDetail />} />
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
