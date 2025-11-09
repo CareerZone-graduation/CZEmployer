@@ -46,6 +46,10 @@ function publishRefresh(token) {
 
 apiClient.interceptors.response.use(
   (res) => {
+    // Nếu responseType là arraybuffer, trả về response gốc
+    if (res.config.responseType === 'arraybuffer') {
+      return res.data;
+    }
     const { data } = res;
     return data;
   },

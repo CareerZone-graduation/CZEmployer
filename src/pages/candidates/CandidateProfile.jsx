@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +18,10 @@ import {
   FileText,
   Lock,
   Unlock,
-  DollarSign
+  DollarSign,
+  MessageCircle,
+  Download,
+  Loader2
 } from 'lucide-react';
 import * as candidateService from '@/services/candidateService';
 import * as utils from '@/utils';
@@ -30,6 +33,8 @@ const CandidateProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   console.log('CandidateProfile component mounted, userId:', userId);
 
@@ -56,6 +61,29 @@ const CandidateProfile = () => {
       fetchCandidateProfile();
     }
   }, [userId, fetchCandidateProfile]);
+
+  // Load PDF when profile is loaded
+  useEffect(() => {
+    const loadPdf = async () => {
+      if (!profile || !profile.cvs || profile.cvs.length === 0 || pdfUrl) return;
+
+      const cv = profile.cvs[0]; // Get the selected CV
+      setIsLoadingPdf(true);
+      try {
+        const response = await candidateService.getCandidateCv(userId, cv._id);
+        const blob = new Blob([response], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (err) {
+        console.error('Error loading CV:', err);
+        toast.error('Không thể tải CV');
+      } finally {
+        setIsLoadingPdf(false);
+      }
+    };
+
+    loadPdf();
+  }, [profile, userId, pdfUrl]);
 
   const handleUnlockProfile = async () => {
     setIsUnlocking(true);
@@ -124,85 +152,300 @@ const CandidateProfile = () => {
   }
 
   const isLocked = !profile.isUnlocked;
+  const cv = profile.cvs && profile.cvs.length > 0 ? profile.cvs[0] : null;
+
+  const handleDownloadCv = () => {
+    if (!pdfUrl || !cv) return;
+    
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = cv.name || 'CV.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Đã tải xuống CV');
+  };
 
   return (
-    <div className="container mx-auto max-w-6xl p-4 lg:p-6">
-      <div className="mb-6">
+    <div className="container mx-auto max-w-[1600px] p-4 lg:p-6">
+      {/* Header with Back Button and Actions */}
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Quay lại
         </Button>
+
+        <div className="flex items-center gap-3">
+          {/* Message Button - Always visible */}
+          <Button 
+            variant={isLocked ? "outline" : "default"}
+            size="sm"
+            disabled={isLocked}
+            className={isLocked ? "opacity-60" : ""}
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            {isLocked ? 'Mở khóa để nhắn tin' : 'Nhắn tin'}
+          </Button>
+
+          {/* Unlock Button - Only when locked */}
+          {isLocked && (
+            <Button
+              onClick={handleUnlockProfile}
+              disabled={isUnlocking}
+              className="bg-amber-600 hover:bg-amber-700"
+              size="sm"
+            >
+              <Unlock className="h-4 w-4 mr-2" />
+              {isUnlocking ? 'Đang mở khóa...' : 'Mở khóa (50 coins)'}
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Unlock Banner */}
+      {/* Status Banner */}
       {isLocked && (
-        <Card className="mb-6 border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Lock className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <h3 className="font-semibold text-yellow-900">Hồ sơ đang bị khóa</h3>
-                  <p className="text-sm text-yellow-700">
-                    Thông tin liên hệ đã được ẩn. Mở khóa để xem đầy đủ thông tin ứng viên.
-                  </p>
-                </div>
+        <div className="mb-6 p-4 border-l-4 border-amber-500 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 rounded-lg shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 mt-0.5">
+              <div className="p-2.5 bg-amber-100 rounded-xl shadow-sm">
+                <Lock className="h-5 w-5 text-amber-700" />
               </div>
-              <Button
-                onClick={handleUnlockProfile}
-                disabled={isUnlocking}
-                className="bg-yellow-600 hover:bg-yellow-700"
-              >
-                <Unlock className="h-4 w-4 mr-2" />
-                {isUnlocking ? 'Đang mở khóa...' : 'Mở khóa hồ sơ'}
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex-1 space-y-1">
+              <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                Hồ sơ đang bị khóa
+                <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                  50 coins để mở
+                </Badge>
+              </h3>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Email, số điện thoại và CV đã được che thông tin. Mở khóa để xem đầy đủ và liên hệ trực tiếp với ứng viên.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Basic Info */}
-        <div className="lg:col-span-1 space-y-6">
+      {!isLocked && (
+        <div className="mb-6 p-4 border-l-4 border-green-500 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 rounded-lg shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 mt-0.5">
+              <div className="p-2.5 bg-green-100 rounded-xl shadow-sm">
+                <Unlock className="h-5 w-5 text-green-700" />
+              </div>
+            </div>
+            <div className="flex-1 space-y-1">
+              <h3 className="text-sm font-bold text-green-900 flex items-center gap-2">
+                Hồ sơ đã được mở khóa
+                <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">
+                  Đã thanh toán
+                </Badge>
+              </h3>
+              <p className="text-xs text-green-800 leading-relaxed">
+                Bạn có thể xem đầy đủ thông tin liên hệ, CV không bị che và liên hệ trực tiếp với ứng viên.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Layout: CV on Left, Info on Right */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        {/* Left Column - CV Viewer (3 columns) */}
+        <div className="xl:col-span-3 space-y-6">
+          {/* CV Viewer Card */}
+          {cv && (
+            <Card className="overflow-hidden shadow-md">
+              <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b-2 border-primary/20">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl shadow-sm">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <CardTitle className="text-lg">CV Tìm Việc</CardTitle>
+                        {isLocked && (
+                          <Badge className="text-xs gap-1 bg-amber-500 hover:bg-amber-600 text-white border-0">
+                            <Lock className="h-3 w-3" />
+                            Đã che
+                          </Badge>
+                        )}
+                        {!isLocked && (
+                          <Badge className="text-xs gap-1 bg-green-500 hover:bg-green-600 text-white border-0">
+                            <Unlock className="h-3 w-3" />
+                            Đã mở
+                          </Badge>
+                        )}
+                      </div>
+                      <CardDescription className="text-xs font-medium">
+                        {cv.name}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadCv}
+                    disabled={!pdfUrl}
+                    className="shadow-sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Tải xuống
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                {/* PDF Viewer */}
+                <div className="bg-gray-50 p-4">
+                  {isLoadingPdf && (
+                    <div className="flex items-center justify-center h-[800px] bg-white rounded-lg">
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-sm text-muted-foreground">Đang tải CV...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {pdfUrl && !isLoadingPdf && (
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                      <iframe
+                        src={`${pdfUrl}#view=FitH`}
+                        className="w-full h-[800px]"
+                        title={cv.name}
+                        style={{ border: 'none' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Banner */}
+                {isLocked && (
+                  <div className="p-5 bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-t-2 border-amber-200">
+                    <div className="flex gap-4">
+                      <div className="shrink-0">
+                        <div className="p-2.5 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl shadow-sm">
+                          <Lock className="h-5 w-5 text-amber-800" />
+                        </div>
+                      </div>
+                      <div className="space-y-2.5 flex-1">
+                        <h5 className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                          CV đã được bảo mật
+                          <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                            Chế độ riêng tư
+                          </Badge>
+                        </h5>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2.5 text-xs text-amber-900">
+                            <div className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-amber-600"></div>
+                            <span>Email và số điện thoại trong CV đã bị <strong>che bằng hình chữ nhật xám</strong></span>
+                          </div>
+                          <div className="flex items-start gap-2.5 text-xs text-amber-900">
+                            <div className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-amber-600"></div>
+                            <span>Đây là <strong>CV duy nhất</strong> mà ứng viên công khai cho nhà tuyển dụng</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!isLocked && (
+                  <div className="p-5 bg-gradient-to-br from-green-50 via-emerald-50 to-green-50 border-t-2 border-green-200">
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0">
+                        <div className="p-2.5 bg-gradient-to-br from-green-100 to-green-200 rounded-xl shadow-sm">
+                          <Unlock className="h-5 w-5 text-green-800" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h5 className="text-sm font-bold text-green-900 mb-1">
+                          Xem CV đầy đủ
+                        </h5>
+                        <p className="text-xs text-green-800 leading-relaxed">
+                          Bạn đang xem <strong>CV tìm việc</strong> với thông tin liên hệ đầy đủ (không bị che)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Candidate Info (2 columns) */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Basic Info Card */}
           <Card>
-            <CardHeader className="text-center">
-              <Avatar className="w-24 h-24 mx-auto mb-4 border-2 border-primary">
-                <AvatarImage src={profile.avatar} alt={profile.fullname} />
-                <AvatarFallback>
-                  {profile.fullname?.charAt(0) || 'UV'}
-                </AvatarFallback>
-              </Avatar>
-              <CardTitle>{profile.fullname}</CardTitle>
-              <CardDescription>{profile.title || 'Ứng viên'}</CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-4">
+                <Avatar className="w-20 h-20 border-2 border-primary">
+                  <AvatarImage src={profile.avatar} alt={profile.fullname} />
+                  <AvatarFallback className="text-lg">
+                    {profile.fullname?.charAt(0) || 'UV'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <CardTitle className="text-xl mb-1">{profile.fullname}</CardTitle>
+                  <CardDescription className="text-sm">{profile.title || 'Ứng viên'}</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className={isLocked ? 'text-muted-foreground' : ''}>
-                  {isLocked ? maskEmail(profile.email) : profile.email}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className={isLocked ? 'text-muted-foreground' : ''}>
-                  {isLocked ? maskPhone(profile.phone) : profile.phone}
-                </span>
-              </div>
-              {profile.address && (
+              <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span>{profile.address}</span>
+                  <div className="p-2 bg-muted rounded-lg">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className={`font-medium ${isLocked ? 'text-muted-foreground' : ''}`}>
+                      {isLocked ? maskEmail(profile.email) : profile.email}
+                    </p>
+                  </div>
                 </div>
-              )}
-              {profile.expectedSalary && (
+
                 <div className="flex items-center gap-3 text-sm">
-                  <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span>
-                    {profile.expectedSalary.min?.toLocaleString('vi-VN')} -{' '}
-                    {profile.expectedSalary.max?.toLocaleString('vi-VN')} VNĐ
-                  </span>
+                  <div className="p-2 bg-muted rounded-lg">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Số điện thoại</p>
+                    <p className={`font-medium ${isLocked ? 'text-muted-foreground' : ''}`}>
+                      {isLocked ? maskPhone(profile.phone) : profile.phone}
+                    </p>
+                  </div>
                 </div>
-              )}
+
+                {profile.address && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="p-2 bg-muted rounded-lg">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Địa chỉ</p>
+                      <p className="font-medium">{profile.address}</p>
+                    </div>
+                  </div>
+                )}
+
+                {profile.expectedSalary && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="p-2 bg-muted rounded-lg">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Mức lương mong muốn</p>
+                      <p className="font-medium">
+                        {profile.expectedSalary.min?.toLocaleString('vi-VN')} -{' '}
+                        {profile.expectedSalary.max?.toLocaleString('vi-VN')} VNĐ
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -224,46 +467,14 @@ const CandidateProfile = () => {
             </Card>
           )}
 
-          {/* CV Files */}
-          {profile.cvFiles && profile.cvFiles.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">CV đính kèm</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {profile.cvFiles.map((cv, index) => (
-                  <Link
-                    key={index}
-                    to="/cv-viewer"
-                    state={{ cvUrl: isLocked ? cv.maskedPath : cv.path }}
-                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <FileText className="h-6 w-6 text-primary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{cv.name}</p>
-                      {isLocked && (
-                        <p className="text-xs text-muted-foreground">
-                          Thông tin liên hệ đã được ẩn
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Right Column - Detailed Info */}
-        <div className="lg:col-span-2 space-y-6">
           {/* Bio */}
           {profile.bio && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Giới thiệu</CardTitle>
+                <CardTitle className="text-base">Giới thiệu</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-foreground whitespace-pre-wrap">{profile.bio}</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{profile.bio}</p>
               </CardContent>
             </Card>
           )}
@@ -379,6 +590,7 @@ const CandidateProfile = () => {
           )}
         </div>
       </div>
+
     </div>
   );
 };

@@ -19,3 +19,16 @@ export const unlockCandidateProfile = async (userId) => {
   const response = await apiClient.post(`/recruiters/candidates/${userId}/unlock`);
   return response.data;
 };
+
+/**
+ * Get candidate CV (masked or original based on unlock status)
+ * @param {string} userId - User ID
+ * @param {string} cvId - CV ID
+ * @returns {Promise<ArrayBuffer>} PDF file as ArrayBuffer
+ */
+export const getCandidateCv = async (userId, cvId) => {
+  const response = await apiClient.get(`/recruiters/candidates/${userId}/cv/${cvId}`, {
+    responseType: 'arraybuffer'
+  });
+  return response;
+};
