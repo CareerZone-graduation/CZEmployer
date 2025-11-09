@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Users } from 'lucide-react';
 
-const CandidateSuggestions = ({ jobId }) => {
+const CandidateSuggestions = ({ jobId, onMessageClick }) => {
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -43,7 +43,11 @@ const CandidateSuggestions = ({ jobId }) => {
       {/* Candidates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {candidates.map((candidate) => (
-          <CandidateCard key={candidate.userId} candidate={candidate} />
+          <CandidateCard 
+            key={candidate.userId} 
+            candidate={candidate}
+            onMessageClick={onMessageClick}
+          />
         ))}
       </div>
 

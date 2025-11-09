@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ErrorState from '@/components/common/ErrorState';
+import MessageButton from '@/components/candidates/MessageButton';
+import { ChatInterface } from '@/components/chat';
 import {
   ArrowLeft,
   Mail,
@@ -19,11 +21,11 @@ import {
   Lock,
   Unlock,
   DollarSign,
-  MessageCircle,
   Download,
   Loader2
 } from 'lucide-react';
 import * as candidateService from '@/services/candidateService';
+import { unlockProfile } from '@/services/chatService';
 import * as utils from '@/utils';
 
 const CandidateProfile = () => {
@@ -35,6 +37,8 @@ const CandidateProfile = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
 
   console.log('CandidateProfile component mounted, userId:', userId);
 
@@ -88,12 +92,12 @@ const CandidateProfile = () => {
   const handleUnlockProfile = async () => {
     setIsUnlocking(true);
     try {
-      await candidateService.unlockCandidateProfile(userId);
+      await unlockProfile(userId);
       toast.success('Đã mở khóa hồ sơ thành công!');
       fetchCandidateProfile(); // Refresh to get unmasked data
     } catch (err) {
       console.error('Error unlocking profile:', err);
-      const errorMessage = err.response?.data?.message || 'Không thể mở khóa hồ sơ.';
+      const errorMessage = err.response?.data?.message || err.message || 'Không thể mở khóa hồ sơ.';
       toast.error(errorMessage);
     } finally {
       setIsUnlocking(false);
@@ -111,6 +115,18 @@ const CandidateProfile = () => {
   const maskPhone = (phone) => {
     if (!phone) return 'N/A';
     return phone.replace(/(\d{3})\d{4}(\d{3})/, '$1****$2');
+  };
+
+  const handleMessageClick = (conversationId = null) => {
+    console.log('[CandidateProfile] Opening chat interface with conversationId:', conversationId);
+    setSelectedConversationId(conversationId);
+    setIsChatOpen(true);
+  };
+
+  const handleCloseChat = () => {
+    console.log('[CandidateProfile] Closing chat interface');
+    setIsChatOpen(false);
+    setSelectedConversationId(null);
   };
 
   console.log('Render state:', { isLoading, error, profile });
@@ -176,16 +192,12 @@ const CandidateProfile = () => {
         </Button>
 
         <div className="flex items-center gap-3">
-          {/* Message Button - Always visible */}
-          <Button 
-            variant={isLocked ? "outline" : "default"}
-            size="sm"
-            disabled={isLocked}
-            className={isLocked ? "opacity-60" : ""}
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            {isLocked ? 'Mở khóa để nhắn tin' : 'Nhắn tin'}
-          </Button>
+          {/* Message Button with access control */}
+          <MessageButton
+            candidateId={userId}
+            candidateName={profile?.fullname || 'Ứng viên'}
+            onMessageClick={handleMessageClick}
+          />
 
           {/* Unlock Button - Only when locked */}
           {isLocked && (
@@ -591,6 +603,13 @@ const CandidateProfile = () => {
         </div>
       </div>
 
+      {/* Chat Interface */}
+      <ChatInterface
+        isOpen={isChatOpen}
+        onClose={handleCloseChat}
+        conversationId={selectedConversationId}
+        recipientId={userId}
+      />
     </div>
   );
 };

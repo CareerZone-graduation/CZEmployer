@@ -11,16 +11,6 @@ export const getCandidateProfile = async (userId) => {
 };
 
 /**
- * Unlock candidate profile (purchase access)
- * @param {string} userId - User ID
- * @returns {Promise} API response
- */
-export const unlockCandidateProfile = async (userId) => {
-  const response = await apiClient.post(`/recruiters/candidates/${userId}/unlock`);
-  return response.data;
-};
-
-/**
  * Get candidate CV (masked or original based on unlock status)
  * @param {string} userId - User ID
  * @param {string} cvId - CV ID

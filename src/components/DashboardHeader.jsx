@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { logoutSuccess } from '@/redux/authSlice';
 import { logoutServer } from '@/services/authService';
+import socketService from '@/services/socketService';
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
@@ -43,6 +44,8 @@ const DashboardHeader = () => {
       console.error('Server logout failed:', error);
       // Vẫn tiếp tục logout ở client dù server có lỗi
     } finally {
+      // Disconnect socket before logout
+      socketService.disconnect();
       dispatch(logoutSuccess());
     }
   };

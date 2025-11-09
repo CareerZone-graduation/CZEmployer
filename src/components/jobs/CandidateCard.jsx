@@ -3,12 +3,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { User, Briefcase, Clock } from 'lucide-react';
+import MessageButton from '@/components/candidates/MessageButton';
 
-const CandidateCard = ({ candidate }) => {
+const CandidateCard = ({ candidate, onMessageClick }) => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    // Don't navigate if clicking on the message button
+    if (e.target.closest('button')) {
+      return;
+    }
     navigate(`/candidates/${candidate.userId}`);
+  };
+
+  const handleMessageClick = () => {
+    if (onMessageClick) {
+      onMessageClick(candidate);
+    }
   };
 
   const getInitials = (name) => {
@@ -65,7 +76,7 @@ const CandidateCard = ({ candidate }) => {
 
             {/* Matched Skills */}
             {candidate.matchedSkills && candidate.matchedSkills.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-3">
                 {candidate.matchedSkills.slice(0, 5).map((skill, index) => (
                   <Badge 
                     key={index} 
@@ -77,6 +88,15 @@ const CandidateCard = ({ candidate }) => {
                 ))}
               </div>
             )}
+
+            {/* Message Button */}
+            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+              <MessageButton
+                candidateId={candidate.userId}
+                candidateName={candidate.fullname}
+                onMessageClick={handleMessageClick}
+              />
+            </div>
           </div>
         </div>
       </CardContent>

@@ -32,6 +32,9 @@ const VerifyEmailPrompt = () => {
       // Ngay cả khi server logout lỗi, vẫn nên logout ở client
       console.error('Server logout failed:', error);
     } finally {
+      // Disconnect socket before logout
+      const { default: socketService } = await import('@/services/socketService');
+      socketService.disconnect();
       dispatch(logoutSuccess());
       navigate('/auth/login', { replace: true });
     }

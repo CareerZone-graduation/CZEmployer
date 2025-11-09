@@ -96,6 +96,10 @@ apiClient.interceptors.response.use(
         publishRefresh(null);
         // 3. Use the injected store.
         if (store) {
+          // Disconnect socket before logout
+          import('@/services/socketService').then(({ default: socketService }) => {
+            socketService.disconnect();
+          });
           store.dispatch(logoutSuccess());
         }
         return Promise.reject(refreshErr);
