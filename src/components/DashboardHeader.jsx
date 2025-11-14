@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Bell,
   LogOut,
   MessageCircle,
   User,
@@ -29,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { logoutSuccess } from '@/redux/authSlice';
 import { logoutServer } from '@/services/authService';
 import socketService from '@/services/socketService';
+import NotificationDropdown from '@/components/NotificationDropdown';
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
@@ -101,11 +101,7 @@ const DashboardHeader = () => {
             <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">3</Badge>
           </Button>
 
-          <Button variant="outline" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Thông báo</span>
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">5</Badge>
-          </Button>
+          <NotificationDropdown />
 
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
