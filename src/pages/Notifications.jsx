@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getNotifications, markAllAsRead, markNotificationAsRead } from '@/services/notificationService';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { 
+  fetchNotifications, 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead 
+} from '@/redux/notificationSlice';
+import useFirebaseMessaging from '@/hooks/useFirebaseMessaging';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'react-toastify';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { BellRing, CheckCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { BellRing, CheckCheck, RefreshCw, AlertCircle, BellPlus, X } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -20,7 +26,7 @@ import {
 
 const NotificationItem = ({ notification, onMarkAsRead }) => {
   const handleClick = () => {
-    if (!notification.read) {
+    if (!notification.isRead) {
       onMarkAsRead(notification._id);
     }
   };
@@ -29,14 +35,14 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
     <div 
       className={cn(
         "flex items-start gap-4 p-4 border-b last:border-b-0 cursor-pointer hover:bg-accent/50 transition-colors",
-        !notification.read && "bg-blue-50/50 dark:bg-blue-950/20"
+        !notification.isRead && "bg-blue-50/50 dark:bg-blue-950/20"
       )}
       onClick={handleClick}
     >
       <div className="shrink-0">
         <div className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center",
-          !notification.read ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          !notification.isRead ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
         )}>
           <BellRing size={20} />
         </div>
@@ -48,7 +54,7 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: vi })}
         </p>
       </div>
-      {!notification.read && (
+      {!notification.isRead && (
         <div className="shrink-0 self-center">
           <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
         </div>
@@ -78,49 +84,44 @@ const EmptyState = ({ message }) => (
 );
 
 const Notifications = () => {
-  const [page, setPage] = useState(1);
-  const limit = 10;
-  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  const { notifications, pagination, loading, error } = useSelector((state) => state.notifications);
+  const { requestPermission } = useFirebaseMessaging();
+  console.log(Notification.permission)
+  const [showNotificationBanner, setShowNotificationBanner] = useState(
+ typeof Notification !== 'undefined' && Notification.permission !== 'granted'  );
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['notifications', page, limit],
-    queryFn: () => getNotifications({ page, limit }),
-    keepPreviousData: true,
-  });
+  // Load notifications lần đầu
+  useEffect(() => {
+    dispatch(fetchNotifications({ page: pagination.page, limit: pagination.limit }));
+  }, [dispatch, pagination.page, pagination.limit]);
 
-  const markAllMutation = useMutation({
-    mutationFn: markAllAsRead,
-    onSuccess: () => {
-      toast.success("Đã đánh dấu tất cả là đã đọc.");
-      queryClient.invalidateQueries(['notifications']);
-      queryClient.invalidateQueries(['unreadCount']);
-    },
-    onError: () => {
-      toast.error("Đã có lỗi xảy ra.");
-    }
-  });
-
-  const markSingleMutation = useMutation({
-    mutationFn: markNotificationAsRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-      queryClient.invalidateQueries(['unreadCount']);
-    },
-    onError: () => {
-      toast.error("Không thể đánh dấu đã đọc.");
-    }
-  });
+  const handleEnableNotifications = async () => {
+    await requestPermission();
+    setShowNotificationBanner(false);
+  };
 
   const handleMarkAllRead = () => {
-    markAllMutation.mutate();
+    dispatch(markAllNotificationsAsRead())
+      .unwrap()
+      .then(() => toast.success("Đã đánh dấu tất cả là đã đọc."))
+      .catch(() => toast.error("Đã có lỗi xảy ra."));
   };
 
   const handleMarkAsRead = (notificationId) => {
-    markSingleMutation.mutate(notificationId);
+    dispatch(markNotificationAsRead(notificationId));
+  };
+
+  const handleRefetch = () => {
+    dispatch(fetchNotifications({ page: pagination.page, limit: pagination.limit }));
+  };
+
+  const handlePageChange = (newPage) => {
+    dispatch(fetchNotifications({ page: newPage, limit: pagination.limit }));
   };
 
   const renderPagination = () => {
-    if (!data?.meta || data.meta.pages <= 1) return null;
+    if (pagination.pages <= 1) return null;
 
     return (
       <Pagination className="mt-6">
@@ -128,16 +129,19 @@ const Notifications = () => {
           <PaginationItem>
             <PaginationPrevious
               href="#"
-              onClick={(e) => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }}
-              disabled={page === 1}
+              onClick={(e) => { 
+                e.preventDefault(); 
+                if (pagination.page > 1) handlePageChange(pagination.page - 1); 
+              }}
+              className={cn(pagination.page === 1 && "pointer-events-none opacity-50")}
             />
           </PaginationItem>
-          {[...Array(data.meta.pages).keys()].map(p => (
+          {[...Array(pagination.pages).keys()].map(p => (
             <PaginationItem key={p}>
               <PaginationLink
                 href="#"
-                onClick={(e) => { e.preventDefault(); setPage(p + 1); }}
-                isActive={page === p + 1}
+                onClick={(e) => { e.preventDefault(); handlePageChange(p + 1); }}
+                isActive={pagination.page === p + 1}
               >
                 {p + 1}
               </PaginationLink>
@@ -146,8 +150,11 @@ const Notifications = () => {
           <PaginationItem>
             <PaginationNext
               href="#"
-              onClick={(e) => { e.preventDefault(); setPage(p => Math.min(data.meta.pages, p + 1)); }}
-              disabled={page === data.meta.pages}
+              onClick={(e) => { 
+                e.preventDefault(); 
+                if (pagination.page < pagination.pages) handlePageChange(pagination.page + 1); 
+              }}
+              className={cn(pagination.page === pagination.pages && "pointer-events-none opacity-50")}
             />
           </PaginationItem>
         </PaginationContent>
@@ -156,7 +163,7 @@ const Notifications = () => {
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (loading) {
       return (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
@@ -173,18 +180,17 @@ const Notifications = () => {
       );
     }
 
-    if (isError) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Đã có lỗi xảy ra';
-      return <ErrorState onRetry={refetch} message={errorMessage} />;
+    if (error) {
+      return <ErrorState onRetry={handleRefetch} message={error} />;
     }
 
-    if (!data || !data.data || data.data.length === 0) {
+    if (!notifications || notifications.length === 0) {
       return <EmptyState message="Bạn không có thông báo nào." />;
     }
 
     return (
       <div>
-        {data.data.map(notification => (
+        {notifications.map(notification => (
           <NotificationItem 
             key={notification._id} 
             notification={notification}
@@ -197,6 +203,34 @@ const Notifications = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      {/* Banner bật thông báo */}
+      {showNotificationBanner && (
+        <Alert className="mb-6 max-w-4xl mx-auto bg-blue-50 border-blue-200">
+          <BellPlus className="h-5 w-5 text-blue-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-sm text-blue-900">
+              Bật thông báo đẩy để nhận cập nhật mới nhất về ứng viên và phỏng vấn ngay lập tức!
+            </span>
+            <div className="flex gap-2 ml-4">
+              <Button 
+                size="sm" 
+                onClick={handleEnableNotifications}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Bật ngay
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => setShowNotificationBanner(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card className="max-w-4xl mx-auto">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-2xl font-bold">Thông báo của bạn</CardTitle>
@@ -204,17 +238,17 @@ const Notifications = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
+              onClick={handleRefetch}
+              disabled={loading}
             >
-              <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
+              <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
               Làm mới
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleMarkAllRead}
-              disabled={markAllMutation.isLoading || !data?.data?.some(n => !n.read)}
+              disabled={loading || !notifications?.some(n => !n.isRead)}
             >
               <CheckCheck className="mr-2 h-4 w-4" />
               Đánh dấu tất cả đã đọc

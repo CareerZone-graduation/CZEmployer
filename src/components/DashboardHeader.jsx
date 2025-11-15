@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { logoutSuccess } from '@/redux/authSlice';
+import { clearNotifications } from '@/redux/notificationSlice';
 import { logoutServer } from '@/services/authService';
 import socketService from '@/services/socketService';
 import NotificationDropdown from '@/components/NotificationDropdown';
@@ -46,6 +47,11 @@ const DashboardHeader = () => {
     } finally {
       // Disconnect socket before logout
       socketService.disconnect();
+      
+      // Clear notifications from Redux store
+      dispatch(clearNotifications());
+      
+      // Dispatch logout action
       dispatch(logoutSuccess());
     }
   };

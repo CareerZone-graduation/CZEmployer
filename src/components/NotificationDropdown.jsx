@@ -1,6 +1,6 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getRecentNotifications, getUnreadCount } from '@/services/notificationService';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchRecentNotifications, fetchUnreadCount } from '@/redux/notificationSlice';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,22 +43,22 @@ const NotificationDropdownItem = ({ notification }) => {
 };
 
 const NotificationDropdown = () => {
-  const { data: notifications = [], isLoading, isError } = useQuery({
-    queryKey: ['recentNotifications'],
-    queryFn: getRecentNotifications,
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
+  const dispatch = useDispatch();
+  const { recentNotifications, unreadCount, loading } = useSelector((state) => state.notifications);
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['unreadCount'],
-    queryFn: getUnreadCount,
-    refetchInterval: 30000,
-  });
+  // Load notifications lần đầu khi component mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchRecentNotifications());
+      dispatch(fetchUnreadCount());
+    }
+  }, [dispatch, isAuthenticated]);
 
-  const hasUnread = !isLoading && !isError && notifications && notifications.length > 0;
+  const hasUnread = !loading && recentNotifications && recentNotifications.length > 0;
 
   const renderContent = () => {
-    if (isLoading) {
+    if (loading) {
       return (
         <div className="p-2.5 space-y-3">
           {[...Array(2)].map((_, i) => (
@@ -75,14 +75,6 @@ const NotificationDropdown = () => {
       );
     }
 
-    if (isError) {
-      return (
-        <p className="p-4 text-center text-sm text-destructive">
-          Không thể tải thông báo.
-        </p>
-      );
-    }
-
     if (!hasUnread) {
       return (
         <p className="p-4 text-center text-sm text-muted-foreground">
@@ -91,7 +83,7 @@ const NotificationDropdown = () => {
       );
     }
 
-    return notifications.map((n) => (
+    return recentNotifications.map((n) => (
       <NotificationDropdownItem key={n._id} notification={n} />
     ));
   };

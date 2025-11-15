@@ -18,7 +18,11 @@ export const getNotifications = async ({ page = 1, limit = 10, type, read }) => 
   if (read !== undefined) params.append('read', read);
 
   const response = await apiClient.get(`/notifications?${params.toString()}`);
-  return response.data;
+  // API returns: { success, message, data: [...], meta: {...} }
+  return {
+    data: response.data,
+    meta: response.meta
+  };
 };
 
 /**
@@ -55,5 +59,6 @@ export const markAllAsRead = async () => {
  */
 export const getRecentNotifications = async () => {
   const response = await apiClient.get('/notifications?page=1&limit=5&read=false');
-  return response.data?.data || [];
+  // API returns: { success, message, data: [...], meta: {...} }
+  return response.data;
 };
