@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/utils/formatDate';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle } from 'lucide-react';
+import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video } from 'lucide-react';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
 
 const DetailItem = ({ label, children, className }) => (
@@ -222,10 +222,19 @@ const InterviewDetail = () => {
           </DetailItem>
 
           <div className="flex items-center justify-end space-x-2 border-t border-gray-200 dark:border-gray-700 pt-6">
+            {(interview.status === 'SCHEDULED' || interview.status === 'STARTED' || interview.status === 'RESCHEDULED') && (
+              <Button
+                onClick={() => navigate(`/interviews/${interview.id}/device-test`)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Video className="mr-2 h-4 w-4" />
+                Tham gia phỏng vấn
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => setRescheduleModalOpen(true)}
-              disabled={interview.status === 'CANCELLED'}
+              disabled={interview.status === 'CANCELLED' || interview.status === 'COMPLETED'}
             >
               <Edit className="mr-2 h-4 w-4" />
               Dời lịch
@@ -233,7 +242,7 @@ const InterviewDetail = () => {
             <Button
               variant="destructive"
               onClick={() => setCancelAlertOpen(true)}
-              disabled={interview.status === 'CANCELLED'}
+              disabled={interview.status === 'CANCELLED' || interview.status === 'COMPLETED'}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Hủy lịch

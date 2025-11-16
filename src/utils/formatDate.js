@@ -49,3 +49,20 @@ export const getRelativeTime = (date) => {
     return `${diffInDays} days ago`
   }
 }
+
+export const formatDateTimeShort = (date) => {
+  if (!date) return '-';
+  
+  const parsedDate = new Date(date);
+  
+  if (isNaN(parsedDate.getTime())) {
+    return '-';
+  }
+  
+  return parsedDate.toLocaleString("vi-VN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

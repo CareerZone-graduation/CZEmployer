@@ -7,8 +7,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": fileURLToPath(new URL("./src", import.meta.url))
     },
+  },
+  define: {
+    global: 'globalThis',
+    'process.env': {},
   },
 
   server: {

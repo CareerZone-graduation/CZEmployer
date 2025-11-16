@@ -58,3 +58,71 @@ export const completeInterview = (id, data) => {
 export const getInterviewById = (id) => {
   return apiClient.get(`${API_URL}/${id}/details`);
 };
+
+/**
+ * Schedules a new interview.
+ * @param {object} data - The interview data { applicationId, scheduledAt, duration }.
+ * @returns {Promise<object>} The response data.
+ */
+export const scheduleInterview = (data) => {
+  return apiClient.post(API_URL, data);
+};
+
+/**
+ * Upload interview recording to backend.
+ * @param {string} interviewId - The ID of the interview.
+ * @param {Blob} recordingBlob - The recorded video blob.
+ * @param {object} metadata - Recording metadata { duration, size }.
+ * @param {function} onProgress - Progress callback function.
+ * @returns {Promise<object>} The response data with recording URL.
+ */
+export const uploadRecording = async (interviewId, recordingBlob, metadata = {}, onProgress) => {
+  try {
+    const formData = new FormData();
+    
+    // Add the video file
+    const filename = `interview-${interviewId}-${Date.now()}.webm`;
+    formData.append('recording', recordingBlob, filename);
+    
+    // Add metadata
+    if (metadata.duration) {
+      formData.append('duration', metadata.duration);
+    }
+    if (metadata.size) {
+      formData.append('size', metadata.size);
+    }
+
+    // Upload with progress tracking
+    const response = await apiClient.post(
+      `${API_URL}/${interviewId}/recording`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onProgress(percentCompleted, progressEvent.loaded, progressEvent.total);
+          }
+        },
+      }
+    );
+
+    return response;
+  } catch (error) {
+    console.error('[Interview Service] Failed to upload recording:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get recording URL for an interview.
+ * @param {string} interviewId - The ID of the interview.
+ * @returns {Promise<object>} The response data with recording URL.
+ */
+export const getRecording = (interviewId) => {
+  return apiClient.get(`${API_URL}/${interviewId}/recording`);
+};

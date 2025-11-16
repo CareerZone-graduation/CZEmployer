@@ -15,13 +15,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Input } from '@/components/ui/input';
-import { format } from 'date-fns';
 import CandidateRating from '@/components/jobs/CandidateRating';
 import ActivityHistory from '@/components/jobs/ActivityHistory';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import ScheduleInterview from '@/components/interviews/ScheduleInterview';
 
 const ApplicationDetail = () => {
   const { applicationId, jobId } = useParams();
@@ -37,8 +34,6 @@ const ApplicationDetail = () => {
   
   // State for modals
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
-  const [interviewDate, setInterviewDate] = useState(null);
-  const [interviewTime, setInterviewTime] = useState('');
 
   // Add to talent pool mutation
   const addToTalentPoolMutation = useMutation({
@@ -101,24 +96,8 @@ const ApplicationDetail = () => {
     }
   };
   
-  const handleScheduleInterview = async () => {
-    if (!interviewDate || !interviewTime) {
-      toast.error('Vui lòng chọn ngày và giờ phỏng vấn.');
-      return;
-    }
-    const [hours, minutes] = interviewTime.split(':');
-    const scheduledTime = new Date(interviewDate);
-    scheduledTime.setHours(parseInt(hours, 10), parseInt(minutes, 10));
-
-    try {
-      await applicationService.scheduleInterview(applicationId, scheduledTime.toISOString());
-      toast.success('Lên lịch phỏng vấn thành công!');
-      fetchApplication(); // Refetch to update status
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi lên lịch phỏng vấn.');
-    } finally {
-      setIsInterviewModalOpen(false);
-    }
+  const handleScheduleSuccess = () => {
+    fetchApplication(); // Refetch to update status
   };
   
   const getStatusBadge = (status) => {
@@ -200,46 +179,22 @@ const ApplicationDetail = () => {
                   {addToTalentPoolMutation.isLoading ? 'Đang thêm...' : 'Thêm vào Talent Pool'}
                 </Button>
                 
-                <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="w-full justify-start" variant="default" disabled={!!application.interviewInfo}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {application.interviewInfo ? 'Đã lên lịch' : 'Lên lịch phỏng vấn'}
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Lên lịch phỏng vấn</DialogTitle>
-                            <DialogDescription>
-                                Thiết lập thời gian và thông tin chi tiết cho buổi phỏng vấn
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4 space-y-4">
-                            <div>
-                                <Label>Chọn ngày</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant={"outline"} className="w-full justify-start text-left font-normal">
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {interviewDate ? format(interviewDate, "PPP") : <span>Chọn ngày</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar mode="single" selected={interviewDate} onSelect={setInterviewDate} initialFocus />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div>
-                                <Label htmlFor="interview-time">Chọn giờ</Label>
-                                <Input id="interview-time" type="time" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild><Button variant="ghost">Hủy</Button></DialogClose>
-                            <Button onClick={handleScheduleInterview}>Xác nhận</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="default" 
+                  disabled={!!application.interviewInfo}
+                  onClick={() => setIsInterviewModalOpen(true)}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {application.interviewInfo ? 'Đã lên lịch' : 'Lên lịch phỏng vấn'}
+                </Button>
+                
+                <ScheduleInterview
+                  open={isInterviewModalOpen}
+                  onOpenChange={setIsInterviewModalOpen}
+                  application={application}
+                  onSuccess={handleScheduleSuccess}
+                />
             </CardContent>
           </Card>
 

@@ -21,6 +21,8 @@ import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
 import Notifications from '@/pages/notifications';
 import InterviewList from '@/pages/interviews/InterviewList';
 import InterviewDetail from '@/pages/interviews/InterviewDetail';
+import DeviceTest from '@/components/interviews/DeviceTest';
+import InterviewRoom from '@/components/interviews/InterviewRoom';
 import Candidates from '@/pages/candidates/Candidates';
 import CandidateComparison from '@/pages/candidates/CandidateComparison';
 import CandidateProfile from '@/pages/candidates/CandidateProfile';
@@ -140,6 +142,10 @@ const AppRouter = () => {
           <Route path="notifications" element={<Notifications />} />
           <Route path="cv-viewer" element={<CVViewer />} />
         </Route>
+        
+        {/* Interview room routes - no layout for full-screen experience */}
+        <Route path="/interviews/:interviewId/device-test" element={<DeviceTest />} />
+        <Route path="/interviews/:interviewId/room" element={<InterviewRoom />} />
       </Route>
 
      {/* Payment result routes */}
