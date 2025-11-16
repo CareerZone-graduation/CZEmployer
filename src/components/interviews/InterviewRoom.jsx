@@ -494,7 +494,7 @@ const InterviewRoom = () => {
       webrtcService.destroy();
       interviewSocketService.disconnect();
       toast.info('Đã kết thúc cuộc phỏng vấn');
-      navigate(`/interviews/${interviewId}/feedback`);
+      navigate(`/interviews/${interviewId}`);
     }
   };
 
