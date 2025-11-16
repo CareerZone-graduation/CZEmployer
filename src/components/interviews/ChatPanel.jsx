@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
-const ChatPanel = ({ messages = [], onSendMessage, onClose }) => {
+const ChatPanel = ({ messages = [], onSendMessage, onClose, currentUserId }) => {
   const [messageText, setMessageText] = useState('');
   const scrollAreaRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -49,7 +48,7 @@ const ChatPanel = ({ messages = [], onSendMessage, onClose }) => {
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
@@ -57,31 +56,39 @@ const ChatPanel = ({ messages = [], onSendMessage, onClose }) => {
               <p className="text-xs mt-1">Gửi tin nhắn để bắt đầu trò chuyện</p>
             </div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex flex-col ${
-                  message.senderId === 'recruiter' ? 'items-end' : 'items-start'
-                }`}
-              >
+            messages.map((message) => {
+              const isOwnMessage = message.senderId === currentUserId;
+              return (
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                    message.senderId === 'recruiter'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-white'
+                  key={message.id}
+                  className={`flex flex-col ${
+                    isOwnMessage ? 'items-end' : 'items-start'
                   }`}
                 >
-                  <p className="text-sm break-words">{message.message}</p>
+                  <div
+                    className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                      isOwnMessage
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-white'
+                    }`}
+                  >
+                    {!isOwnMessage && message.senderName && (
+                      <p className="text-xs font-semibold mb-1 opacity-80">
+                        {message.senderName}
+                      </p>
+                    )}
+                    <p className="text-sm break-words">{message.message}</p>
+                  </div>
+                  <span className="text-xs text-gray-500 mt-1">
+                    {format(new Date(message.timestamp), 'HH:mm', { locale: vi })}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-500 mt-1">
-                  {format(new Date(message.timestamp), 'HH:mm', { locale: vi })}
-                </span>
-              </div>
-            ))
+              );
+            })
           )}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
 
       <Separator className="bg-gray-700" />
 

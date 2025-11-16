@@ -12,6 +12,10 @@ class WebRTCService {
     this.eventHandlers = new Map();
     this.isInitiator = false;
     
+    // Track processed signals to prevent duplicates
+    this.processedSignals = new Map(); // Map<signalType, timestamp>
+    this.signalDebounceTime = 1000; // 1 second debounce
+    
     // ICE servers configuration
     this.config = {
       iceServers: [
@@ -286,6 +290,19 @@ class WebRTCService {
       console.log('[WebRTC] ===== Handling Signal =====');
       console.log('[WebRTC] Signal type:', signalType);
       console.log('[WebRTC] Current signaling state:', this.peerConnection.signalingState);
+      
+      // Debounce offer/answer signals to prevent duplicates (but not ICE candidates)
+      if (signalType === 'offer' || signalType === 'answer') {
+        const now = Date.now();
+        const lastProcessed = this.processedSignals.get(signalType);
+        
+        if (lastProcessed && (now - lastProcessed) < this.signalDebounceTime) {
+          console.log(`[WebRTC] Ignoring duplicate ${signalType} signal (debounced)`);
+          return;
+        }
+        
+        this.processedSignals.set(signalType, now);
+      }
 
       if (signalType === 'offer') {
         // Candidate receives offer from recruiter
@@ -312,9 +329,16 @@ class WebRTCService {
       } else if (signalType === 'answer') {
         // Recruiter receives answer from candidate
         console.log('[WebRTC] Received answer from candidate');
+        console.log('[WebRTC] Current signaling state:', this.peerConnection.signalingState);
+        
+        // Check if we're in the correct state to receive answer
+        if (this.peerConnection.signalingState === 'stable') {
+          console.log('[WebRTC] Already in stable state, ignoring duplicate answer');
+          return;
+        }
         
         if (this.peerConnection.signalingState !== 'have-local-offer') {
-          console.error('[WebRTC] Wrong state for answer:', this.peerConnection.signalingState);
+          console.warn('[WebRTC] Wrong state for answer:', this.peerConnection.signalingState, '- expected have-local-offer');
           return;
         }
 
@@ -324,7 +348,7 @@ class WebRTCService {
         });
         
         await this.peerConnection.setRemoteDescription(answerDesc);
-        console.log('[WebRTC] Remote description set (answer)');
+        console.log('[WebRTC] Remote description set (answer) - connection established');
         
       } else if (signalType === 'candidate') {
         // ICE candidate
@@ -634,6 +658,9 @@ class WebRTCService {
 
     this.remoteStream = null;
     this.connectionState = 'disconnected';
+    
+    // Clear processed signals tracking
+    this.processedSignals.clear();
 
     console.log('[WebRTC] Peer connection closed, local stream preserved');
     this._triggerHandler('onConnectionClosed');
@@ -658,6 +685,9 @@ class WebRTCService {
 
     this.remoteStream = null;
     this.connectionState = 'disconnected';
+    
+    // Clear processed signals tracking
+    this.processedSignals.clear();
 
     console.log('[WebRTC] Peer connection and local stream destroyed');
     this._triggerHandler('onConnectionClosed');
