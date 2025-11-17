@@ -12,7 +12,7 @@ export const setupApiClient = (appStore) => {
 };
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL, // Lấy URL từ biến môi trường
+  baseURL: "http://localhost:5000/api", // Lấy URL từ biến môi trường
   timeout: 15000,
   withCredentials: false, // KHÔNG gửi cookie mặc định
 });

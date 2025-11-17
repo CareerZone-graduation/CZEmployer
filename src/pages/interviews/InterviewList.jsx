@@ -217,6 +217,7 @@ const InterviewList = () => {
           <TabsTrigger value="all">Tất cả</TabsTrigger>
           <TabsTrigger value="upcoming">Sắp tới</TabsTrigger>
           <TabsTrigger value="SCHEDULED">Đã lên lịch</TabsTrigger>
+          <TabsTrigger value="RESCHEDULED">Đã dời lịch</TabsTrigger>
           <TabsTrigger value="COMPLETED">Hoàn thành</TabsTrigger>
           <TabsTrigger value="CANCELLED">Đã hủy</TabsTrigger>
         </TabsList>

@@ -38,8 +38,15 @@ const BillingPage = () => {
   const finalAmount = selectedPackage?.amount || 0;
 
   const handleSubmit = () => {
+    console.log('🔵 handleSubmit called');
+    console.log('🔵 finalAmount:', finalAmount);
+    console.log('🔵 paymentMethod:', paymentMethod);
+    console.log('🔵 Calling handlePayment with:', { coins: finalAmount, paymentMethod });
+    
     if (finalAmount > 0) {
       handlePayment({ coins: finalAmount, paymentMethod });
+    } else {
+      console.error('❌ finalAmount is 0 or invalid:', finalAmount);
     }
   };
 
@@ -132,6 +139,13 @@ const BillingPage = () => {
                 />
               </div>
             )}
+            
+            {/* Usage Suggestion */}
+            {finalAmount > 0 && (
+              <div className="pt-2 text-center text-sm text-muted-foreground italic">
+                {`Với ${finalAmount} xu, bạn có thể đăng được ${Math.floor(finalAmount / 100)} tin tuyển dụng.`}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Payment Method & Summary */}
@@ -154,6 +168,11 @@ const BillingPage = () => {
                   <RadioGroupItem value="VNPAY" id="VNPAY" />
                   <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPAY" className="h-8 w-8" />
                   <span>VNPAY</span>
+                </Label>
+                <Label htmlFor="MoMo" className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:border-gray-400">
+                  <RadioGroupItem value="MoMo" id="MoMo" />
+                  <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Square.png" alt="MoMo" className="h-8 w-8" />
+                  <span>MoMo</span>
                 </Label>
               </RadioGroup>
             </div>
