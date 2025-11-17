@@ -169,8 +169,8 @@ const BillingPage = () => {
                   <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPAY" className="h-8 w-8" />
                   <span>VNPAY</span>
                 </Label>
-                <Label htmlFor="MoMo" className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:border-gray-400">
-                  <RadioGroupItem value="MoMo" id="MoMo" />
+                <Label htmlFor="MOMO" className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:border-gray-400">
+                  <RadioGroupItem value="MOMO" id="MOMO" />
                   <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Square.png" alt="MoMo" className="h-8 w-8" />
                   <span>MoMo</span>
                 </Label>

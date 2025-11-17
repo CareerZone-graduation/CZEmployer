@@ -39,8 +39,6 @@ import CVViewer from '@/pages/CVViewer';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentFailure from '@/pages/PaymentFailure';
 import BillingPage from '@/pages/Billing';
-import RechargePage from '@/pages/payment/RechargePage';
-import PaymentResultPage from '@/pages/payment/PaymentResultPage';
 
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
@@ -151,8 +149,6 @@ const AppRouter = () => {
       </Route>
 
      {/* Payment routes */}
-     <Route path="/payment/recharge" element={<RechargePage />} />
-     <Route path="/payment/result" element={<PaymentResultPage />} />
      <Route path="/payment/success" element={<PaymentSuccess />} />
      <Route path="/payment/failure" element={<PaymentFailure />} />
 
