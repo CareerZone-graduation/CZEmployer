@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { BellRing, CheckCheck, RefreshCw, AlertCircle, BellPlus, X } from 'lucide-react';
@@ -51,7 +51,9 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
         <p className="font-semibold text-sm">{notification.title}</p>
         <p className="text-sm text-muted-foreground">{notification.message}</p>
         <p className="text-xs text-muted-foreground mt-1">
-          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: vi })}
+          {isValid(new Date(notification.createdAt))
+            ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: vi })
+            : 'Thời gian không hợp lệ'}
         </p>
       </div>
       {!notification.isRead && (

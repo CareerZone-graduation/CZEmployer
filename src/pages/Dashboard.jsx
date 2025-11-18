@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom"
 import { useSelector } from "react-redux"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
@@ -82,10 +81,15 @@ const Dashboard = () => {
             Welcome back, {user?.profile?.fullname || "Recruiter"}!
           </h2>
         )}
-        <p className="text-green-100 mb-4">Here's what's happening with your recruitment activities today.</p>
-        <Button className="bg-white text-green-700 hover:bg-gray-100">
+        <p className="text-green-100 mb-4">
+          Ở đây bạn có thể quản lý các tin tuyển dụng, theo dõi ứng viên và cập nhật thông tin công ty một cách dễ dàng
+        </p>
+        <Button 
+          className="bg-white text-green-700 hover:bg-gray-100"
+          onClick={() => navigate('/jobs/create')}
+        >
           <Plus className="h-4 w-4 mr-2" />
-          Post New Job
+          Đăng tin tuyển dụng mới
         </Button>
       </div>
 

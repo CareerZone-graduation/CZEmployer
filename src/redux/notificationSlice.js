@@ -115,6 +115,10 @@ const notificationSlice = createSlice({
         state.unreadCount += 1;
       }
     },
+
+    incrementUnreadCount: (state) => {
+      state.unreadCount += 1;
+    },
     
     // Action để clear notifications khi logout
     clearNotifications: (state) => {
@@ -217,5 +221,5 @@ const notificationSlice = createSlice({
   }
 });
 
-export const { addNewNotification, clearNotifications, updateNotification } = notificationSlice.actions;
+export const { addNewNotification, clearNotifications, updateNotification, incrementUnreadCount } = notificationSlice.actions;
 export default notificationSlice.reducer;

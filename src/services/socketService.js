@@ -209,6 +209,12 @@ class SocketService {
       console.error('[SocketService] Chat error:', error);
       this._triggerHandler('onChatError', error);
     });
+
+    // General notification event
+    this.socket.on('notification:new', (notification) => {
+      console.log('[SocketService] New notification received:', notification);
+      this._triggerHandler('onNewNotification', notification);
+    });
   }
 
   /**
@@ -395,6 +401,10 @@ class SocketService {
    */
   onNewMessage(callback) {
     this.on('onNewMessage', callback);
+  }
+
+  onNewNotification(callback) {
+    this.on('onNewNotification', callback);
   }
 
   onMessageRead(callback) {

@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Bell, BellRing } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
 const NotificationDropdownItem = ({ notification }) => {
@@ -23,6 +23,10 @@ const NotificationDropdownItem = ({ notification }) => {
   const handleClick = () => {
     navigate('/notifications');
   };
+
+  const timeAgo = notification.createdAt && isValid(new Date(notification.createdAt))
+    ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: vi })
+    : 'Vừa xong';
 
   return (
     <DropdownMenuItem onClick={handleClick} className="cursor-pointer">
@@ -34,7 +38,7 @@ const NotificationDropdownItem = ({ notification }) => {
           <p className="font-semibold text-sm leading-tight truncate">{notification.title}</p>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{notification.message}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: vi })}
+            {timeAgo}
           </p>
         </div>
       </div>
