@@ -15,11 +15,11 @@ class SocketService {
     this.reconnectDelays = [1000, 2000, 4000, 8000, 30000]; // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
     this.eventHandlers = new Map();
     this.connectionPromise = null;
-    
+
     // Typing indicator debounce timers (300ms debounce)
     this.typingTimers = new Map();
     this.TYPING_DEBOUNCE_MS = 300;
-    
+
     // Get Socket.io URL from environment
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     // Extract base URL (remove /api suffix if present)
@@ -48,7 +48,7 @@ class SocketService {
     this.connectionPromise = new Promise((resolve, reject) => {
       // Get token from parameter or storage
       const authToken = token || getAccessToken();
-      
+
       if (!authToken) {
         console.error('[SocketService] No authentication token available');
         this.isConnecting = false;
@@ -89,7 +89,7 @@ class SocketService {
         this.isConnected = true;
         this.isConnecting = false;
         this.reconnectAttempts = 0;
-        
+
         // Trigger connection success callback
         this._triggerHandler('onConnect');
         resolve();
@@ -99,20 +99,20 @@ class SocketService {
       this.socket.on('connect_error', (error) => {
         console.error('[SocketService] Connection error:', error.message, error);
         this.isConnected = false;
-        
+
         // Calculate reconnect delay with exponential backoff
         const delayIndex = Math.min(this.reconnectAttempts, this.reconnectDelays.length - 1);
         const delay = this.reconnectDelays[delayIndex];
-        
+
         console.log(`[SocketService] Will reconnect (attempt ${this.reconnectAttempts + 1}), waiting ${delay}ms`);
-        
+
         // Trigger connection error callback with delay info
-        this._triggerHandler('onConnectionError', { 
-          error, 
+        this._triggerHandler('onConnectionError', {
+          error,
           attempt: this.reconnectAttempts + 1,
-          nextDelay: delay 
+          nextDelay: delay
         });
-        
+
         // Only reject on first connection attempt, otherwise let auto-reconnect handle it
         if (this.reconnectAttempts === 0) {
           this.reconnectAttempts++;
@@ -225,10 +225,15 @@ class SocketService {
       console.log('[SocketService] Disconnecting...');
       this.socket.disconnect();
       this.socket = null;
-      this.isConnected = false;
-      this.reconnectAttempts = 0;
-      this.eventHandlers.clear();
     }
+
+    // Always reset state
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.connectionPromise = null;
+    this.reconnectAttempts = 0;
+    // Do not clear event handlers here as they may be needed by other components
+    // this.eventHandlers.clear();
   }
 
   /**
@@ -284,7 +289,7 @@ class SocketService {
       }, 10000); // 10 second timeout
 
       // Emit message with callback
-      this.socket.emit('message:send', 
+      this.socket.emit('message:send',
         {
           conversationId,
           content,
@@ -486,7 +491,7 @@ class SocketService {
 
       console.log('[SocketService] Syncing missed messages for conversation:', conversationId);
 
-      this.socket.emit('messages:sync', 
+      this.socket.emit('messages:sync',
         {
           conversationId,
           since: lastMessageTimestamp
