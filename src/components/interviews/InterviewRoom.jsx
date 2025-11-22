@@ -127,7 +127,6 @@ const InterviewRoom = () => {
       } catch (err) {
         console.error('[InterviewRoom] Main setup failed:', err);
         setError('Không thể thiết lập phòng phỏng vấn: ' + err.message);
-        toast.error('Không thể thiết lập phòng phỏng vấn: ' + err.message);
         setIsLoading(false);
       }
     };

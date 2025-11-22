@@ -30,11 +30,13 @@ import { clearNotifications } from '@/redux/notificationSlice';
 import { logoutServer } from '@/services/authService';
 import socketService from '@/services/socketService';
 import NotificationDropdown from '@/components/NotificationDropdown';
+import ChatInterface from './chat/ChatInterface';
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const [isChatOpen, setIsChatOpen] = React.useState(false);
 
   const coinBalance = user?.user?.coinBalance ?? 0;
 
@@ -47,17 +49,17 @@ const DashboardHeader = () => {
     } finally {
       // Disconnect socket before logout
       socketService.disconnect();
-      
+
       // Clear notifications from Redux store
       dispatch(clearNotifications());
-      
+
       // Dispatch logout action
       dispatch(logoutSuccess());
     }
   };
 
   const handleChatClick = () => {
-    window.open('/messaging', '_blank');
+    setIsChatOpen(true);
   };
 
   return (
@@ -79,7 +81,7 @@ const DashboardHeader = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div 
+              <div
                 className="flex items-center gap-2 border-r pr-4 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
                 onClick={() => navigate('/billing')}
               >
@@ -103,13 +105,13 @@ const DashboardHeader = () => {
         </TooltipProvider>
         <Button onClick={handleChatClick} variant="outline" size="icon" className="relative">
           <MessageCircle className="h-5 w-5" />
-            <span className="sr-only">Tin nhắn</span>
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">3</Badge>
-          </Button>
+          <span className="sr-only">Tin nhắn</span>
+          <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">3</Badge>
+        </Button>
 
-          <NotificationDropdown />
+        <NotificationDropdown />
 
-          <DropdownMenu>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <img src="/placeholder-user.jpg" alt="User" className="h-10 w-10 rounded-full" />
@@ -130,6 +132,10 @@ const DashboardHeader = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <ChatInterface
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </header>
   );
 };

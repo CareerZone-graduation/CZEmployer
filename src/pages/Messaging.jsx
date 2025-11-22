@@ -110,7 +110,7 @@ const Messaging = () => {
         setHasMore(true);
 
         const { data, meta } = await chatService.getConversationMessages(selectedChat._id, 1);
-        // Reverse to show oldest first (chronological)
+        // Backend returns newest first (sentAt: -1), reverse to show oldest first
         setMessages(data.reverse());
         setHasMore(data.length < meta.totalItems);
 
@@ -173,7 +173,7 @@ const Messaging = () => {
         const { data, meta } = await chatService.getConversationMessages(selectedChat._id, nextPage);
 
         if (data.length > 0) {
-          // Prepend older messages
+          // Backend returns newest first, reverse to get oldest first, then prepend
           setMessages(prev => [...data.reverse(), ...prev]);
           setPage(nextPage);
           setHasMore(messages.length + data.length < meta.totalItems);
@@ -407,10 +407,10 @@ const Messaging = () => {
   };
 
   return (
-    <div className="h-screen bg-white flex">
+    <div className="h-screen bg-white flex overflow-hidden">
       {/* Conversations List */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+      <div className="w-80 border-r border-gray-200 flex flex-col flex-shrink-0">
+        <div className="p-4 border-b border-gray-200 flex-shrink-0">
           <h1 className="text-xl font-bold text-black mb-4">Messages</h1>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -531,6 +531,7 @@ const Messaging = () => {
               ref={scrollAreaRef}
               onScroll={handleScroll}
               className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+              style={{ display: 'flex', flexDirection: 'column' }}
             >
               {isLoadingMessages && page === 1 ? (
                 <div className="flex justify-center p-4">

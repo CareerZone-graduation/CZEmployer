@@ -20,8 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import ChatInterface from '@/components/chat/ChatInterface';
 
 const JobApplications = () => {
   const { jobId } = useParams();
@@ -33,6 +34,8 @@ const JobApplications = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplications, setSelectedApplications] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
@@ -51,7 +54,7 @@ const JobApplications = () => {
       if (apiFilters.status === 'all') delete apiFilters.status;
       if (apiFilters.candidateRating === 'all') delete apiFilters.candidateRating;
       if (apiFilters.isReapplied === 'all') delete apiFilters.isReapplied;
-      
+
       const [jobResponse, appsResponse] = await Promise.all([
         jobService.getJobById(jobId),
         applicationService.getJobApplications(jobId, apiFilters),
@@ -137,9 +140,14 @@ const JobApplications = () => {
       return;
     }
 
-    navigate('/candidates/compare', { 
-      state: { applicationIds: selectedApplications } 
+    navigate('/candidates/compare', {
+      state: { applicationIds: selectedApplications }
     });
+  };
+
+  const handleMessage = (candidateId) => {
+    setSelectedCandidateId(candidateId);
+    setIsChatOpen(true);
   };
 
   const getStatusBadge = (status) => {
@@ -204,38 +212,38 @@ const JobApplications = () => {
               </SelectContent>
             </Select>
             <Select value={filters.sort} onValueChange={(value) => handleFilterChange('sort', value)}>
-                <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Sắp xếp theo" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="-appliedAt">Ngày nộp (mới nhất)</SelectItem>
-                    <SelectItem value="appliedAt">Ngày nộp (cũ nhất)</SelectItem>
-                    <SelectItem value="-lastStatusUpdateAt">Cập nhật (mới nhất)</SelectItem>
-                    <SelectItem value="lastStatusUpdateAt">Cập nhật (cũ nhất)</SelectItem>
-                </SelectContent>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Sắp xếp theo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-appliedAt">Ngày nộp (mới nhất)</SelectItem>
+                <SelectItem value="appliedAt">Ngày nộp (cũ nhất)</SelectItem>
+                <SelectItem value="-lastStatusUpdateAt">Cập nhật (mới nhất)</SelectItem>
+                <SelectItem value="lastStatusUpdateAt">Cập nhật (cũ nhất)</SelectItem>
+              </SelectContent>
             </Select>
             <Select value={filters.candidateRating} onValueChange={(value) => handleFilterChange('candidateRating', value)}>
-                <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Lọc theo đánh giá" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Tất cả đánh giá</SelectItem>
-                    <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
-                    <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
-                    <SelectItem value="MAYBE">Có thể</SelectItem>
-                    <SelectItem value="SUITABLE">Phù hợp</SelectItem>
-                    <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
-                </SelectContent>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Lọc theo đánh giá" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả đánh giá</SelectItem>
+                <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
+                <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
+                <SelectItem value="MAYBE">Có thể</SelectItem>
+                <SelectItem value="SUITABLE">Phù hợp</SelectItem>
+                <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
+              </SelectContent>
             </Select>
             <Select value={filters.isReapplied} onValueChange={(value) => handleFilterChange('isReapplied', value)}>
-                <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Lọc theo ứng tuyển lại" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Tất cả</SelectItem>
-                    <SelectItem value="true">Đã ứng tuyển lại</SelectItem>
-                    <SelectItem value="false">Chưa ứng tuyển lại</SelectItem>
-                </SelectContent>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Lọc theo ứng tuyển lại" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="true">Đã ứng tuyển lại</SelectItem>
+                <SelectItem value="false">Chưa ứng tuyển lại</SelectItem>
+              </SelectContent>
             </Select>
           </div>
         </CardHeader>
@@ -254,7 +262,7 @@ const JobApplications = () => {
                       Xuất CSV
                     </Button>
 
-                    <Button 
+                    <Button
                       variant="default"
                       onClick={handleCompare}
                       disabled={selectedApplications.length < 2}
@@ -294,8 +302,8 @@ const JobApplications = () => {
                 </TableHeader>
                 <TableBody>
                   {applications.map((app) => (
-                    <TableRow 
-                      key={app._id} 
+                    <TableRow
+                      key={app._id}
                       className="hover:bg-gray-50"
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -304,13 +312,13 @@ const JobApplications = () => {
                           onCheckedChange={() => handleSelectApplication(app._id)}
                         />
                       </TableCell>
-                      <TableCell 
+                      <TableCell
                         onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
                         className="cursor-pointer"
                       >
                         <div className="font-medium">{app.candidateName}</div>
                       </TableCell>
-                      <TableCell 
+                      <TableCell
                         onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
                         className="cursor-pointer"
                       >
@@ -321,37 +329,51 @@ const JobApplications = () => {
                           <Phone className="h-4 w-4" /> {app.candidatePhone}
                         </div>
                       </TableCell>
-                      <TableCell 
+                      <TableCell
                         onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
                         className="cursor-pointer"
                       >{utils.formatDate(app.appliedAt)}</TableCell>
-                      <TableCell 
+                      <TableCell
                         onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
                         className="cursor-pointer"
                       >{getStatusBadge(app.status)}</TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                              <span className="sr-only">Mở menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
-                              <a href={app.submittedCV.path} target="_blank" rel="noopener noreferrer">
-                                <Eye className="mr-2 h-4 w-4" />
-                                Xem CV
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
-                              <a href={app.submittedCV.path} download>
-                                <Download className="mr-2 h-4 w-4" />
-                                Tải xuống
-                              </a>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessage(app.candidateId);
+                            }}
+                            title="Nhắn tin"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                                <span className="sr-only">Mở menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
+                                <a href={app.submittedCV.path} target="_blank" rel="noopener noreferrer">
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Xem CV
+                                </a>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
+                                <a href={app.submittedCV.path} download>
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Tải xuống
+                                </a>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -359,79 +381,85 @@ const JobApplications = () => {
               </Table>
               {/* Pagination */}
               {meta.totalPages > 1 && (
-                 <div className="flex items-center justify-between pt-4">
-                 <p className="text-sm text-gray-600">
-                   Hiển thị {((meta.currentPage - 1) * meta.limit) + 1} -{' '}
-                   {Math.min(meta.currentPage * meta.limit, meta.totalItems)} trong tổng số{' '}
-                   {meta.totalItems} ứng viên
-                 </p>
-                 <div className="flex items-center gap-2">
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     disabled={meta.currentPage === 1}
-                     onClick={() => handlePageChange(meta.currentPage - 1)}
-                   >
-                     Trước
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     disabled={meta.currentPage === meta.totalPages}
-                     onClick={() => handlePageChange(meta.currentPage + 1)}
-                   >
-                     Sau
-                   </Button>
-                 </div>
-               </div>
+                <div className="flex items-center justify-between pt-4">
+                  <p className="text-sm text-gray-600">
+                    Hiển thị {((meta.currentPage - 1) * meta.limit) + 1} -{' '}
+                    {Math.min(meta.currentPage * meta.limit, meta.totalItems)} trong tổng số{' '}
+                    {meta.totalItems} ứng viên
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={meta.currentPage === 1}
+                      onClick={() => handlePageChange(meta.currentPage - 1)}
+                    >
+                      Trước
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={meta.currentPage === meta.totalPages}
+                      onClick={() => handlePageChange(meta.currentPage + 1)}
+                    >
+                      Sau
+                    </Button>
+                  </div>
+                </div>
               )}
             </>
           )}
         </CardContent>
       </Card>
+
+      <ChatInterface
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        recipientId={selectedCandidateId}
+      />
     </div>
   );
 };
 
 const ApplicationListSkeleton = () => (
-    <div className="max-w-7xl mx-auto p-4">
-        <div className="mb-6">
-            <Skeleton className="h-9 w-48" />
-        </div>
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-1/2 mb-4" />
-                <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-full max-w-sm" />
-                    <Skeleton className="h-10 w-48" />
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
-                            <TableHead><Skeleton className="h-5 w-40" /></TableHead>
-                            <TableHead><Skeleton className="h-5 w-20" /></TableHead>
-                            <TableHead><Skeleton className="h-5 w-28" /></TableHead>
-                            <TableHead className="text-right"><Skeleton className="h-5 w-20" /></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {[...Array(5)].map((_, i) => (
-                            <TableRow key={i}>
-                                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-9 w-24" /></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+  <div className="max-w-7xl mx-auto p-4">
+    <div className="mb-6">
+      <Skeleton className="h-9 w-48" />
     </div>
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-8 w-1/2 mb-4" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-full max-w-sm" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+              <TableHead><Skeleton className="h-5 w-40" /></TableHead>
+              <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+              <TableHead><Skeleton className="h-5 w-28" /></TableHead>
+              <TableHead className="text-right"><Skeleton className="h-5 w-20" /></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-9 w-24" /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  </div>
 );
 
 

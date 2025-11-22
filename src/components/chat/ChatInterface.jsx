@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import ConversationList from './ConversationList';
 import MessageThread from './MessageThread';
+import ChatContextHeader from './ChatContextHeader';
 import socketService from '@/services/socketService';
 import { cn } from '@/lib/utils';
 import { getAccessToken } from '@/utils/token'; // <-- 1. Import hàm này
@@ -20,31 +21,32 @@ import { getAccessToken } from '@/utils/token'; // <-- 1. Import hàm này
  * @param {string} props.conversationId - Initial conversation ID to open (optional)
  * @param {string} props.recipientId - Initial recipient ID to start conversation with (optional)
  */
-const ChatInterface = ({ 
-  isOpen, 
-  onClose, 
+const ChatInterface = ({
+  isOpen,
+  onClose,
   conversationId: initialConversationId = null,
-  recipientId: initialRecipientId = null 
+  recipientId: initialRecipientId = null
 }) => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connected', 'connecting', 'reconnecting', 'disconnected'
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const [nextRetryDelay, setNextRetryDelay] = useState(0);
   const [showMobileThread, setShowMobileThread] = useState(false);
-  
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
   // Get current user and token from Redux
   const currentUser = useSelector((state) => state.auth.user?.user);
-    const token = getAccessToken(); // <-- THAY BẰNG DÒNG NÀY  
+  const token = getAccessToken(); // <-- THAY BẰNG DÒNG NÀY  
   // Use ref to track if we've already initiated connection
   const isConnectionInitiatedRef = useRef(false);
   const hasCleanedUpRef = useRef(false);
   console.log(connectionStatus)
 
 
-/**
-   * Establish Socket connection on mount
-   * Chỉ gọi connect một lần và để thư viện tự xử lý reconnect.
-   */
+  /**
+     * Establish Socket connection on mount
+     * Chỉ gọi connect một lần và để thư viện tự xử lý reconnect.
+     */
   useEffect(() => {
     if (!isOpen || !token) {
       return;
@@ -79,16 +81,16 @@ const ChatInterface = ({
         // Nếu thất bại, thư viện sẽ tự động thử kết nối lại
         // và useEffect 2 (với onReconnecting, onDisconnect) sẽ xử lý.
         await socketService.connect(token);
-        
+
         console.log('[ChatInterface] Socket.connect() call successful');
-        
+
         // Nếu nó kết nối ngay lập tức, cập nhật trạng thái
         if (socketService.getConnectionStatus()) {
           setConnectionStatus('connected');
         }
         // Nếu không, status vẫn là 'connecting' và 
         // listener 'onConnect' (trong useEffect 2) sẽ xử lý
-        
+
       } catch (error) {
         // Lỗi này xảy ra nếu lệnh `connect()` bị lỗi ngay lập tức
         console.error('[ChatInterface] Socket.connect() call failed immediately:', error.message);
@@ -106,6 +108,13 @@ const ChatInterface = ({
       isConnectionInitiatedRef.current = false;
     };
   }, [isOpen, token]); // Phụ thuộc vẫn giữ nguyên
+
+  // Track selected conversation for reconnect handler
+  const selectedConversationRef = useRef(null);
+
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
 
   /**
    * Handle connection status events
@@ -150,13 +159,13 @@ const ChatInterface = ({
       console.log('[ChatInterface] Socket reconnected after', attemptNumber, 'attempts');
       setConnectionStatus('connected');
       setReconnectAttempt(0);
-      
+
       // Trigger message sync for active conversation
-      if (selectedConversation?._id) {
+      if (selectedConversationRef.current?._id) {
         console.log('[ChatInterface] Triggering message sync after reconnect');
         // Dispatch custom event to notify MessageThread to sync
         window.dispatchEvent(new CustomEvent('socket:reconnected', {
-          detail: { conversationId: selectedConversation._id }
+          detail: { conversationId: selectedConversationRef.current._id }
         }));
       }
     };
@@ -167,6 +176,24 @@ const ChatInterface = ({
       setConnectionStatus('disconnected');
     };
 
+    // Handle user presence update
+    const handleUserPresence = (data) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        if (data.isOnline) {
+          newSet.add(data.userId);
+        } else {
+          newSet.delete(data.userId);
+        }
+        return newSet;
+      });
+    };
+
+    // Handle initial online users list
+    const handleOnlineUsers = (users) => {
+      setOnlineUsers(new Set(users));
+    };
+
     // Register event handlers
     socketService.onConnect(handleConnect);
     socketService.onDisconnect(handleDisconnect);
@@ -174,6 +201,13 @@ const ChatInterface = ({
     socketService.onReconnecting(handleReconnecting);
     socketService.onReconnect(handleReconnect);
     socketService.onReconnectFailed(handleReconnectFailed);
+    socketService.onUserPresence(handleUserPresence);
+    socketService.onOnlineUsers(handleOnlineUsers);
+
+    // Request online users if connected
+    if (socketService.getConnectionStatus()) {
+      socketService.getOnlineUsers();
+    }
 
     // Cleanup
     return () => {
@@ -183,13 +217,15 @@ const ChatInterface = ({
       socketService.off('onReconnecting', handleReconnecting);
       socketService.off('onReconnect', handleReconnect);
       socketService.off('onReconnectFailed', handleReconnectFailed);
+      socketService.off('onUserPresence', handleUserPresence);
+      socketService.off('onOnlineUsers', handleOnlineUsers);
     };
   }, [isOpen]);
 
-/**
-   * Handle initial conversation selection or creation
-   * *** CHỈ CHẠY KHI SOCKET ĐÃ KẾT NỐI THÀNH CÔNG ***
-   */
+  /**
+     * Handle initial conversation selection or creation
+     * *** CHỈ CHẠY KHI SOCKET ĐÃ KẾT NỐI THÀNH CÔNG ***
+     */
   useEffect(() => {
     // Chỉ chạy khi:
     // 1. Cửa sổ đang mở (isOpen)
@@ -219,7 +255,7 @@ const ChatInterface = ({
           const { createOrGetConversation } = await import('@/services/chatService');
           const conversation = await createOrGetConversation(initialRecipientId);
           console.log('[ChatInterface] Conversation created/retrieved:', conversation);
-          
+
           setSelectedConversation(conversation);
           setShowMobileThread(true);
         } catch (error) {
@@ -261,7 +297,7 @@ const ChatInterface = ({
    */
   const getOtherParticipant = (conversation) => {
     if (!conversation || !currentUser) return null;
-    
+
     console.log("người dùng", conversation)
     return conversation.otherParticipant;
   };
@@ -313,8 +349,8 @@ const ChatInterface = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed inset-4 md:inset-auto md:right-4 md:bottom-4 md:top-4 md:w-[900px] md:max-w-[calc(100vw-2rem)] bg-background border rounded-lg shadow-lg flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-sm">
+      <div className="fixed inset-4 md:inset-auto md:left-auto md:right-4 md:bottom-4 md:top-4 md:w-[900px] md:max-w-[calc(100vw-2rem)] bg-background border rounded-lg shadow-lg flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
@@ -350,10 +386,10 @@ const ChatInterface = ({
                   socketService.disconnect();
                   isConnectionInitiatedRef.current = false;
                   hasCleanedUpRef.current = false;
-                  
+
                   setConnectionStatus('connecting');
                   isConnectionInitiatedRef.current = true;
-                  
+
                   try {
                     await socketService.connect(token);
                     console.log('[ChatInterface] Manual reconnect successful');
@@ -369,7 +405,7 @@ const ChatInterface = ({
             </AlertDescription>
           </Alert>
         )}
-        
+
         {/* Reconnecting alert */}
         {connectionStatus === 'reconnecting' && (
           <Alert className="m-4 mb-0 border-amber-500 bg-amber-50 text-amber-900">
@@ -390,6 +426,7 @@ const ChatInterface = ({
             <ConversationList
               selectedConversationId={selectedConversation?._id}
               onConversationSelect={handleConversationSelect}
+              onlineUsers={onlineUsers}
             />
           </div>
 
@@ -410,7 +447,7 @@ const ChatInterface = ({
                     ← Quay lại
                   </Button>
                 </div>
-                
+
                 {/* Show loading state while connecting */}
                 {connectionStatus === 'connecting' ? (
                   <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -424,12 +461,18 @@ const ChatInterface = ({
                   </div>
                 ) : (
                   /* Message thread */
-                  <MessageThread
-                    conversationId={selectedConversation._id}
-                    recipientId={getOtherParticipant(selectedConversation)?._id}
-                    recipientName={getOtherParticipant(selectedConversation)?.name || 'Người dùng'}
-                    recipientAvatar={getOtherParticipant(selectedConversation)?.avatar}
-                  />
+                  <div className="flex flex-col h-full">
+                    <ChatContextHeader context={selectedConversation.context} />
+                    <div className="flex-1 min-h-0">
+                      <MessageThread
+                        conversationId={selectedConversation._id}
+                        recipientId={getOtherParticipant(selectedConversation)?._id}
+                        recipientName={getOtherParticipant(selectedConversation)?.name || 'Người dùng'}
+                        recipientAvatar={getOtherParticipant(selectedConversation)?.avatar}
+                        isOnline={getOtherParticipant(selectedConversation)?._id && onlineUsers.has(getOtherParticipant(selectedConversation)?._id)}
+                      />
+                    </div>
+                  </div>
                 )}
               </>
             ) : (

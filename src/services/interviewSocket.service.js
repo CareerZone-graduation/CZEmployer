@@ -350,8 +350,8 @@ class InterviewSocketService {
             console.log('[InterviewSocket] Joined interview room:', response.roomId);
             resolve(response);
           } else {
-            console.error('[InterviewSocket] Failed to join:', response.message);
-            reject(new Error(response.message || 'Failed to join interview'));
+            console.error('[InterviewSocket] Failed to join:', response);
+            reject(new Error(response.error || 'Failed to join interview'));
           }
         }
       );
