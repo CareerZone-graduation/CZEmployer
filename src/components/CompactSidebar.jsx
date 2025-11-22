@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Pin,
   PinOff,
-  MessageCircle
+  MessageCircle,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,10 @@ import {
 } from '@/components/ui/tooltip';
 import { getConversations } from '@/services/chatService';
 import socketService from '@/services/socketService';
+import { logoutSuccess } from '@/redux/authSlice';
+import { clearNotifications } from '@/redux/notificationSlice';
+import { logoutServer } from '@/services/authService';
+import { useDispatch } from 'react-redux';
 
 const sidebarItems = [
   { href: '/', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
@@ -36,6 +41,7 @@ const sidebarItems = [
   { href: '/candidates', label: 'Ứng viên', icon: Users, description: 'Quản lý ứng viên' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
+  { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
 ];
 
@@ -43,7 +49,9 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  const { unreadCount: notificationUnreadCount } = useSelector((state) => state.notifications);
   const queryClient = useQueryClient();
+  const dispatch = useDispatch();
 
   // Fetch conversations to get unread count
   const { data: conversations } = useQuery({
@@ -127,6 +135,18 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
   const handleMouseLeave = () => {
     if (!isPinned) {
       setIsExpanded(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutServer();
+    } catch (error) {
+      console.error('Server logout failed:', error);
+    } finally {
+      socketService.disconnect();
+      dispatch(clearNotifications());
+      dispatch(logoutSuccess());
     }
   };
 
@@ -217,6 +237,11 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Badge>
                   )}
+                  {item.href === '/notifications' && notificationUnreadCount > 0 && (
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                      {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                    </Badge>
+                  )}
                   {!isMessageItem && isActive && (
                     <ChevronRight className="h-4 w-4 text-white ml-auto" />
                   )}
@@ -245,6 +270,14 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </Badge>
                     )}
+                    {item.href === '/notifications' && notificationUnreadCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                      >
+                        {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                      </Badge>
+                    )}
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="ml-2">
@@ -257,6 +290,35 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
             );
           })}
         </nav>
+
+        {/* Logout Button */}
+        <div className="p-2 mt-auto border-t border-gray-200">
+          {shouldShowExpanded ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              Đăng xuất
+            </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full h-12 justify-center text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                Đăng xuất
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </TooltipProvider>
   );

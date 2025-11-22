@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -18,6 +19,8 @@ const coinPackages = [
 ];
 
 const BillingPage = () => {
+  const { user } = useSelector((state) => state.auth);
+  const coinBalance = user?.user?.coinBalance ?? 0;
   const [selectedOption, setSelectedOption] = useState(coinPackages.find(p => p.popular).amount);
   const [customAmount, setCustomAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('ZALOPAY');
@@ -42,7 +45,7 @@ const BillingPage = () => {
     console.log('🔵 finalAmount:', finalAmount);
     console.log('🔵 paymentMethod:', paymentMethod);
     console.log('🔵 Calling handlePayment with:', { coins: finalAmount, paymentMethod });
-    
+
     if (finalAmount > 0) {
       handlePayment({ coins: finalAmount, paymentMethod });
     } else {
@@ -54,10 +57,18 @@ const BillingPage = () => {
     <div className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center p-4 md:p-8">
       <Card className="w-full max-w-4xl">
         <CardHeader>
-          <CardTitle>Thanh toán & Hóa đơn</CardTitle>
-          <CardDescription>Nạp xu vào tài khoản để sử dụng các tính năng cao cấp.</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Thanh toán & Hóa đơn</CardTitle>
+              <CardDescription>Nạp xu vào tài khoản để sử dụng các tính năng cao cấp.</CardDescription>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-sm text-muted-foreground">Số dư hiện tại</span>
+              <span className="text-2xl font-bold text-yellow-600">{formatCurrency(coinBalance).replace('₫', 'Xu')}</span>
+            </div>
+          </div>
         </CardHeader>
-        
+
         {/* Usage Information Banner */}
         <div className="px-6 pb-2">
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -113,7 +124,7 @@ const BillingPage = () => {
                   <div className="text-sm text-muted-foreground">{formatCurrency(pkg.price)}</div>
                 </div>
               ))}
-               {/* Custom Amount Option */}
+              {/* Custom Amount Option */}
               <div
                 className={cn(
                   "relative rounded-lg border p-4 flex flex-col items-center justify-center cursor-pointer transition-all h-28",
@@ -125,7 +136,7 @@ const BillingPage = () => {
                 <div className="text-sm text-muted-foreground">Nhập số xu</div>
               </div>
             </div>
-             {selectedOption === 'custom' && (
+            {selectedOption === 'custom' && (
               <div className="pt-4">
                 <Label htmlFor="custom-amount">Nhập số xu bạn muốn nạp</Label>
                 <Input
@@ -139,7 +150,7 @@ const BillingPage = () => {
                 />
               </div>
             )}
-            
+
             {/* Usage Suggestion */}
             {finalAmount > 0 && (
               <div className="pt-2 text-center text-sm text-muted-foreground italic">
@@ -176,18 +187,18 @@ const BillingPage = () => {
                 </Label>
               </RadioGroup>
             </div>
-            
+
             {/* Payment Summary */}
             <div className="space-y-4">
-                <div className="text-lg font-semibold">Tổng thanh toán</div>
-                <div className="text-3xl font-bold text-primary">
-                    {selectedPackage ? formatCurrency(selectedPackage.price) : '0 VNĐ'}
-                </div>
+              <div className="text-lg font-semibold">Tổng thanh toán</div>
+              <div className="text-3xl font-bold text-primary">
+                {selectedPackage ? formatCurrency(selectedPackage.price) : '0 VNĐ'}
+              </div>
             </div>
 
             {/* Submit Button */}
             <Button onClick={handleSubmit} disabled={isProcessing || finalAmount <= 0} size="lg" className="w-full">
-                {isProcessing ? 'Đang xử lý...' : `Thanh toán với ${paymentMethod}`}
+              {isProcessing ? 'Đang xử lý...' : `Thanh toán với ${paymentMethod}`}
             </Button>
           </div>
         </CardContent>
