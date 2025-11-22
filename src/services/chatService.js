@@ -19,9 +19,9 @@ const withRetry = async (requestFn, retries = RETRY_CONFIG.maxRetries) => {
   try {
     return await requestFn();
   } catch (error) {
-    const shouldRetry = 
-      retries > 0 && 
-      error.response && 
+    const shouldRetry =
+      retries > 0 &&
+      error.response &&
       RETRY_CONFIG.retryableStatuses.includes(error.response.status);
 
     if (shouldRetry) {
@@ -41,13 +41,13 @@ const withRetry = async (requestFn, retries = RETRY_CONFIG.maxRetries) => {
  */
 export const checkMessagingAccess = async (candidateId) => {
   try {
-    const response = await withRetry(() => 
+    const response = await withRetry(() =>
       apiClient.get(`/chat/access-check/${candidateId}`)
     );
     return response.data;
   } catch (error) {
     console.error('Error checking messaging access:', error);
-    
+
     // Handle specific error cases
     if (error.response?.status === 403) {
       return {
@@ -56,7 +56,7 @@ export const checkMessagingAccess = async (candidateId) => {
         error: 'Access denied'
       };
     }
-    
+
     throw error;
   }
 };
@@ -74,41 +74,42 @@ export const createOrGetConversation = async (candidateId) => {
     // Backend returns { success, message, data: conversation }
     return response.data.data || response.data;
   } catch (error) {
-    console.error('Error creating/getting conversation:', error);
-    
     // Handle specific error cases
     if (error.response?.status === 403) {
       throw new Error('Bạn không có quyền nhắn tin cho ứng viên này');
     }
-    
+
     if (error.response?.status === 404) {
       throw new Error('Không tìm thấy ứng viên');
     }
-    
+
     throw error;
   }
 };
 
 /**
- * Get all conversations for current user
- * @returns {Promise<Array>} List of conversations
+ * Get all conversations for current user with pagination and search
+ * @param {Object} params - { search, page, limit }
+ * @returns {Promise<{data: Array, meta: Object}>} List of conversations and metadata
  */
-export const getConversations = async () => {
+export const getConversations = async ({ search, page = 1, limit = 10 } = {}) => {
   try {
     const response = await withRetry(() =>
-      apiClient.get('/chat/conversations')
+      apiClient.get('/chat/conversations', {
+        params: { search, page, limit }
+      })
     );
-    // Backend returns { success, message, data: conversations[] }
-    return response.data.data || response.data;
+    // Backend returns { success, message, data: conversations[], meta: {} }
+    return {
+      data: response.data || [],
+      meta: response.meta || {}
+    };
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    
-    // Return empty array on error to prevent UI crashes
     if (error.response?.status >= 500) {
       console.warn('Server error, returning empty conversations list');
-      return [];
+      return { data: [], meta: {} };
     }
-    
     throw error;
   }
 };
@@ -134,16 +135,16 @@ export const getConversationMessages = async (conversationId, page = 1, limit = 
     };
   } catch (error) {
     console.error('Error fetching conversation messages:', error);
-    
+
     // Handle specific error cases
     if (error.response?.status === 404) {
       throw new Error('Không tìm thấy cuộc trò chuyện');
     }
-    
+
     if (error.response?.status === 403) {
       throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này');
     }
-    
+
     throw error;
   }
 };
@@ -161,13 +162,13 @@ export const markConversationAsRead = async (conversationId) => {
     return response;
   } catch (error) {
     console.error('Error marking conversation as read:', error);
-    
+
     // Non-critical operation, log but don't throw
     if (error.response?.status >= 500) {
       console.warn('Failed to mark conversation as read, will retry later');
       return { success: false };
     }
-    
+
     throw error;
   }
 };
@@ -185,16 +186,16 @@ export const getConversationDetails = async (conversationId) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching conversation details:', error);
-    
+
     // Handle specific error cases
     if (error.response?.status === 404) {
       throw new Error('Không tìm thấy cuộc trò chuyện');
     }
-    
+
     if (error.response?.status === 403) {
       throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này');
     }
-    
+
     throw error;
   }
 };
@@ -212,13 +213,13 @@ export const markMessagesAsRead = async (messageIds) => {
     return response;
   } catch (error) {
     console.error('Error marking messages as read:', error);
-    
+
     // Non-critical operation, log but don't throw
     if (error.response?.status >= 500) {
       console.warn('Failed to mark messages as read, will retry later');
       return { success: false };
     }
-    
+
     throw error;
   }
 };
@@ -230,23 +231,23 @@ export const markMessagesAsRead = async (messageIds) => {
  */
 export const unlockProfile = async (candidateId) => {
   try {
-    const response = await apiClient.post('/recruiters/unlock-profile', { 
-      candidateId 
+    const response = await apiClient.post('/recruiters/unlock-profile', {
+      candidateId
     });
     return response.data;
   } catch (error) {
     console.error('Error unlocking profile:', error);
-    
+
     // Handle specific error cases
     if (error.response?.status === 400) {
       const errorMessage = error.response?.data?.message || 'Không đủ credits để mở khóa hồ sơ';
       throw new Error(errorMessage);
     }
-    
+
     if (error.response?.status === 404) {
       throw new Error('Không tìm thấy ứng viên');
     }
-    
+
     throw error;
   }
 };

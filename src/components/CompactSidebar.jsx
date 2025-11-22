@@ -54,15 +54,17 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
   const dispatch = useDispatch();
 
   // Fetch conversations to get unread count
-  const { data: conversations } = useQuery({
+  // Fetch conversations to get unread count
+  const { data: conversationsData } = useQuery({
     queryKey: ['conversations'],
-    queryFn: getConversations,
+    queryFn: () => getConversations({ limit: 100 }), // Fetch more to get accurate count, or implement a specific unread count API
     enabled: !!user,
     staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 
-  const unreadCount = conversations?.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0) || 0;
+  const conversations = conversationsData?.data || [];
+  const unreadCount = conversations.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0);
 
   // Listen for socket events to update cache
   useEffect(() => {
