@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import Modal from '@/components/common/Modal';
 import ErrorState from '@/components/common/ErrorState';
 import CompanyEditForm from '@/components/company/CompanyEditForm';
 
@@ -112,21 +112,19 @@ const CompanyProfile = () => {
         </InfoCard>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Chỉnh sửa thông tin công ty</DialogTitle>
-            <DialogDescription>
-              Cập nhật thông tin chi tiết về công ty của bạn
-            </DialogDescription>
-          </DialogHeader>
-          <CompanyEditForm
-            company={company}
-            onSuccess={handleEditSuccess}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        title="Chỉnh sửa thông tin công ty"
+        description="Cập nhật thông tin chi tiết về công ty của bạn"
+        size="xlarge"
+      >
+        <CompanyEditForm
+          company={company}
+          onSuccess={handleEditSuccess}
+        />
+      </Modal>
     </div>
   );
 };

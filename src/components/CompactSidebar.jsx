@@ -35,7 +35,7 @@ import { logoutServer } from '@/services/authService';
 import { useDispatch } from 'react-redux';
 
 const sidebarItems = [
-  { href: '/', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
+  { href: '/dashboard', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
   { href: '/company-profile', label: 'Công ty', icon: Building2, description: 'Hồ sơ và thông tin công ty' },
   { href: '/jobs', label: 'Việc làm', icon: Briefcase, description: 'Quản lý tin tuyển dụng' },
   { href: '/candidates', label: 'Ứng viên', icon: Users, description: 'Quản lý ứng viên' },
