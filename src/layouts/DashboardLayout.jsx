@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { cn } from '@/lib/utils';
@@ -6,7 +6,7 @@ import DashboardHeader from '@/components/DashboardHeader';
 import CompactSidebar from '@/components/CompactSidebar';
 import AIChatbot from '@/components/common/AIChatbot';
 import socketService from '@/services/socketService';
-import { fetchRecentNotifications, fetchUnreadCount, incrementUnreadCount } from '@/redux/notificationSlice';
+import { fetchRecentNotifications, incrementUnreadCount } from '@/redux/notificationSlice';
 import { toast } from 'sonner';
 
 const DashboardLayout = () => {
@@ -26,7 +26,7 @@ const DashboardLayout = () => {
       // Lắng nghe sự kiện có thông báo mới
       const handleNewNotification = (notification) => {
         console.log('New notification received via socket:', notification);
-        
+
         // Hiển thị toast
         toast.info(notification.title, {
           description: notification.message,
@@ -48,6 +48,8 @@ const DashboardLayout = () => {
     }
   }, [isAuthenticated, dispatch]);
 
+  const location = useLocation();
+  const isMessagingPage = location.pathname === '/messaging';
 
   return (
     <div className="flex min-h-screen w-full bg-gray-50">
@@ -63,7 +65,7 @@ const DashboardLayout = () => {
       </div>
 
       {/* AI Chatbot */}
-      <AIChatbot />
+      {!isMessagingPage && <AIChatbot />}
 
       {/* Conditional overlay for company registration */}
       {/* Conditional overlay for company registration is disabled as requested */}

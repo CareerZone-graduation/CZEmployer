@@ -30,36 +30,22 @@ import { clearNotifications } from '@/redux/notificationSlice';
 import { logoutServer } from '@/services/authService';
 import socketService from '@/services/socketService';
 import NotificationDropdown from '@/components/NotificationDropdown';
-import ChatInterface from './chat/ChatInterface';
-
 const DashboardHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const [isChatOpen, setIsChatOpen] = React.useState(false);
 
   const coinBalance = user?.user?.coinBalance ?? 0;
-
   const handleLogout = async () => {
     try {
       await logoutServer();
     } catch (error) {
       console.error('Server logout failed:', error);
-      // Vẫn tiếp tục logout ở client dù server có lỗi
     } finally {
-      // Disconnect socket before logout
       socketService.disconnect();
-
-      // Clear notifications from Redux store
       dispatch(clearNotifications());
-
-      // Dispatch logout action
       dispatch(logoutSuccess());
     }
-  };
-
-  const handleChatClick = () => {
-    setIsChatOpen(true);
   };
 
   return (
@@ -103,11 +89,7 @@ const DashboardHeader = () => {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <Button onClick={handleChatClick} variant="outline" size="icon" className="relative">
-          <MessageCircle className="h-5 w-5" />
-          <span className="sr-only">Tin nhắn</span>
-          <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs" variant="destructive">3</Badge>
-        </Button>
+
 
         <NotificationDropdown />
 
@@ -131,12 +113,8 @@ const DashboardHeader = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-      <ChatInterface
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-      />
-    </header>
+      </div >
+    </header >
   );
 };
 

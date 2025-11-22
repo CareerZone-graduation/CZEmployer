@@ -100,9 +100,9 @@ const AppRouter = () => {
         <Route path="register" element={<Register />} />
         <Route index element={<Navigate to="login" replace />} />
       </Route>
-      <Route 
-        path="/auth/forgot-password" 
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} 
+      <Route
+        path="/auth/forgot-password"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
       />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register-success" element={<RegistrationSuccess />} />
@@ -122,7 +122,7 @@ const AppRouter = () => {
           <Route path="company-register" element={<CompanyRegister />} />
           <Route path="test-company-form" element={<TestCompanyForm />} />
           <Route path="billing" element={<BillingPage />} />
-          
+
           {/* Module Jobs với các tab */}
           <Route path="jobs" element={<Jobs />}>
             <Route index element={<JobList />} />
@@ -138,25 +138,22 @@ const AppRouter = () => {
           <Route path="candidates/:userId" element={<CandidateProfile />} />
           <Route path="interviews" element={<InterviewList />} />
           <Route path="interviews/:interviewId" element={<InterviewDetail />} />
+          <Route path="messaging" element={<Messaging />} />
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="cv-viewer" element={<CVViewer />} />
         </Route>
-        
+
         {/* Interview room routes - no layout for full-screen experience */}
         <Route path="/interviews/:interviewId/device-test" element={<DeviceTest />} />
         <Route path="/interviews/:interviewId/room" element={<InterviewRoom />} />
       </Route>
 
-     {/* Payment routes */}
-     <Route path="/payment/success" element={<PaymentSuccess />} />
-     <Route path="/payment/failure" element={<PaymentFailure />} />
+      {/* Payment routes */}
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/failure" element={<PaymentFailure />} />
 
-      {/* Route nhắn tin độc lập (cũng được bảo vệ) */}
-      <Route
-        path="/messaging"
-        element={isAuthenticated ? <Messaging /> : <Navigate to="/auth/login" replace />}
-      />
+
 
       {/* Route 404 Not Found */}
       <Route path="*" element={<NotFound />} />

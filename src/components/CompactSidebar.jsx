@@ -1,5 +1,8 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import {
   Home,
   Building2,
@@ -11,16 +14,20 @@ import {
   Bell,
   ChevronRight,
   Pin,
-  PinOff
+  PinOff,
+  MessageCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { getConversations } from '@/services/chatService';
+import socketService from '@/services/socketService';
 
 const sidebarItems = [
   { href: '/', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
@@ -28,12 +35,88 @@ const sidebarItems = [
   { href: '/jobs', label: 'Việc làm', icon: Briefcase, description: 'Quản lý tin tuyển dụng' },
   { href: '/candidates', label: 'Ứng viên', icon: Users, description: 'Quản lý ứng viên' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
+  { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
 ];
 
 const CompactSidebar = ({ isPinned, onTogglePin }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
+  const { user } = useSelector((state) => state.auth);
+  const queryClient = useQueryClient();
+
+  // Fetch conversations to get unread count
+  const { data: conversations } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: getConversations,
+    enabled: !!user,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+
+  const unreadCount = conversations?.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0) || 0;
+
+  // Listen for socket events to update cache
+  useEffect(() => {
+    if (!user) return;
+
+    const handleNewMessage = (message) => {
+      queryClient.setQueryData(['conversations'], (oldData) => {
+        if (!oldData) return oldData;
+
+        const conversationIndex = oldData.findIndex(c => c._id === message.conversationId);
+
+        // If conversation not found, invalidate to refetch
+        if (conversationIndex === -1) {
+          queryClient.invalidateQueries(['conversations']);
+          return oldData;
+        }
+
+        const updatedConversations = [...oldData];
+        const conversation = { ...updatedConversations[conversationIndex] };
+
+        // Update latest message
+        conversation.latestMessage = message;
+        conversation.lastMessageAt = message.sentAt || message.createdAt;
+
+        // Increment unread count if message is from other user and we are not on messaging page (or let messaging page handle read status)
+        // Note: Messaging page marks as read when active. Here we just increment.
+        // If the user is on the messaging page and in that chat, the 'onMessageRead' event will fire shortly after or immediately.
+        // However, to be safe, we check senderId.
+        if (message.senderId !== user.user._id) {
+          conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+        }
+
+        updatedConversations[conversationIndex] = conversation;
+
+        // Sort by lastMessageAt
+        updatedConversations.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+
+        return updatedConversations;
+      });
+    };
+
+    const handleMessageRead = (data) => {
+      queryClient.setQueryData(['conversations'], (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map(conv => {
+          if (conv._id === data.conversationId) {
+            return { ...conv, unreadCount: 0 };
+          }
+          return conv;
+        });
+      });
+    };
+
+    socketService.onNewMessage(handleNewMessage);
+    socketService.onMessageRead(handleMessageRead);
+
+    return () => {
+      socketService.off('onNewMessage', handleNewMessage);
+      socketService.off('onMessageRead', handleMessageRead);
+    };
+  }, [user, queryClient]);
 
   const handleMouseEnter = () => {
     if (!isPinned) {
@@ -51,7 +134,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
 
   return (
     <TooltipProvider>
-      <div 
+      <div
         className={cn(
           "fixed top-0 left-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 hidden md:flex flex-col",
           shouldShowExpanded ? "w-64" : "w-16"
@@ -99,8 +182,10 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
         <nav className="flex-1 p-2 space-y-2 mt-4">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.href || 
-                           (item.href !== '/' && location.pathname.startsWith(item.href));
+            const isActive = location.pathname === item.href ||
+              (item.href !== '/' && location.pathname.startsWith(item.href));
+
+            const isMessageItem = item.href === '/messaging';
 
             if (shouldShowExpanded) {
               return (
@@ -108,9 +193,9 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group",
-                    isActive 
-                      ? "bg-emerald-700 text-white" 
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
+                    isActive
+                      ? "bg-emerald-700 text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   )}
                 >
@@ -127,8 +212,13 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                       {item.description}
                     </div>
                   </div>
-                  {isActive && (
-                    <ChevronRight className="h-4 w-4 text-white" />
+                  {isMessageItem && unreadCount > 0 && (
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Badge>
+                  )}
+                  {!isMessageItem && isActive && (
+                    <ChevronRight className="h-4 w-4 text-white ml-auto" />
                   )}
                 </Link>
               );
@@ -140,13 +230,21 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   <Link
                     to={item.href}
                     className={cn(
-                      "flex items-center justify-center w-12 h-12 rounded-lg transition-colors",
-                      isActive 
-                        ? "bg-emerald-700 text-white" 
+                      "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
+                      isActive
+                        ? "bg-emerald-700 text-white"
                         : "text-gray-600 hover:bg-gray-100"
                     )}
                   >
                     <Icon className="h-5 w-5" />
+                    {isMessageItem && unreadCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Badge>
+                    )}
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="ml-2">
