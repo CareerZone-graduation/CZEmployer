@@ -72,9 +72,9 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
 
     const handleNewMessage = (message) => {
       queryClient.setQueryData(['conversations'], (oldData) => {
-        if (!oldData) return oldData;
+        if (!oldData || !oldData.data) return oldData;
 
-        const conversationIndex = oldData.findIndex(c => c._id === message.conversationId);
+        const conversationIndex = oldData.data.findIndex(c => c._id === message.conversationId);
 
         // If conversation not found, invalidate to refetch
         if (conversationIndex === -1) {
@@ -82,17 +82,14 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           return oldData;
         }
 
-        const updatedConversations = [...oldData];
+        const updatedConversations = [...oldData.data];
         const conversation = { ...updatedConversations[conversationIndex] };
 
         // Update latest message
         conversation.latestMessage = message;
         conversation.lastMessageAt = message.sentAt || message.createdAt;
 
-        // Increment unread count if message is from other user and we are not on messaging page (or let messaging page handle read status)
-        // Note: Messaging page marks as read when active. Here we just increment.
-        // If the user is on the messaging page and in that chat, the 'onMessageRead' event will fire shortly after or immediately.
-        // However, to be safe, we check senderId.
+        // Increment unread count if message is from other user
         if (message.senderId !== user.user._id) {
           conversation.unreadCount = (conversation.unreadCount || 0) + 1;
         }
@@ -102,20 +99,42 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
         // Sort by lastMessageAt
         updatedConversations.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
 
-        return updatedConversations;
+        return {
+          ...oldData,
+          data: updatedConversations
+        };
+      });
+
+      // Invalidate detailed conversation lists (used in Messaging page) to ensure they are fresh when visited
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'conversations' &&
+          query.queryKey.length > 1 // Target ['conversations', search]
       });
     };
 
     const handleMessageRead = (data) => {
       queryClient.setQueryData(['conversations'], (oldData) => {
-        if (!oldData) return oldData;
+        if (!oldData || !oldData.data) return oldData;
 
-        return oldData.map(conv => {
+        const updatedConversations = oldData.data.map(conv => {
           if (conv._id === data.conversationId) {
             return { ...conv, unreadCount: 0 };
           }
           return conv;
         });
+
+        return {
+          ...oldData,
+          data: updatedConversations
+        };
+      });
+
+      // Invalidate detailed conversation lists
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'conversations' &&
+          query.queryKey.length > 1
       });
     };
 

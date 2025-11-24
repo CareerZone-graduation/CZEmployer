@@ -55,7 +55,7 @@ const JobList = () => {
         status: filters.status === 'all' ? '' : filters.status,
       };
       const response = await jobService.getMyJobs(apiFilters);
-      
+
       // Handle both response formats: {data: [...], meta: {...}} or just the array
       if (response && response.data) {
         // Standard API response with data and meta
@@ -248,6 +248,10 @@ const JobList = () => {
                                 <Users className="h-4 w-4" />
                                 <span>{job.type}</span>
                               </div>
+                              <div className="flex items-center gap-1.5 text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full">
+                                <Users className="h-4 w-4" />
+                                <span>{job.totalApply || 0} ứng viên</span>
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">{getStatusBadge(job.status)}</div>
@@ -263,11 +267,11 @@ const JobList = () => {
                                 <span>
                                   {job.minSalary && job.maxSalary
                                     ? `${utils.formatCurrency(job.minSalary)} - ${utils.formatCurrency(
-                                        job.maxSalary
-                                      )}`
+                                      job.maxSalary
+                                    )}`
                                     : job.minSalary
-                                    ? `Từ ${utils.formatCurrency(job.minSalary)}`
-                                    : `Lên đến ${utils.formatCurrency(job.maxSalary)}`}
+                                      ? `Từ ${utils.formatCurrency(job.minSalary)}`
+                                      : `Lên đến ${utils.formatCurrency(job.maxSalary)}`}
                                 </span>
                               </div>
                             )}

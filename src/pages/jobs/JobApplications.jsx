@@ -24,13 +24,14 @@ import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Us
 import { Checkbox } from '@/components/ui/checkbox';
 import ChatInterface from '@/components/chat/ChatInterface';
 
-const JobApplications = () => {
+const JobApplications = ({ isEmbedded = false }) => {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [applications, setApplications] = useState([]);
   const [meta, setMeta] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplications, setSelectedApplications] = useState([]);
@@ -46,8 +47,12 @@ const JobApplications = () => {
     isReapplied: 'all',
   });
 
-  const fetchJobAndApplications = useCallback(async () => {
-    setIsLoading(true);
+  const fetchJobAndApplications = useCallback(async (isInitial = false) => {
+    if (isInitial) {
+      setIsInitialLoading(true);
+    } else {
+      setIsFetching(true);
+    }
     setError(null);
     try {
       const apiFilters = { ...filters };
@@ -56,7 +61,7 @@ const JobApplications = () => {
       if (apiFilters.isReapplied === 'all') delete apiFilters.isReapplied;
 
       const [jobResponse, appsResponse] = await Promise.all([
-        jobService.getJobById(jobId),
+        jobService.getRecruiterJobById(jobId),
         applicationService.getJobApplications(jobId, apiFilters),
       ]);
       setJob(jobResponse.data);
@@ -68,13 +73,20 @@ const JobApplications = () => {
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
+      setIsFetching(false);
     }
   }, [jobId, filters]);
 
   useEffect(() => {
-    fetchJobAndApplications();
-  }, [fetchJobAndApplications]);
+    fetchJobAndApplications(true);
+  }, [fetchJobAndApplications]); // Only run on mount for initial load
+
+  useEffect(() => {
+    if (!isInitialLoading) {
+      fetchJobAndApplications(false);
+    }
+  }, [filters, isInitialLoading, fetchJobAndApplications]); // Run on filter changes
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
@@ -106,29 +118,7 @@ const JobApplications = () => {
     });
   };
 
-  const handleExport = async () => {
-    if (selectedApplications.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một ứng viên');
-      return;
-    }
 
-    try {
-      const response = await applicationService.exportApplications(selectedApplications);
-      const blob = new Blob([response.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `applications-${job?.title || 'export'}-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success('Đã xuất CSV thành công');
-      setSelectedApplications([]);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi xuất CSV');
-    }
-  };
 
   const handleCompare = () => {
     if (selectedApplications.length < 2) {
@@ -163,91 +153,173 @@ const JobApplications = () => {
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
-  if (isLoading) {
+  const getRatingBadge = (rating) => {
+    const ratingConfig = {
+      NOT_RATED: { label: 'Chưa đánh giá', className: 'bg-gray-100 text-gray-800' },
+      NOT_SUITABLE: { label: 'Không phù hợp', className: 'bg-red-100 text-red-800' },
+      MAYBE: { label: 'Có thể', className: 'bg-yellow-100 text-yellow-800' },
+      SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
+      PERFECT_MATCH: { label: 'Rất phù hợp', className: 'bg-purple-100 text-purple-800' },
+    };
+    const config = ratingConfig[rating] || ratingConfig.NOT_RATED;
+    return <Badge className={config.className}>{config.label}</Badge>;
+  };
+
+  if (isInitialLoading) {
     return <ApplicationListSkeleton />;
   }
 
   if (error) {
-    return <ErrorState onRetry={fetchJobAndApplications} message={error} />;
+    return <ErrorState onRetry={() => fetchJobAndApplications(true)} message={error} />;
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
-      <div className="mb-6 flex items-center justify-between">
-        <Button asChild variant="outline" size="sm">
-          <Link to={`/jobs/recruiter/${jobId}`}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Quay lại chi tiết
-          </Link>
-        </Button>
+    <div className={isEmbedded ? "" : "max-w-7xl mx-auto p-4"}>
+      {!isEmbedded && (
+        <div className="mb-6 flex items-center justify-between">
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/jobs/recruiter/${jobId}`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Quay lại chi tiết
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {/* Stats Summary Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        <Card className="bg-blue-50 border-blue-100">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-bold text-blue-700">{job?.stats?.totalApplications || 0}</span>
+            <span className="text-xs text-blue-600 font-medium mt-1">Tổng hồ sơ</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-yellow-50 border-yellow-100">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-bold text-yellow-700">{job?.stats?.byStatus?.pending || 0}</span>
+            <span className="text-xs text-yellow-600 font-medium mt-1">Chờ duyệt</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-indigo-50 border-indigo-100">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-bold text-indigo-700">{job?.stats?.byStatus?.reviewing || 0}</span>
+            <span className="text-xs text-indigo-600 font-medium mt-1">Đang xem xét</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-purple-50 border-purple-100">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-bold text-purple-700">{(job?.stats?.byStatus?.interviewed || 0) + (job?.stats?.byStatus?.scheduledInterview || 0)}</span>
+            <span className="text-xs text-purple-600 font-medium mt-1">Phỏng vấn</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-50 border-green-100">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-bold text-green-700">{job?.stats?.byStatus?.accepted || 0}</span>
+            <span className="text-xs text-green-600 font-medium mt-1">Chấp nhận</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-red-50 border-red-100">
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-bold text-red-700">{job?.stats?.byStatus?.rejected || 0}</span>
+            <span className="text-xs text-red-600 font-medium mt-1">Từ chối</span>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Danh sách ứng viên cho vị trí: {job?.title || '...'}</CardTitle>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="relative w-full max-w-sm">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle>Danh sách ứng viên</CardTitle>
+            <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Tìm kiếm theo tên, email, SĐT..."
-                className="pl-10"
+                placeholder="Tìm kiếm ứng viên..."
+                className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button onClick={handleSearch}>Tìm kiếm</Button>
-            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Lọc theo trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="PENDING">Chờ duyệt</SelectItem>
-                <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
-                <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
-                <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
-                <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
-                <SelectItem value="REJECTED">Đã từ chối</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filters.sort} onValueChange={(value) => handleFilterChange('sort', value)}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sắp xếp theo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="-appliedAt">Ngày nộp (mới nhất)</SelectItem>
-                <SelectItem value="appliedAt">Ngày nộp (cũ nhất)</SelectItem>
-                <SelectItem value="-lastStatusUpdateAt">Cập nhật (mới nhất)</SelectItem>
-                <SelectItem value="lastStatusUpdateAt">Cập nhật (cũ nhất)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filters.candidateRating} onValueChange={(value) => handleFilterChange('candidateRating', value)}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Lọc theo đánh giá" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả đánh giá</SelectItem>
-                <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
-                <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
-                <SelectItem value="MAYBE">Có thể</SelectItem>
-                <SelectItem value="SUITABLE">Phù hợp</SelectItem>
-                <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filters.isReapplied} onValueChange={(value) => handleFilterChange('isReapplied', value)}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Lọc theo ứng tuyển lại" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="true">Đã ứng tuyển lại</SelectItem>
-                <SelectItem value="false">Chưa ứng tuyển lại</SelectItem>
-              </SelectContent>
-            </Select>
+          </div>
+
+          {/* Advanced Filters */}
+          <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Trạng thái hồ sơ</label>
+              <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="PENDING">Chờ duyệt</SelectItem>
+                  <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
+                  <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
+                  <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
+                  <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
+                  <SelectItem value="REJECTED">Đã từ chối</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Rating Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Đánh giá tiềm năng</label>
+              <Select value={filters.candidateRating} onValueChange={(value) => handleFilterChange('candidateRating', value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Tất cả đánh giá" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả đánh giá</SelectItem>
+                  <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
+                  <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
+                  <SelectItem value="MAYBE">Có thể</SelectItem>
+                  <SelectItem value="SUITABLE">Phù hợp</SelectItem>
+                  <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reapplied Filter - Radio Style */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Lịch sử ứng tuyển</label>
+              <div className="flex items-center gap-4 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isReapplied"
+                    checked={filters.isReapplied === 'all'}
+                    onChange={() => handleFilterChange('isReapplied', 'all')}
+                    className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-600">Tất cả</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isReapplied"
+                    checked={filters.isReapplied === 'true'}
+                    onChange={() => handleFilterChange('isReapplied', 'true')}
+                    className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-600">Ứng tuyển lại</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isReapplied"
+                    checked={filters.isReapplied === 'false'}
+                    onChange={() => handleFilterChange('isReapplied', 'false')}
+                    className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-600">Lần đầu</span>
+                </label>
+              </div>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className={isFetching ? "opacity-50 pointer-events-none transition-opacity duration-200" : "transition-opacity duration-200"}>
           {/* Bulk Actions Toolbar */}
           {selectedApplications.length > 0 && (
             <Card className="mb-4 bg-blue-50 border-blue-200">
@@ -257,10 +329,7 @@ const JobApplications = () => {
                     Đã chọn {selectedApplications.length} ứng viên
                   </span>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExport}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Xuất CSV
-                    </Button>
+
 
                     <Button
                       variant="default"
@@ -297,6 +366,7 @@ const JobApplications = () => {
                     <TableHead>Thông tin liên hệ</TableHead>
                     <TableHead>Ngày nộp</TableHead>
                     <TableHead>Trạng thái</TableHead>
+                    <TableHead>Đánh giá</TableHead>
                     <TableHead className="text-right">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -337,6 +407,10 @@ const JobApplications = () => {
                         onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
                         className="cursor-pointer"
                       >{getStatusBadge(app.status)}</TableCell>
+                      <TableCell
+                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        className="cursor-pointer"
+                      >{getRatingBadge(app.candidateRating)}</TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
                           <Button

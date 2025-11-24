@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import * as jobService from '@/services/jobService';
 import * as utils from '@/utils';
 
@@ -20,15 +20,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JobForm from '@/components/jobs/JobForm';
-import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, BarChart2, Edit, Trash2 } from 'lucide-react';
+import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin } from 'lucide-react';
 import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { createOrGetConversation } from '@/services/chatService';
+import JobApplications from './JobApplications';
 
 const RecruiterJobDetail = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const defaultTab = location.state?.defaultTab || 'overview';
+
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,11 +84,11 @@ const RecruiterJobDetail = () => {
   const handleMessageClick = async (candidate) => {
     try {
       setSelectedCandidate(candidate);
-      
+
       // Create or get conversation with the candidate
       const response = await createOrGetConversation(candidate.userId);
       const conversation = response.data;
-      
+
       // Open chat interface with the conversation
       setConversationId(conversation._id);
       setIsChatOpen(true);
@@ -102,20 +107,22 @@ const RecruiterJobDetail = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      ACTIVE: { label: 'Đang tuyển', className: 'bg-green-100 text-green-800' },
-      INACTIVE: { label: 'Đã ẩn', className: 'bg-gray-100 text-gray-800' },
-      EXPIRED: { label: 'Hết hạn', className: 'bg-red-100 text-red-800' },
+      ACTIVE: { label: 'Đang tuyển', className: 'bg-green-100 text-green-800 hover:bg-green-200' },
+      INACTIVE: { label: 'Đã ẩn', className: 'bg-gray-100 text-gray-800 hover:bg-gray-200' },
+      EXPIRED: { label: 'Hết hạn', className: 'bg-red-100 text-red-800 hover:bg-red-200' },
     };
     const config = statusConfig[status] || statusConfig.INACTIVE;
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
   const renderDetailItem = (Icon, label, value) => (
-    <div className="flex items-start gap-3">
-      <Icon className="h-5 w-5 text-gray-500 mt-1" />
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
+      <div className="p-2 bg-white rounded-md shadow-sm">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
       <div>
-        <p className="font-medium text-gray-600">{label}</p>
-        <p className="text-gray-800">{value}</p>
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <p className="font-semibold text-gray-900">{value}</p>
       </div>
     </div>
   );
@@ -133,129 +140,133 @@ const RecruiterJobDetail = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <div className="mb-6">
-        <Button asChild variant="outline" size="sm">
-          <Link to="/jobs">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Quay lại danh sách
-          </Link>
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">{job.title}</CardTitle>
-                  <p className="text-md text-gray-600 mt-1">
-                    {`${job.location?.commune}, ${job.location?.district}, ${job.location?.province}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(job.status)}
-                  <Button variant="outline" size="icon" onClick={() => setIsDialogOpen(true)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="icon" onClick={() => setIsAlertOpen(true)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <section>
-                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Mô tả công việc</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
-              </section>
-              <section>
-                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Yêu cầu ứng viên</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{job.requirements}</p>
-              </section>
-              <section>
-                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Quyền lợi</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{job.benefits}</p>
-              </section>
-            </CardContent>
-          </Card>
+    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <Button asChild variant="ghost" size="sm" className="-ml-2 text-gray-500 hover:text-gray-900">
+            <Link to="/jobs">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Quay lại danh sách
+            </Link>
+          </Button>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Briefcase className="h-5 w-5" />
-                Thông tin chung
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {renderDetailItem(DollarSign, 'Mức lương', `${utils.formatCurrency(job.minSalary)} - ${utils.formatCurrency(job.maxSalary)}`)}
-              {renderDetailItem(Building, 'Hình thức làm việc', job.workType)}
-              {renderDetailItem(Users, 'Loại hình công việc', job.type)}
-              {renderDetailItem(Calendar, 'Hạn nộp hồ sơ', utils.formatDate(job.deadline))}
-              {renderDetailItem(Clock, 'Ngày đăng', utils.formatDate(job.createdAt))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between text-lg">
-                <div className="flex items-center gap-2">
-                  <BarChart2 className="h-5 w-5" />
-                  Thống kê
+        <div className="bg-white p-6 rounded-xl border shadow-sm">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{job.title}</h1>
+                {getStatusBadge(job.status)}
+              </div>
+              <div className="flex items-center gap-4 text-gray-500 text-sm flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" />
+                  <span>{job.location?.province || job.location?.city}, {job.location?.district}</span>
                 </div>
-                <Button asChild variant="link" className="p-0 h-auto">
-                  <Link to={`/jobs/${job._id}/applications`}>Xem tất cả ứng viên</Link>
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Tổng số hồ sơ:</span>
-                <span className="font-bold text-lg">{job.stats?.totalApplications || 0}</span>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  <span>Đăng ngày: {utils.formatDate(job.createdAt)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  <span>{job.stats?.totalApplications || 0} ứng viên</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Đang chờ duyệt:</span>
-                <span className="font-semibold">{job.stats?.byStatus?.pending || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Đang phỏng vấn:</span>
-                <span className="font-semibold">{job.stats?.byStatus?.interviewed || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Đã chấp nhận:</span>
-                <span className="font-semibold text-green-600">{job.stats?.byStatus?.accepted || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Đã từ chối:</span>
-                <span className="font-semibold text-red-600">{job.stats?.byStatus?.rejected || 0}</span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setIsDialogOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Chỉnh sửa
+              </Button>
+              <Button variant="destructive" size="icon" onClick={() => setIsAlertOpen(true)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* AI Candidate Suggestions Section */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900">
-              Top Ứng viên Phù hợp
-            </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
-              Hệ thống AI gợi ý các ứng viên phù hợp nhất với tin tuyển dụng của bạn
-            </p>
-          </CardHeader>
-          <CardContent>
-            <CandidateSuggestions 
-              jobId={jobId}
-              onMessageClick={handleMessageClick}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue={defaultTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[400px] mb-6">
+          <TabsTrigger value="overview">Thông tin chung</TabsTrigger>
+          <TabsTrigger value="candidates">Danh sách ứng viên</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 animate-in fade-in-50 duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column: Job Details */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Chi tiết công việc</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  <section>
+                    <h3 className="font-semibold text-base mb-3 text-gray-900">Mô tả công việc</h3>
+                    <div className="text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50/50 p-4 rounded-lg">
+                      {job.description}
+                    </div>
+                  </section>
+                  <section>
+                    <h3 className="font-semibold text-base mb-3 text-gray-900">Yêu cầu ứng viên</h3>
+                    <div className="text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50/50 p-4 rounded-lg">
+                      {job.requirements}
+                    </div>
+                  </section>
+                  <section>
+                    <h3 className="font-semibold text-base mb-3 text-gray-900">Quyền lợi</h3>
+                    <div className="text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50/50 p-4 rounded-lg">
+                      {job.benefits}
+                    </div>
+                  </section>
+                </CardContent>
+              </Card>
+
+              {/* AI Suggestions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      AI Gợi ý Ứng viên
+                    </span>
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700">Beta</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CandidateSuggestions
+                    jobId={jobId}
+                    onMessageClick={handleMessageClick}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column: Stats & Info */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                    Thông tin cơ bản
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {renderDetailItem(DollarSign, 'Mức lương', `${utils.formatCurrency(job.minSalary)} - ${utils.formatCurrency(job.maxSalary)}`)}
+                  {renderDetailItem(Building, 'Hình thức', job.workType)}
+                  {renderDetailItem(Users, 'Loại hình', job.type)}
+                  {renderDetailItem(Calendar, 'Hạn nộp', utils.formatDate(job.deadline))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="candidates" className="animate-in fade-in-50 duration-300">
+          <JobApplications isEmbedded={true} />
+        </TabsContent>
+      </Tabs>
 
       {/* Chat Interface */}
       <ChatInterface
@@ -298,45 +309,20 @@ const RecruiterJobDetail = () => {
 };
 
 const JobDetailSkeleton = () => (
-  <div className="max-w-5xl mx-auto p-4">
-    <div className="mb-6">
-      <Skeleton className="h-9 w-40" />
+  <div className="max-w-7xl mx-auto p-4 space-y-6">
+    <div className="flex justify-between items-center">
+      <Skeleton className="h-10 w-40" />
+      <Skeleton className="h-10 w-32" />
     </div>
+    <Skeleton className="h-32 w-full rounded-xl" />
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-3/4 mb-2" />
-            <Skeleton className="h-5 w-1/2" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </CardContent>
-        </Card>
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-7 w-3/5" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-7 w-3/5" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-          </CardContent>
-        </Card>
+        <Skeleton className="h-48 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     </div>
   </div>
