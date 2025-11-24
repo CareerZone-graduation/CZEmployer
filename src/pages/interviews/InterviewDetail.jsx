@@ -115,6 +115,24 @@ const InterviewDetail = () => {
     }
   };
 
+  const checkJoinStatus = () => {
+    if (!interview || (interview.status !== 'SCHEDULED' && interview.status !== 'STARTED' && interview.status !== 'RESCHEDULED')) return { canJoin: false, reason: 'Phỏng vấn chưa được lên lịch hoặc đã kết thúc.' };
+
+    const scheduledTime = new Date(interview.scheduledTime);
+    const now = new Date();
+    const diffMinutes = Math.floor((scheduledTime - now) / 1000 / 60);
+
+    if (diffMinutes > 15) {
+      return { canJoin: false, reason: 'Chưa đến giờ phỏng vấn. Vui lòng quay lại trước 15 phút.' };
+    }
+
+    if (diffMinutes < -30) {
+      return { canJoin: false, reason: 'Đã quá thời gian tham gia phỏng vấn (30 phút sau khi bắt đầu).' };
+    }
+
+    return { canJoin: true, reason: 'Bạn có thể tham gia phỏng vấn ngay bây giờ' };
+  };
+
   const confirmReschedule = async (data) => {
     setActionLoading(true);
     try {
@@ -206,6 +224,42 @@ const InterviewDetail = () => {
             </DetailItem>
           </div>
 
+          {/* Join Interview Status Card */}
+          {(interview.status === 'SCHEDULED' || interview.status === 'STARTED' || interview.status === 'RESCHEDULED') && (
+            (() => {
+              const { canJoin, reason } = checkJoinStatus();
+              return (
+                <div className={`mb-6 p-4 rounded-lg border-2 ${canJoin ? 'bg-green-50 border-green-500 dark:bg-green-900/20' : 'bg-gray-50 border-gray-300 dark:bg-gray-800'}`}>
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-full ${canJoin ? 'bg-green-500' : 'bg-gray-400'}`}>
+                        <Video className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {canJoin ? 'Sẵn sàng tham gia phỏng vấn' : 'Trạng thái phỏng vấn'}
+                        </h3>
+                        <p className={`text-sm ${canJoin ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                          {reason}
+                        </p>
+                      </div>
+                    </div>
+                    {canJoin && (
+                      <Button
+                        onClick={() => navigate(`/interviews/${interview.id}/device-test`)}
+                        className="bg-green-600 hover:bg-green-700"
+                        size="lg"
+                      >
+                        <Video className="mr-2 h-5 w-5" />
+                        Tham gia phỏng vấn
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
+          )}
+
           <DetailItem label="Lịch sử thay đổi" className="mb-6">
             <div>
               {(interview.changeHistory && interview.changeHistory.length > 0) ? (
@@ -222,15 +276,6 @@ const InterviewDetail = () => {
           </DetailItem>
 
           <div className="flex items-center justify-end space-x-2 border-t border-gray-200 dark:border-gray-700 pt-6">
-            {(interview.status === 'SCHEDULED' || interview.status === 'STARTED' || interview.status === 'RESCHEDULED') && (
-              <Button
-                onClick={() => navigate(`/interviews/${interview.id}/device-test`)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Video className="mr-2 h-4 w-4" />
-                Tham gia phỏng vấn
-              </Button>
-            )}
             <Button
               variant="outline"
               onClick={() => setRescheduleModalOpen(true)}

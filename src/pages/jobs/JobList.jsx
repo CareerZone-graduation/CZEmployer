@@ -21,7 +21,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2, Search, Power } from 'lucide-react';
 
 import JobForm from '@/components/jobs/JobForm';
 import JobListSkeleton from '@/components/common/JobListSkeleton';
@@ -139,6 +139,18 @@ const JobList = () => {
     }
   };
 
+  const handleToggleStatus = async (job) => {
+    try {
+      const newStatus = job.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      await jobService.updateJob(job._id, { status: newStatus });
+      toast.success(`Đã ${newStatus === 'ACTIVE' ? 'mở lại' : 'đóng'} tin tuyển dụng thành công!`);
+      fetchJobs();
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể cập nhật trạng thái tin tuyển dụng.';
+      toast.error(errorMessage);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', variant: 'default', className: 'bg-green-100 text-green-800' },
@@ -183,6 +195,7 @@ const JobList = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ACTIVE">Đang tuyển</SelectItem>
+                  <SelectItem value="INACTIVE">Đã đóng</SelectItem>
                   <SelectItem value="EXPIRED">Hết hạn</SelectItem>
                 </SelectContent>
               </Select>
@@ -286,6 +299,17 @@ const JobList = () => {
                           </div>
 
                           <div className="flex items-center gap-2">
+                            {job.status !== 'EXPIRED' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleToggleStatus(job)}
+                                className={job.status === 'ACTIVE' ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50" : "text-green-600 hover:text-green-700 hover:bg-green-50"}
+                              >
+                                <Power className="h-4 w-4 mr-1" />
+                                {job.status === 'ACTIVE' ? 'Đóng tin' : 'Mở lại'}
+                              </Button>
+                            )}
                             <Button asChild variant="outline" size="sm">
                               <Link to={`/jobs/recruiter/${job._id}`}>Xem chi tiết</Link>
                             </Button>

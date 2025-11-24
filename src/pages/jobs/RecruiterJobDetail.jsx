@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JobForm from '@/components/jobs/JobForm';
-import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin } from 'lucide-react';
+import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin, Power } from 'lucide-react';
 import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { createOrGetConversation } from '@/services/chatService';
@@ -78,6 +78,18 @@ const RecruiterJobDetail = () => {
       toast.error(errorMessage);
     } finally {
       setIsAlertOpen(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    try {
+      const newStatus = job.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      const response = await jobService.updateJob(job._id, { status: newStatus });
+      setJob(response.data);
+      toast.success(`Đã ${newStatus === 'ACTIVE' ? 'mở lại' : 'đóng'} tin tuyển dụng thành công!`);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể cập nhật trạng thái tin tuyển dụng.';
+      toast.error(errorMessage);
     }
   };
 
@@ -175,6 +187,16 @@ const RecruiterJobDetail = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
+              {job.status !== 'EXPIRED' && (
+                <Button
+                  variant="outline"
+                  onClick={handleToggleStatus}
+                  className={job.status === 'ACTIVE' ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50" : "text-green-600 hover:text-green-700 hover:bg-green-50"}
+                >
+                  <Power className="h-4 w-4 mr-2" />
+                  {job.status === 'ACTIVE' ? 'Đóng tin' : 'Mở lại'}
+                </Button>
+              )}
               <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setIsDialogOpen(true)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Chỉnh sửa

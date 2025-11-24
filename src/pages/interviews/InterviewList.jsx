@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MoreHorizontal, Video, Calendar as CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateTime } from '@/utils/formatDate';
 import { cn } from '@/lib/utils';
@@ -114,7 +114,7 @@ const InterviewList = () => {
           label: 'Hoàn thành',
         };
       case 'CANCELLED':
-        return { 
+        return {
           variant: 'destructive',
           label: 'Đã hủy',
         };
@@ -131,11 +131,6 @@ const InterviewList = () => {
 
   const handleViewDetails = (interviewId) => {
     navigate(`/interviews/${interviewId}`);
-  };
-
-  const handleJoinInterview = (interviewId) => {
-    // TODO: Navigate to interview room when implemented
-    navigate(`/interviews/${interviewId}/room`);
   };
 
   const openCancelDialog = (interview) => {
@@ -170,17 +165,6 @@ const InterviewList = () => {
       id: selectedInterview.id,
       data,
     });
-  };
-
-  const canJoinInterview = (interview) => {
-    if (interview.status !== 'SCHEDULED') return false;
-    
-    const scheduledTime = new Date(interview.scheduledTime);
-    const now = new Date();
-    const fifteenMinutesBefore = new Date(scheduledTime.getTime() - 15 * 60000);
-    const thirtyMinutesAfter = new Date(scheduledTime.getTime() + 30 * 60000);
-    
-    return now >= fifteenMinutesBefore && now <= thirtyMinutesAfter;
   };
 
   // Filter interviews by status
@@ -224,13 +208,13 @@ const InterviewList = () => {
       </Tabs>
 
       {filteredInterviews.length === 0 ? (
-        <EmptyState 
-          title="Chưa có lịch phỏng vấn" 
+        <EmptyState
+          title="Chưa có lịch phỏng vấn"
           message={
-            statusFilter === 'all' 
-              ? "Hiện tại bạn chưa có cuộc phỏng vấn nào được lên lịch." 
+            statusFilter === 'all'
+              ? "Hiện tại bạn chưa có cuộc phỏng vấn nào được lên lịch."
               : `Không có phỏng vấn nào với trạng thái "${getStatusInfo(statusFilter).label}".`
-          } 
+          }
         />
       ) : (
         <div className="bg-white rounded-lg shadow-md">
@@ -262,45 +246,33 @@ const InterviewList = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {canJoinInterview(interview) && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleJoinInterview(interview.id)}
-                          className="gap-2"
-                        >
-                          <Video className="h-4 w-4" />
-                          Tham gia
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Mở menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Mở menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetails(interview.id)}>
-                            Xem chi tiết
-                          </DropdownMenuItem>
-                          {interview.status === 'SCHEDULED' && (
-                            <>
-                              <DropdownMenuItem onClick={() => openRescheduleModal(interview)}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                Dời lịch
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => openCancelDialog(interview)}
-                              >
-                                Hủy phỏng vấn
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(interview.id)}>
+                          Xem chi tiết
+                        </DropdownMenuItem>
+                        {interview.status === 'SCHEDULED' && (
+                          <>
+                            <DropdownMenuItem onClick={() => openRescheduleModal(interview)}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              Dời lịch
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => openCancelDialog(interview)}
+                            >
+                              Hủy phỏng vấn
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -330,8 +302,8 @@ const InterviewList = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCancelDialogOpen(false)}
               disabled={cancelMutation.isPending}
             >
