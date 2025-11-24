@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,7 +22,7 @@ import { useInView } from 'react-intersection-observer';
  * @param {string} props.selectedConversationId - Currently selected conversation ID
  * @param {Function} props.onConversationSelect - Callback when conversation is clicked
  */
-const ConversationList = ({ selectedConversationId, onConversationSelect, onlineUsers }) => {
+const ConversationList = ({ selectedConversation, selectedConversationId, onConversationSelect, onlineUsers }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const { ref, inView } = useInView();
@@ -46,8 +46,7 @@ const ConversationList = ({ selectedConversationId, onConversationSelect, online
     isFetchingNextPage,
     isLoading,
     isError,
-    error,
-    refetch
+    error
   } = useInfiniteQuery({
     queryKey: ['conversations', debouncedSearch],
     queryFn: ({ pageParam = 1 }) => getConversations({
@@ -72,7 +71,13 @@ const ConversationList = ({ selectedConversationId, onConversationSelect, online
   }, [inView, hasNextPage, fetchNextPage]);
 
   // Flatten data pages into a single array
-  const conversations = data?.pages.flatMap(page => page.data) || [];
+  const fetchedConversations = data?.pages.flatMap(page => page.data) || [];
+
+  // Ensure selectedConversation is in the list if provided
+  const conversations = [...fetchedConversations];
+  if (selectedConversation && !conversations.find(c => c._id === selectedConversation._id)) {
+    conversations.unshift(selectedConversation);
+  }
 
   const queryClient = useQueryClient();
 
@@ -181,7 +186,7 @@ const ConversationList = ({ selectedConversationId, onConversationSelect, online
         };
       });
     }
-  }, [selectedConversationId, queryClient, debouncedSearch]);
+  }, [selectedConversationId, queryClient, debouncedSearch, conversations.length]);
 
 
   /**

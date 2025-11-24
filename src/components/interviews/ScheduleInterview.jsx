@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -63,11 +63,11 @@ const TIME_SLOTS = [
   '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
 ];
 
-const ScheduleInterview = ({ 
-  open, 
-  onOpenChange, 
+const ScheduleInterview = ({
+  open,
+  onOpenChange,
   application,
-  onSuccess 
+  onSuccess
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -76,13 +76,25 @@ const ScheduleInterview = ({
   const form = useForm({
     resolver: zodResolver(scheduleInterviewSchema),
     defaultValues: {
-      applicationId: application?.id || '',
+      applicationId: application?._id || '',
       scheduledDate: undefined,
       scheduledTime: '',
       duration: '60',
       timezone: 'Asia/Ho_Chi_Minh',
     },
   });
+
+  useEffect(() => {
+    if (application) {
+      form.reset({
+        applicationId: application._id,
+        scheduledDate: undefined,
+        scheduledTime: '',
+        duration: '60',
+        timezone: 'Asia/Ho_Chi_Minh',
+      });
+    }
+  }, [application, form]);
 
   const onSubmit = (data) => {
     setFormData(data);
@@ -104,13 +116,15 @@ const ScheduleInterview = ({
         applicationId: formData.applicationId,
         scheduledAt: scheduledDateTime.toISOString(),
         duration: parseInt(formData.duration, 10),
+        jobId: application?.jobId?._id || application?.jobId,
+        candidateId: application?.candidateUserId,
       });
 
       toast.success('Lên lịch phỏng vấn thành công!');
       form.reset();
       setShowConfirmation(false);
       onOpenChange(false);
-      
+
       if (onSuccess) {
         onSuccess();
       }
@@ -145,7 +159,7 @@ const ScheduleInterview = ({
 
   if (showConfirmation) {
     const details = getConfirmationDetails();
-    
+
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
@@ -155,7 +169,7 @@ const ScheduleInterview = ({
               Vui lòng kiểm tra lại thông tin trước khi xác nhận
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-1 text-sm font-medium text-muted-foreground">
@@ -165,7 +179,7 @@ const ScheduleInterview = ({
                 {details.candidate}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-1 text-sm font-medium text-muted-foreground">
                 Vị trí:
@@ -174,7 +188,7 @@ const ScheduleInterview = ({
                 {details.job}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-1 text-sm font-medium text-muted-foreground">
                 Thời gian:
@@ -183,7 +197,7 @@ const ScheduleInterview = ({
                 {details.dateTime}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-1 text-sm font-medium text-muted-foreground">
                 Thời lượng:
@@ -192,7 +206,7 @@ const ScheduleInterview = ({
                 {details.duration}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-1 text-sm font-medium text-muted-foreground">
                 Múi giờ:
@@ -204,14 +218,14 @@ const ScheduleInterview = ({
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleCancel}
               disabled={isSubmitting}
             >
               Quay lại
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirm}
               disabled={isSubmitting}
             >
@@ -363,9 +377,9 @@ const ScheduleInterview = ({
             />
 
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
               >
                 Hủy

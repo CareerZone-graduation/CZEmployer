@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as jobService from '@/services/jobService';
@@ -20,13 +20,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import ChatInterface from '@/components/chat/ChatInterface';
+
+
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from '@/components/ui/sheet';
+import ApplicationDetail from './ApplicationDetail';
+import CandidateCompareModal from '@/components/candidates/CandidateCompareModal';
 
 const JobApplications = ({ isEmbedded = false }) => {
   const { jobId } = useParams();
-  const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [applications, setApplications] = useState([]);
   const [meta, setMeta] = useState({});
@@ -35,8 +45,10 @@ const JobApplications = ({ isEmbedded = false }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplications, setSelectedApplications] = useState([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
+
+  const [viewingApplicationId, setViewingApplicationId] = useState(null);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
@@ -80,13 +92,13 @@ const JobApplications = ({ isEmbedded = false }) => {
 
   useEffect(() => {
     fetchJobAndApplications(true);
-  }, [fetchJobAndApplications]); // Only run on mount for initial load
+  }, [fetchJobAndApplications]);
 
   useEffect(() => {
     if (!isInitialLoading) {
       fetchJobAndApplications(false);
     }
-  }, [filters, isInitialLoading, fetchJobAndApplications]); // Run on filter changes
+  }, [filters, isInitialLoading, fetchJobAndApplications]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
@@ -118,8 +130,6 @@ const JobApplications = ({ isEmbedded = false }) => {
     });
   };
 
-
-
   const handleCompare = () => {
     if (selectedApplications.length < 2) {
       toast.error('Vui lòng chọn ít nhất 2 ứng viên để so sánh');
@@ -129,15 +139,27 @@ const JobApplications = ({ isEmbedded = false }) => {
       toast.error('Chỉ có thể so sánh tối đa 5 ứng viên');
       return;
     }
+    setIsCompareModalOpen(true);
+  };
 
-    navigate('/candidates/compare', {
-      state: { applicationIds: selectedApplications }
+  const handleRemoveFromCompare = (applicationId) => {
+    setSelectedApplications(prev => {
+      const newSelection = prev.filter(id => id !== applicationId);
+      if (newSelection.length < 2) {
+        setIsCompareModalOpen(false);
+        toast.info('Đã đóng so sánh vì không đủ số lượng ứng viên');
+      }
+      return newSelection;
     });
   };
 
+  const handleViewDetailFromCompare = (applicationId) => {
+    setIsCompareModalOpen(false);
+    setViewingApplicationId(applicationId);
+  };
+
   const handleMessage = (candidateId) => {
-    setSelectedCandidateId(candidateId);
-    setIsChatOpen(true);
+    window.open(`/messaging?userId=${candidateId}`, '_blank');
   };
 
   const getStatusBadge = (status) => {
@@ -329,8 +351,6 @@ const JobApplications = ({ isEmbedded = false }) => {
                     Đã chọn {selectedApplications.length} ứng viên
                   </span>
                   <div className="flex gap-2">
-
-
                     <Button
                       variant="default"
                       onClick={handleCompare}
@@ -383,13 +403,13 @@ const JobApplications = ({ isEmbedded = false }) => {
                         />
                       </TableCell>
                       <TableCell
-                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        onClick={() => setViewingApplicationId(app._id)}
                         className="cursor-pointer"
                       >
                         <div className="font-medium">{app.candidateName}</div>
                       </TableCell>
                       <TableCell
-                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        onClick={() => setViewingApplicationId(app._id)}
                         className="cursor-pointer"
                       >
                         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -400,15 +420,15 @@ const JobApplications = ({ isEmbedded = false }) => {
                         </div>
                       </TableCell>
                       <TableCell
-                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        onClick={() => setViewingApplicationId(app._id)}
                         className="cursor-pointer"
                       >{utils.formatDate(app.appliedAt)}</TableCell>
                       <TableCell
-                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        onClick={() => setViewingApplicationId(app._id)}
                         className="cursor-pointer"
                       >{getStatusBadge(app.status)}</TableCell>
                       <TableCell
-                        onClick={() => navigate(`/jobs/${jobId}/applications/${app._id}`)}
+                        onClick={() => setViewingApplicationId(app._id)}
                         className="cursor-pointer"
                       >{getRatingBadge(app.candidateRating)}</TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -419,7 +439,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                             className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleMessage(app.candidateId);
+                              handleMessage(app.candidateUserId);
                             }}
                             title="Nhắn tin"
                           >
@@ -486,11 +506,38 @@ const JobApplications = ({ isEmbedded = false }) => {
         </CardContent>
       </Card>
 
-      <ChatInterface
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        recipientId={selectedCandidateId}
+
+
+      <CandidateCompareModal
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        applicationIds={selectedApplications}
+        onRemoveCandidate={handleRemoveFromCompare}
+        onViewDetail={handleViewDetailFromCompare}
       />
+
+      {/* Application Detail Sheet */}
+      <Sheet open={!!viewingApplicationId} onOpenChange={(open) => !open && setViewingApplicationId(null)}>
+        <SheetContent className="w-[90vw] sm:max-w-[1000px] overflow-y-auto p-0" side="right">
+          <SheetHeader className="p-4 border-b flex flex-row items-center justify-between sticky top-0 bg-white z-10">
+            <Button variant="ghost" size="icon" onClick={() => setViewingApplicationId(null)} className="-ml-2">
+              <X className="h-5 w-5" />
+            </Button>
+            <SheetTitle>Chi tiết đơn ứng tuyển</SheetTitle>
+            <SheetDescription className="hidden">Chi tiết đơn ứng tuyển</SheetDescription>
+            <div className="w-8" /> {/* Spacer for centering if needed, or just empty */}
+          </SheetHeader>
+          <div className="h-full">
+            {viewingApplicationId && (
+              <ApplicationDetail
+                applicationId={viewingApplicationId}
+                jobId={jobId}
+                isModal={true}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
@@ -535,6 +582,5 @@ const ApplicationListSkeleton = () => (
     </Card>
   </div>
 );
-
 
 export default JobApplications;

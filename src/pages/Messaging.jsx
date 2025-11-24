@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { MessageCircle, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,6 +10,7 @@ import ChatContextHeader from '@/components/chat/ChatContextHeader';
 import socketService from '@/services/socketService';
 import { cn } from '@/lib/utils';
 import { getAccessToken } from '@/utils/token';
+import * as chatService from '@/services/chatService';
 
 const Messaging = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -135,6 +137,29 @@ const Messaging = () => {
     };
   }, []);
 
+  // Handle userId query param
+  const [searchParams] = useSearchParams();
+  const userIdParam = searchParams.get('userId');
+
+  useEffect(() => {
+    const initConversation = async () => {
+      if (userIdParam) {
+        try {
+          const conversation = await chatService.createOrGetConversation(userIdParam);
+          setSelectedConversation(conversation);
+          setShowMobileThread(true);
+        } catch (error) {
+          console.error('Error initializing conversation:', error);
+          // Optional: Show error toast
+        }
+      }
+    };
+
+    if (userIdParam && token) {
+      initConversation();
+    }
+  }, [userIdParam, token]);
+
   const handleConversationSelect = useCallback((conversation) => {
     setSelectedConversation(conversation);
     setShowMobileThread(true);
@@ -242,6 +267,7 @@ const Messaging = () => {
           showMobileThread && "hidden md:block"
         )}>
           <ConversationList
+            selectedConversation={selectedConversation}
             selectedConversationId={selectedConversation?._id}
             onConversationSelect={handleConversationSelect}
             onlineUsers={onlineUsers}
