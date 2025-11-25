@@ -11,7 +11,8 @@ import {
   Bell,
   ChevronRight,
   Pin,
-  PinOff
+  PinOff,
+  LifeBuoy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const sidebarItems = [
   { href: '/candidates', label: 'Ứng viên', icon: Users, description: 'Quản lý ứng viên' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
+  { href: '/support', label: 'Hỗ trợ', icon: LifeBuoy, description: 'Yêu cầu hỗ trợ' },
 ];
 
 const CompactSidebar = ({ isPinned, onTogglePin }) => {

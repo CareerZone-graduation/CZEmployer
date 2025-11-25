@@ -1,10 +1,25 @@
-import { Outlet } from 'react-router-dom';
-import { Briefcase, Users, TrendingUp, Award } from 'lucide-react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Briefcase, Users, TrendingUp, Award, ArrowLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const AuthLayout = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 relative overflow-hidden">
+      {/* Back to Homepage Button */}
+      <div className="absolute top-6 left-6 z-10">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="text-white hover:bg-white/10 backdrop-blur-sm"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Quay lại trang chủ
+        </Button>
+      </div>
+
       {/* Background decorative elements */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>

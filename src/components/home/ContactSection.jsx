@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle, Users, Briefcase } from 'lucide-react';
 import { VIETNAMESE_CONTENT, PROFESSIONAL_CONTENT } from '@/constants/vietnamese';
+import { submitContactForm } from '@/services/contactService';
 
 // Form validation schema
 const contactFormSchema = z.object({
@@ -26,10 +27,22 @@ const contactFormSchema = z.object({
     .min(10, 'Số điện thoại phải có ít nhất 10 số')
     .max(15, 'Số điện thoại không được quá 15 số')
     .regex(/^[0-9+\-\s()]+$/, 'Số điện thoại không hợp lệ'),
+  category: z.string()
+    .min(1, 'Vui lòng chọn nhu cầu tư vấn'),
   message: z.string()
     .min(10, 'Tin nhắn phải có ít nhất 10 ký tự')
     .max(500, 'Tin nhắn không được quá 500 ký tự')
 });
+
+const categories = [
+  { value: '', label: 'Chọn nhu cầu tư vấn' },
+  { value: 'pricing', label: 'Tôi muốn được tư vấn về bảng giá' },
+  { value: 'features', label: 'Tôi muốn được tư vấn về các tính năng' },
+  { value: 'trial', label: 'Tôi muốn dùng thử miễn phí' },
+  { value: 'demo', label: 'Tôi muốn được demo sản phẩm' },
+  { value: 'support', label: 'Tôi cần hỗ trợ kỹ thuật' },
+  { value: 'other', label: 'Khác' }
+];
 
 const ContactSection = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +54,7 @@ const ContactSection = () => {
       email: '',
       company: '',
       phone: '',
+      category: '',
       message: ''
     }
   });
@@ -49,15 +63,13 @@ const ContactSection = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Submit to backend API
+      await submitContactForm(data);
       
-      // Here you would typically send the data to your API
-      console.log('Form data:', data);
-      
-      toast.success('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong vòng 24 giờ.');
+      toast.success('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong vòng 48 giờ.');
       form.reset();
-    } catch {
+    } catch (error) {
+      console.error('Contact form error:', error);
       toast.error('Có lỗi xảy ra. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
@@ -212,6 +224,29 @@ const ContactSection = () => {
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nhu cầu tư vấn *</FormLabel>
+                        <FormControl>
+                          <select
+                            {...field}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white"
+                          >
+                            {categories.map((cat) => (
+                              <option key={cat.value} value={cat.value}>
+                                {cat.label}
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}
