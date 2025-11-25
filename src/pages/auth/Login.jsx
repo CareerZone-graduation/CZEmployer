@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { toast } from 'sonner';
 import { LogIn, Loader2, Mail, Lock } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,7 @@ import { fetchUser } from '@/redux/authSlice';
 import * as tokenUtil from '@/utils/token';
 import { VIETNAMESE_CONTENT } from '@/constants/vietnamese';
 
-const Login = () => {
+const LoginForm = () => {
   const dispatch = useDispatch();
   const [email, setEmail] = useState('r1@gmail.com');
   const [password, setPassword] = useState('a');
@@ -28,7 +29,7 @@ const Login = () => {
   const handleLogin = useCallback(
     async (e) => {
       e.preventDefault();
-      
+
       if (!email || !password) {
         toast.error(VIETNAMESE_CONTENT.messages.error.required);
         return;
@@ -79,6 +80,8 @@ const Login = () => {
     [email, password, dispatch],
   );
 
+
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
@@ -115,8 +118,8 @@ const Login = () => {
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
               {VIETNAMESE_CONTENT.forms.password}
             </Label>
-            <Link 
-              to="/auth/forgot-password" 
+            <Link
+              to="/auth/forgot-password"
               className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline font-medium"
             >
               Quên mật khẩu?
@@ -138,9 +141,9 @@ const Login = () => {
         </div>
 
         <div className="space-y-3 pt-2">
-          <Button 
-            type="submit" 
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200" 
+          <Button
+            type="submit"
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -165,22 +168,49 @@ const Login = () => {
             </div>
           </div>
 
-          <Button 
-            variant="outline" 
-            className="w-full h-12 border-gray-300 hover:bg-gray-50 text-gray-700 font-medium text-base" 
-            type="button"
-          >
-            <FcGoogle className="mr-3 h-5 w-5" />
-            Đăng nhập với Google
-          </Button>
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                setIsLoading(true);
+                try {
+                  const response = await authService.googleLogin(credentialResponse.credential);
+                  const { data: loginData } = response;
+
+                  if (loginData && loginData.accessToken) {
+                    if (loginData.role !== 'recruiter') {
+                      toast.error('Quyền truy cập bị từ chối. Tài khoản này không phải là tài khoản nhà tuyển dụng.');
+                      return;
+                    }
+
+                    tokenUtil.saveAccessToken(loginData.accessToken);
+                    dispatch(fetchUser());
+                    toast.success(VIETNAMESE_CONTENT.messages.success.login);
+                  }
+                } catch (error) {
+                  console.error('Google login error:', error);
+                  toast.error(error.response?.data?.message || 'Đăng nhập Google thất bại');
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              onError={() => {
+                toast.error('Đăng nhập Google thất bại');
+              }}
+              width="100%"
+              theme="outline"
+              size="large"
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
         </div>
       </form>
 
       <div className="text-center">
         <p className="text-gray-600">
           Chưa có tài khoản?{' '}
-          <Link 
-            to="/auth/register" 
+          <Link
+            to="/auth/register"
             className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
           >
             Đăng ký miễn phí
@@ -188,6 +218,14 @@ const Login = () => {
         </p>
       </div>
     </div>
+  );
+};
+
+const Login = () => {
+  return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <LoginForm />
+    </GoogleOAuthProvider>
   );
 };
 

@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import {
   Briefcase, Users, Eye, TrendingUp, Plus, Calendar as CalendarIcon, MapPin,
-  Building2, AlertCircle, Download, Clock, CheckCircle2, XCircle,
+  Building2, AlertCircle, Clock, CheckCircle2, XCircle,
   ArrowUpRight, ArrowDownRight, CreditCard, Wallet
 } from "lucide-react"
 import {
@@ -67,29 +67,6 @@ const Dashboard = () => {
       }
     }
   }, [timeRange, date, user])
-
-  const handleExport = async () => {
-    try {
-      let params = { timeRange }
-      if (timeRange === 'custom' && date?.from && date?.to) {
-        params = {
-          timeRange: 'custom',
-          from: date.from.toISOString(),
-          to: date.to.toISOString()
-        }
-      }
-      const blob = await recruiterService.exportDashboardData(params)
-      const url = window.URL.createObjectURL(new Blob([blob]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `dashboard-stats-${timeRange}-${format(new Date(), 'yyyy-MM-dd')}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      link.parentNode.removeChild(link)
-    } catch (err) {
-      console.error("Export failed:", err)
-    }
-  }
 
   const getTimeRangeLabel = (range) => {
     switch (range) {
@@ -169,16 +146,25 @@ const Dashboard = () => {
               <SelectItem value="custom">Tùy chỉnh</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleExport} className="bg-white">
-            <Download className="h-4 w-4 mr-2" />
-            Xuất báo cáo
-          </Button>
           <Button onClick={() => navigate('/jobs/create')} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <Plus className="h-4 w-4 mr-2" />
             Đăng tin mới
           </Button>
         </div>
       </div>
+
+      {/* Company Registration Alert */}
+      {!company && (
+        <Alert className="border-red-200 bg-red-50 text-red-900">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="flex items-center justify-between ml-2 w-full">
+            <span>Bạn chưa đăng ký thông tin công ty. Vui lòng đăng ký để bắt đầu tuyển dụng.</span>
+            <Button variant="outline" size="sm" onClick={() => navigate('/company-register')} className="bg-white border-red-300 hover:bg-red-100 text-red-800">
+              Đăng ký ngay
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Company Verification Alert */}
       {company && !company.verified && (
@@ -312,7 +298,6 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-
             </div>
 
             {/* Right Column: Widgets */}

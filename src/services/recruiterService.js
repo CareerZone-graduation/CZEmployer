@@ -21,13 +21,7 @@ const recruiterService = {
         return response.data;
     },
 
-    exportDashboardData: async (params) => {
-        const response = await apiClient.get('/recruiters/dashboard/export', {
-            params,
-            responseType: 'blob',
-        });
-        return response.data;
-    },
+
 };
 
 export default recruiterService;

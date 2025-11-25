@@ -28,6 +28,14 @@ export const logoutServer = () =>
 export const login = (credentials) =>
   apiClient.post('/auth/login', credentials, { withCredentials: true });
 
+/**
+ * Login with Google
+ * @param {string} token 
+ * @returns {Promise<import('axios').AxiosResponse>}
+ */
+export const googleLogin = (token) =>
+  apiClient.post('/auth/google-login', { token, role: 'recruiter' }, { withCredentials: true });
+
 
 
 export const getMe = (axiosConfig = {}) =>

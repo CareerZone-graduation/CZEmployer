@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Save } from 'lucide-react';
@@ -15,9 +15,14 @@ import { createCompany } from '@/services/companyService';
 import { createCompanySchema } from '@/utils/validation';
 import { INDUSTRIES, COMPANY_SIZES } from '@/constants';
 import LocationPicker from '@/components/common/LocationPicker';
+import { useLocationData } from '@/hooks/useLocationData';
+import GoongLocationPicker from '@/components/common/GoongLocationPicker';
+import { mapGoongLocationToStandard } from '@/utils/locationUtils';
+import { useState } from 'react';
 
 const CompanyRegisterForm = () => {
   const navigate = useNavigate();
+  const [showMap, setShowMap] = useState(false);
   const form = useForm({
     resolver: zodResolver(createCompanySchema),
     defaultValues: {
@@ -32,12 +37,17 @@ const CompanyRegisterForm = () => {
         province: '',
         district: '',
         commune: '',
+        coordinates: undefined,
       },
       businessRegistrationFile: null,
       email: '',
       phone: '',
     },
   });
+
+  const watchedProvince = useWatch({ control: form.control, name: 'location.province' });
+  const watchedDistrict = useWatch({ control: form.control, name: 'location.district' });
+  const { provinces, districts, communes } = useLocationData(watchedProvince, watchedDistrict);
 
   const { isSubmitting } = form.formState;
 
@@ -233,6 +243,16 @@ const CompanyRegisterForm = () => {
                     provinceFieldName="location.province"
                     districtFieldName="location.district"
                     communeFieldName="location.commune"
+                    provinces={provinces}
+                    districts={districts}
+                    communes={communes}
+                    onProvinceChange={() => {
+                      form.setValue('location.district', '');
+                      form.setValue('location.commune', '');
+                    }}
+                    onDistrictChange={() => {
+                      form.setValue('location.commune', '');
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -249,6 +269,49 @@ const CompanyRegisterForm = () => {
                   />
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="show-map-checkbox-register"
+                  checked={showMap}
+                  onChange={(e) => setShowMap(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label
+                  htmlFor="show-map-checkbox-register"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Hiển thị bản đồ để chọn địa chỉ chính xác hơn
+                </label>
+              </div>
+
+              {showMap && (
+                <FormField
+                  control={form.control}
+                  name="goong-location"
+                  render={({ field }) => (
+                    <GoongLocationPicker
+                      value={field.value}
+                      onLocationChange={(locationData) => {
+                        const mapped = mapGoongLocationToStandard(locationData);
+                        form.setValue('location.province', mapped.province, { shouldValidate: true });
+                        form.setValue('address', locationData.address, { shouldValidate: true });
+                        form.setValue('location.coordinates', {
+                          type: 'Point',
+                          coordinates: [locationData.lng, locationData.lat]
+                        });
+                        requestAnimationFrame(() => {
+                          form.setValue('location.district', mapped.district, { shouldValidate: true });
+                          requestAnimationFrame(() => {
+                            form.setValue('location.commune', mapped.commune, { shouldValidate: true });
+                          });
+                        });
+                      }}
+                    />
+                  )}
+                />
+              )}
 
               {/* File Upload */}
               <div className="space-y-4">
