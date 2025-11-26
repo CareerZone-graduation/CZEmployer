@@ -43,17 +43,17 @@ import { createJobSchema, updateJobSchema } from '@/utils/validation';
 import GoongLocationPicker from '@/components/common/GoongLocationPicker';
 import LocationPicker from '@/components/common/LocationPicker';
 import {
-    mapGoongLocationToStandard,
-    getProvinces,
-    getDistrictsForProvince,
-    getCommunesForDistrict
+  mapGoongLocationToStandard,
+  getProvinces,
+  getDistrictsForProvince,
+  getCommunesForDistrict
 } from '@/utils/locationUtils';
 
 
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
   const [showMap, setShowMap] = useState(false);
-  
+
   // State for location dropdowns
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -69,38 +69,38 @@ const JobForm = ({ onSuccess, job }) => {
     resolver: zodResolver(isEditMode ? updateJobSchema : createJobSchema),
     defaultValues: isEditMode
       ? {
-          ...job,
-          deadline: job.deadline ? new Date(job.deadline) : undefined,
-          useCompanyAddress: job.useCompanyAddress || false,
-          location: {
-            province: job.location?.province || '',
-            district: job.location?.district || '',
-            commune: job.location?.commune || '',
-            coordinates: job.location?.coordinates || undefined,
-          },
-          address: job.address || job.location?.address || '',
-        }
-      : {
-          title: '',
-          description: '',
-          requirements: '',
-          benefits: '',
-          useCompanyAddress: false,
-          location: {
-            province: '',
-            district: '',
-            commune: '',
-            coordinates: undefined,
-          },
-          address: '',
-          type: 'FULL_TIME',
-          workType: 'ON_SITE',
-          minSalary: undefined,
-          maxSalary: undefined,
-          deadline: undefined,
-          experience: 'ENTRY_LEVEL',
-          category: 'IT',
+        ...job,
+        deadline: job.deadline ? new Date(job.deadline) : undefined,
+        useCompanyAddress: job.useCompanyAddress || false,
+        location: {
+          province: job.location?.province || '',
+          district: job.location?.district || '',
+          commune: job.location?.commune || '',
+          coordinates: job.location?.coordinates || undefined,
         },
+        address: job.address || job.location?.address || '',
+      }
+      : {
+        title: '',
+        description: '',
+        requirements: '',
+        benefits: '',
+        useCompanyAddress: false,
+        location: {
+          province: '',
+          district: '',
+          commune: '',
+          coordinates: undefined,
+        },
+        address: '',
+        type: 'FULL_TIME',
+        workType: 'ON_SITE',
+        minSalary: undefined,
+        maxSalary: undefined,
+        deadline: undefined,
+        experience: 'ENTRY_LEVEL',
+        category: 'IT',
+      },
   });
 
   const { isSubmitting, control, setValue } = form;
@@ -144,7 +144,7 @@ const JobForm = ({ onSuccess, job }) => {
     if (useCompanyAddress) {
       if (companyProfile) {
         const { location: companyLocation, address: companyAddress } = companyProfile;
-        
+
         setValue('location.province', companyLocation?.province || '', { shouldValidate: true });
         setValue('address', companyAddress || '', { shouldValidate: true });
         if (companyLocation?.coordinates) {
@@ -158,14 +158,14 @@ const JobForm = ({ onSuccess, job }) => {
           });
         });
       } else {
-         toast.error('Chưa có thông tin công ty', {
-            description: 'Vui lòng cập nhật thông tin công ty để sử dụng tính năng này.',
-         });
-         setValue('useCompanyAddress', false); // Uncheck the box
+        toast.error('Chưa có thông tin công ty', {
+          description: 'Vui lòng cập nhật thông tin công ty để sử dụng tính năng này.',
+        });
+        setValue('useCompanyAddress', false); // Uncheck the box
       }
     }
   }, [useCompanyAddress, companyProfile, setValue]);
-  
+
   const onSubmit = useCallback(
     async (values) => {
       try {
@@ -215,7 +215,7 @@ const JobForm = ({ onSuccess, job }) => {
             </div>
           </div>
         )}
-        
+
         <FormField
           control={form.control}
           name="title"
@@ -315,99 +315,99 @@ const JobForm = ({ onSuccess, job }) => {
           />
 
           <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <LocationPicker
-                    control={control}
-                    provinceFieldName="location.province"
-                    districtFieldName="location.district"
-                    communeFieldName="location.commune"
-                    provinces={provinces}
-                    districts={districts}
-                    communes={communes}
-                    isLoading={isLocationLoading}
-                    disabled={useCompanyAddress}
-                    onProvinceChange={() => {
-                        if (!useCompanyAddress) {
-                            setValue('location.district', '');
-                            setValue('location.commune', '');
-                        }
-                    }}
-                    onDistrictChange={() => {
-                        if (!useCompanyAddress) {
-                            setValue('location.commune', '');
-                        }
-                    }}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Địa chỉ chi tiết</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Số nhà, tên đường, phường/xã..."
-                        {...field}
-                        disabled={useCompanyAddress}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <LocationPicker
+                control={control}
+                provinceFieldName="location.province"
+                districtFieldName="location.district"
+                communeFieldName="location.commune"
+                provinces={provinces}
+                districts={districts}
+                communes={communes}
+                isLoading={isLocationLoading}
+                disabled={useCompanyAddress}
+                onProvinceChange={() => {
+                  if (!useCompanyAddress) {
+                    setValue('location.district', '');
+                    setValue('location.commune', '');
+                  }
+                }}
+                onDistrictChange={() => {
+                  if (!useCompanyAddress) {
+                    setValue('location.commune', '');
+                  }
+                }}
               />
+            </div>
 
-              {!useCompanyAddress && (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="show-map-checkbox"
-                      checked={showMap}
-                      onCheckedChange={setShowMap}
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Địa chỉ chi tiết</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Số nhà, tên đường, phường/xã..."
+                      {...field}
+                      disabled={useCompanyAddress}
                     />
-                    <label
-                      htmlFor="show-map-checkbox"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Hiển thị bản đồ để chọn địa chỉ chính xác
-                    </label>
-                  </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                  {showMap && (
-                    <FormField
-                      control={form.control}
-                      name="goong-location"
-                      render={({ field }) => (
-                        <GoongLocationPicker
-                          value={field.value}
-                          onLocationChange={(locationData) => {
-                            console.log("Selected location data:", locationData);
-                            const mapped = mapGoongLocationToStandard(locationData);
-                            
-                            setValue('location.province', mapped.province, { shouldValidate: true });
+            {!useCompanyAddress && (
+              <>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-map-checkbox"
+                    checked={showMap}
+                    onCheckedChange={setShowMap}
+                  />
+                  <label
+                    htmlFor="show-map-checkbox"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Hiển thị bản đồ để chọn địa chỉ chính xác
+                  </label>
+                </div>
+
+                {showMap && (
+                  <FormField
+                    control={form.control}
+                    name="goong-location"
+                    render={({ field }) => (
+                      <GoongLocationPicker
+                        value={field.value}
+                        onLocationChange={(locationData) => {
+                          console.log("Selected location data:", locationData);
+                          const mapped = mapGoongLocationToStandard(locationData);
+
+                          setValue('location.province', mapped.province, { shouldValidate: true });
+
+                          requestAnimationFrame(() => {
+                            setValue('location.district', mapped.district, { shouldValidate: true });
 
                             requestAnimationFrame(() => {
-                              setValue('location.district', mapped.district, { shouldValidate: true });
-                              
-                              requestAnimationFrame(() => {
-                                setValue('location.commune', mapped.commune, { shouldValidate: true });
-                              });
+                              setValue('location.commune', mapped.commune, { shouldValidate: true });
                             });
+                          });
 
-                            setValue('address', mapped.address || locationData.address, { shouldValidate: true });
-                            setValue('location.coordinates', {
-                              type: 'Point',
-                              coordinates: [locationData.lng, locationData.lat]
-                            });
-                          }}
-                        />
-                      )}
-                    />
-                  )}
-                </>
-              )}
-            </div>
+                          setValue('address', mapped.address || locationData.address, { shouldValidate: true });
+                          setValue('location.coordinates', {
+                            type: 'Point',
+                            coordinates: [locationData.lng, locationData.lat]
+                          });
+                        }}
+                      />
+                    )}
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -469,11 +469,11 @@ const JobForm = ({ onSuccess, job }) => {
               <FormItem>
                 <FormLabel>Lương tối thiểu (VND)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="10,000,000" 
-                    {...field} 
-                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} 
+                  <Input
+                    type="number"
+                    placeholder="10,000,000"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -487,11 +487,11 @@ const JobForm = ({ onSuccess, job }) => {
               <FormItem>
                 <FormLabel>Lương tối đa (VND)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="50,000,000" 
-                    {...field} 
-                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} 
+                  <Input
+                    type="number"
+                    placeholder="50,000,000"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -537,6 +537,8 @@ const JobForm = ({ onSuccess, job }) => {
                     }}
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
+                    startMonth={new Date(new Date().getFullYear(), 0)}
+                    endMonth={new Date(new Date().getFullYear() + 5, 11)}
                   />
                 </PopoverContent>
               </Popover>
@@ -547,7 +549,7 @@ const JobForm = ({ onSuccess, job }) => {
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}

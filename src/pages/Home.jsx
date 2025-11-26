@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { motion } from 'framer-motion'
+
 import clsx from 'clsx'
 import { VIETNAMESE_CONTENT } from '@/constants/vietnamese'
 
@@ -60,7 +59,7 @@ export default function Home() {
             </a>
             <nav className="flex items-center gap-4 md:gap-6">
               <a href="#features" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.features}</a>
-              <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.contact}</a>
+              <a href="support" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.contact}</a>
               <a href="/auth/login" className="font-medium text-gray-700 hover:text-emerald-600 transition-colors">{VIETNAMESE_CONTENT.navigation.login}</a>
               <a href="/auth/register" className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg hover:bg-emerald-700 transition-all duration-300">{VIETNAMESE_CONTENT.navigation.register}</a>
             </nav>

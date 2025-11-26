@@ -16,7 +16,8 @@ import {
   Pin,
   PinOff,
   MessageCircle,
-  LogOut
+  LogOut,
+  LifeBuoy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ const sidebarItems = [
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
   { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
+  { href: '/support', label: 'Hỗ trợ', icon: LifeBuoy, description: 'Yêu cầu hỗ trợ' },
 ];
 
 const CompactSidebar = ({ isPinned, onTogglePin }) => {

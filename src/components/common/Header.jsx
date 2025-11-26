@@ -15,7 +15,7 @@ const Header = ({ className }) => {
     { href: '#features', label: 'Tính năng' },
     { href: '#solutions', label: 'Giải pháp' },
     { href: '#pricing', label: 'Giá cả' },
-    { href: '#contact', label: 'Liên hệ' },
+    { href: 'support', label: 'Liên hệ' },
   ];
 
   const closeSheet = () => setIsOpen(false);
