@@ -24,12 +24,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  MoreHorizontal, 
-  Eye, 
+import {
+  Search,
+  Filter,
+  Download,
+  MoreHorizontal,
+  Eye,
   Star,
   Users,
   UserCheck,
@@ -77,7 +77,6 @@ const Candidates = () => {
     page: 1,
     limit: 10,
     status: 'all',
-    candidateRating: 'all',
     search: '',
     sort: '-appliedAt',
     jobIds: '',
@@ -102,7 +101,6 @@ const Candidates = () => {
     try {
       const apiFilters = { ...filters };
       if (apiFilters.status === 'all') delete apiFilters.status;
-      if (apiFilters.candidateRating === 'all') delete apiFilters.candidateRating;
       if (!apiFilters.jobIds) delete apiFilters.jobIds;
       if (!apiFilters.fromDate) delete apiFilters.fromDate;
       if (!apiFilters.toDate) delete apiFilters.toDate;
@@ -173,9 +171,9 @@ const Candidates = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
-      REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
-      INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+      OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
     };
@@ -183,17 +181,7 @@ const Candidates = () => {
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
-  const getRatingBadge = (rating) => {
-    const ratingConfig = {
-      NOT_RATED: { label: 'Chưa đánh giá', className: 'bg-gray-100 text-gray-800' },
-      NOT_SUITABLE: { label: 'Không phù hợp', className: 'bg-red-100 text-red-800' },
-      MAYBE: { label: 'Có thể', className: 'bg-yellow-100 text-yellow-800' },
-      SUITABLE: { label: 'Phù hợp', className: 'bg-blue-100 text-blue-800' },
-      PERFECT_MATCH: { label: 'Rất phù hợp', className: 'bg-green-100 text-green-800' },
-    };
-    const config = ratingConfig[rating] || { label: rating, className: 'bg-gray-100 text-gray-800' };
-    return <Badge className={config.className}>{config.label}</Badge>;
-  };
+
 
   if (isLoading && !applications.length) {
     return <CandidatesPageSkeleton />;
@@ -276,28 +264,15 @@ const Candidates = () => {
                   <SelectContent>
                     <SelectItem value="all">Tất cả trạng thái</SelectItem>
                     <SelectItem value="PENDING">Chờ duyệt</SelectItem>
-                    <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
+                    <SelectItem value="SUITABLE">Phù hợp</SelectItem>
                     <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
-                    <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
+                    <SelectItem value="OFFER_SENT">Đã gửi đề nghị</SelectItem>
                     <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
                     <SelectItem value="REJECTED">Đã từ chối</SelectItem>
                   </SelectContent>
                 </Select>
 
-                {/* Rating Filter */}
-                <Select value={filters.candidateRating} onValueChange={(val) => handleFilterChange('candidateRating', val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Đánh giá" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả đánh giá</SelectItem>
-                    <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
-                    <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
-                    <SelectItem value="MAYBE">Có thể</SelectItem>
-                    <SelectItem value="SUITABLE">Phù hợp</SelectItem>
-                    <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
-                  </SelectContent>
-                </Select>
+
 
                 {/* Job Filter */}
                 <Select value={filters.jobIds || 'all'} onValueChange={(val) => handleFilterChange('jobIds', val === 'all' ? '' : val)}>
@@ -326,12 +301,7 @@ const Candidates = () => {
                         <X className="h-3 w-3 cursor-pointer" onClick={() => handleFilterChange('status', 'all')} />
                       </Badge>
                     )}
-                    {filters.candidateRating !== 'all' && (
-                      <Badge variant="secondary" className="gap-1">
-                        Đánh giá: {filters.candidateRating}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => handleFilterChange('candidateRating', 'all')} />
-                      </Badge>
-                    )}
+
                     {filters.search && (
                       <Badge variant="secondary" className="gap-1">
                         Tìm kiếm: {filters.search}
@@ -346,7 +316,6 @@ const Candidates = () => {
                         setFilters(prev => ({
                           ...prev,
                           status: 'all',
-                          candidateRating: 'all',
                           jobIds: '',
                           search: ''
                         }));
@@ -375,7 +344,7 @@ const Candidates = () => {
                       <TableHead>Vị trí ứng tuyển</TableHead>
                       <TableHead>Ngày ứng tuyển</TableHead>
                       <TableHead>Trạng thái</TableHead>
-                      <TableHead>Đánh giá</TableHead>
+
                       <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -391,10 +360,10 @@ const Candidates = () => {
                         <TableCell>{app.jobTitle || app.jobSnapshot?.title}</TableCell>
                         <TableCell>{utils.formatDate(app.appliedAt)}</TableCell>
                         <TableCell>{getStatusBadge(app.status)}</TableCell>
-                        <TableCell>{getRatingBadge(app.candidateRating)}</TableCell>
+
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();

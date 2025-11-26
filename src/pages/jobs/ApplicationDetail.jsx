@@ -14,8 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle } from 'lucide-react';
-import CandidateRating from '@/components/jobs/CandidateRating';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ActivityHistory from '@/components/jobs/ActivityHistory';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ScheduleInterview from '@/components/interviews/ScheduleInterview';
@@ -75,6 +80,25 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
+  const handleStatusUpdate = async (newStatus) => {
+    if (newStatus === application.status) return;
+
+    if (newStatus === 'REJECTED' && !window.confirm('Bạn có chắc chắn muốn từ chối ứng viên này?')) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await applicationService.updateApplicationStatus(applicationId, newStatus);
+      setApplication(response.data);
+      toast.success('Cập nhật trạng thái thành công');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const fetchApplication = useCallback(async () => {
     if (!applicationId) return;
     setIsLoading(true);
@@ -97,18 +121,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     fetchApplication();
   }, [fetchApplication]);
 
-  const handleRatingSave = async (newRating) => {
-    setIsSubmitting(true);
-    try {
-      const response = await applicationService.updateCandidateRating(applicationId, newRating);
-      setApplication((prev) => ({ ...prev, candidateRating: response.data.candidateRating }));
-      toast.success('Cập nhật đánh giá thành công!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi cập nhật đánh giá.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   const handleNotesSave = async () => {
     if (currentNotes === (application.notes || '')) return;
@@ -125,22 +138,30 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
+
+
   const handleScheduleSuccess = () => {
     fetchApplication(); // Refetch to update status
   };
 
+
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
-      REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
-      INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+      OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
     };
+
+
     const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
     return <Badge className={config.className}>{config.label}</Badge>;
   };
+
+
 
   if (isLoading) {
     return <ApplicationDetailSkeleton />;
@@ -213,6 +234,44 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
               {getStatusBadge(application.status)}
             </div>
             <div className="flex gap-2 w-full md:w-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1 md:flex-none"
+                    disabled={isSubmitting || ['ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
+                  >
+                    Cập nhật <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => handleStatusUpdate('SUITABLE')}
+                    disabled={['SUITABLE', 'SCHEDULED_INTERVIEW', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
+                    className={['SUITABLE', 'SCHEDULED_INTERVIEW', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                    Đánh giá phù hợp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusUpdate('OFFER_SENT')}
+                    disabled={['PENDING', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
+                    className={['PENDING', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
+                  >
+                    <Gift className="mr-2 h-4 w-4 text-purple-600" />
+                    Gửi đề nghị (Offer)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusUpdate('REJECTED')}
+                    className="text-red-600 focus:text-red-600"
+                    disabled={['REJECTED', 'ACCEPTED', 'OFFER_DECLINED'].includes(application.status)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Từ chối ứng viên
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button
                 size="sm"
                 variant="outline"
@@ -235,7 +294,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
               <Button
                 size="sm"
                 className="flex-1 md:flex-none"
-                disabled={!!application.interviewInfo}
+                disabled={!!application.interviewInfo || ['PENDING', 'REJECTED', 'ACCEPTED', 'OFFER_DECLINED'].includes(application.status)}
                 onClick={() => setIsInterviewModalOpen(true)}
               >
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -244,7 +303,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             </div>
           </div>
         </div>
-      </Card>
+      </Card >
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         {/* Left Column: Quick Info & Rating (5 cols) */}
@@ -253,7 +312,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
-                CV & Đánh giá
+                CV & Ghi chú
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -270,13 +329,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2 border-t">
-                <CandidateRating
-                  initialRating={application.candidateRating || 'NOT_RATED'}
-                  onRatingSave={handleRatingSave}
-                  isSubmitting={isSubmitting}
-                />
-              </div>
+
 
               <div className="space-y-2 pt-2 border-t">
                 <div className="flex justify-between items-center">
@@ -396,7 +449,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
           />
         </div>
       </Modal>
-    </div>
+    </div >
   );
 };
 

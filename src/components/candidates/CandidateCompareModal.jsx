@@ -57,41 +57,17 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
     const getStatusBadge = (status) => {
         const statusConfig = {
             PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
-            REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+            SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
             SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
-            INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+            OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
             ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
             REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
-            WITHDRAWN: { label: 'Đã rút', className: 'bg-gray-100 text-gray-800' }
         };
-        const config = statusConfig[status] || statusConfig.PENDING;
+        const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
         return <Badge className={config.className}>{config.label}</Badge>;
     };
 
-    const getRatingBadge = (rating) => {
-        if (!rating) return <span className="text-muted-foreground">Chưa đánh giá</span>;
 
-        const ratingConfig = {
-            PERFECT_MATCH: { label: 'Rất phù hợp', stars: 5, color: 'text-green-600' },
-            SUITABLE: { label: 'Phù hợp', stars: 4, color: 'text-blue-600' },
-            MAYBE: { label: 'Có thể', stars: 3, color: 'text-yellow-600' },
-            NOT_SUITABLE: { label: 'Không phù hợp', stars: 2, color: 'text-red-600' }
-        };
-
-        const config = ratingConfig[rating] || { label: rating, stars: 0, color: 'text-gray-600' };
-
-        return (
-            <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                    <Star
-                        key={i}
-                        className={`h-4 w-4 ${i < config.stars ? `${config.color} fill-current` : 'text-gray-300'}`}
-                    />
-                ))}
-                <span className={`text-sm ml-1 ${config.color}`}>{config.label}</span>
-            </div>
-        );
-    };
 
     const getGridCols = () => {
         switch (candidates.length) {
@@ -174,9 +150,7 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                                         {getStatusBadge(candidate.status)}
                                     </div>
 
-                                    <div className="flex justify-center">
-                                        {getRatingBadge(candidate.candidateRating)}
-                                    </div>
+
 
                                     <Button
                                         variant="outline"

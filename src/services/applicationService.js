@@ -29,15 +29,7 @@ export const updateApplicationStatus = async (applicationId, status) => {
   return await apiClient.patch(`/applications/${applicationId}/status`, { status });
 };
 
-/**
- * Cập nhật đánh giá ứng viên.
- * @param {string} applicationId - ID của đơn ứng tuyển.
- * @param {string} rating - Đánh giá mới.
- * @returns {Promise<object>}
- */
-export const updateCandidateRating = async (applicationId, rating) => {
-  return await apiClient.patch(`/applications/${applicationId}/rating`, { rating });
-};
+
 
 /**
  * Cập nhật ghi chú cho đơn ứng tuyển.
@@ -65,7 +57,7 @@ export const scheduleInterview = async (applicationId, scheduledTime) => {
 
 /**
  * Lấy TẤT CẢ ứng viên từ tất cả các jobs của công ty
- * @param {object} params - Các tham số truy vấn (page, limit, status, candidateRating, search, jobIds, fromDate, toDate, sort)
+ * @param {object} params - Các tham số truy vấn (page, limit, status, search, jobIds, fromDate, toDate, sort)
  * @returns {Promise<object>}
  */
 export const getAllApplications = async (params = {}) => {
@@ -88,22 +80,9 @@ export const getApplicationsStatistics = async (params = {}) => {
  * @returns {Promise<object>}
  */
 export const bulkUpdateStatus = async (applicationIds, status) => {
-  return await apiClient.patch('/applications/recruiter/bulk/status', { 
-    applicationIds, 
-    status 
-  });
-};
-
-/**
- * Bulk update rating cho nhiều applications
- * @param {Array<string>} applicationIds - Mảng các application IDs
- * @param {string} rating - Rating mới
- * @returns {Promise<object>}
- */
-export const bulkUpdateRating = async (applicationIds, rating) => {
-  return await apiClient.patch('/applications/recruiter/bulk/rating', { 
-    applicationIds, 
-    rating 
+  return await apiClient.patch('/applications/recruiter/bulk/status', {
+    applicationIds,
+    status
   });
 };
 
@@ -113,7 +92,7 @@ export const bulkUpdateRating = async (applicationIds, rating) => {
  * @returns {Promise<object>}
  */
 export const exportApplications = async (applicationIds) => {
-  return await apiClient.post('/applications/recruiter/export', { 
-    applicationIds 
+  return await apiClient.post('/applications/recruiter/export', {
+    applicationIds
   });
 };

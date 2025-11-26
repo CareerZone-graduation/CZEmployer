@@ -10,11 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ErrorState from '@/components/common/ErrorState';
-import { 
-  ArrowLeft, 
-  Mail, 
-  Phone, 
-  Briefcase, 
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Briefcase,
   GraduationCap,
   Star,
   Calendar,
@@ -54,7 +54,7 @@ const CandidateComparison = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const promises = applicationIds.map(id => 
+      const promises = applicationIds.map(id =>
         applicationService.getApplicationById(id)
       );
       const responses = await Promise.all(promises);
@@ -77,54 +77,30 @@ const CandidateComparison = () => {
       navigate('/candidates');
       return;
     }
-    navigate('/candidates/compare', { 
+    navigate('/candidates/compare', {
       state: { applicationIds: updatedIds },
-      replace: true 
+      replace: true
     });
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
-      REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
-      INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+      OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
-      WITHDRAWN: { label: 'Đã rút', className: 'bg-gray-100 text-gray-800' }
     };
-    const config = statusConfig[status] || statusConfig.PENDING;
+    const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
-  const getRatingBadge = (rating) => {
-    if (!rating) return <span className="text-muted-foreground">Chưa đánh giá</span>;
-    
-    const ratingConfig = {
-      PERFECT_MATCH: { label: 'Rất phù hợp', stars: 5, color: 'text-green-600' },
-      SUITABLE: { label: 'Phù hợp', stars: 4, color: 'text-blue-600' },
-      MAYBE: { label: 'Có thể', stars: 3, color: 'text-yellow-600' },
-      NOT_SUITABLE: { label: 'Không phù hợp', stars: 2, color: 'text-red-600' }
-    };
-    
-    const config = ratingConfig[rating] || { label: rating, stars: 0, color: 'text-gray-600' };
-    
-    return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star 
-            key={i} 
-            className={`h-4 w-4 ${i < config.stars ? `${config.color} fill-current` : 'text-gray-300'}`}
-          />
-        ))}
-        <span className={`text-sm ml-1 ${config.color}`}>{config.label}</span>
-      </div>
-    );
-  };
+
 
   // Calculate grid columns based on number of candidates
   const getGridCols = () => {
-    switch(candidates.length) {
+    switch (candidates.length) {
       case 2: return 'grid-cols-2';
       case 3: return 'grid-cols-3';
       case 4: return 'grid-cols-4';
@@ -188,7 +164,7 @@ const CandidateComparison = () => {
             >
               <X className="h-4 w-4" />
             </Button>
-            
+
             <CardHeader className="text-center pb-4">
               <Avatar className="h-20 w-20 mx-auto mb-3">
                 <AvatarImage src={candidate.candidateProfileId?.avatar} />
@@ -212,18 +188,16 @@ const CandidateComparison = () => {
                 )}
               </div>
             </CardHeader>
-            
+
             <CardContent className="pt-0 space-y-3">
               <div className="text-center">
                 {getStatusBadge(candidate.status)}
               </div>
-              
-              <div className="flex justify-center">
-                {getRatingBadge(candidate.candidateRating)}
-              </div>
 
-              <Button 
-                variant="outline" 
+
+
+              <Button
+                variant="outline"
                 size="sm"
                 className="w-full"
                 onClick={() => navigate(`/applications/${candidate._id}`)}
@@ -257,7 +231,7 @@ const CandidateComparison = () => {
           {/* Comparison Table */}
           <div className="space-y-4">
             {/* Application Date */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Ngày ứng tuyển"
               icon={<Calendar className="h-4 w-4" />}
               values={candidates.map(c => utils.formatDateTime(c.appliedAt))}
@@ -265,7 +239,7 @@ const CandidateComparison = () => {
             />
 
             {/* Expected Salary */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Mức lương mong muốn"
               icon={<Briefcase className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -279,7 +253,7 @@ const CandidateComparison = () => {
             />
 
             {/* Location */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Địa chỉ"
               icon={<MapPin className="h-4 w-4" />}
               values={candidates.map(c => c.candidateProfileId?.address || 'Chưa cập nhật')}
@@ -287,7 +261,7 @@ const CandidateComparison = () => {
             />
 
             {/* Experience */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Kinh nghiệm làm việc"
               icon={<Briefcase className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -298,7 +272,7 @@ const CandidateComparison = () => {
                     {profile.experiences.map((exp, idx) => {
                       const startDate = exp.startDate ? new Date(exp.startDate).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }) : 'N/A';
                       const endDate = exp.endDate ? new Date(exp.endDate).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }) : 'Hiện tại';
-                      
+
                       return (
                         <div key={idx} className="pb-3 border-b last:border-0 last:pb-0">
                           <div className="font-medium text-blue-700">{exp.position || 'N/A'}</div>
@@ -321,7 +295,7 @@ const CandidateComparison = () => {
             />
 
             {/* Education */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Học vấn"
               icon={<GraduationCap className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -352,7 +326,7 @@ const CandidateComparison = () => {
             />
 
             {/* Skills */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Kỹ năng"
               icon={<Star className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -372,7 +346,7 @@ const CandidateComparison = () => {
             />
 
             {/* Certificates */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Chứng chỉ"
               icon={<Star className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -400,7 +374,7 @@ const CandidateComparison = () => {
             />
 
             {/* Projects */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Dự án"
               icon={<Briefcase className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -428,7 +402,7 @@ const CandidateComparison = () => {
             />
 
             {/* Bio/Summary */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Giới thiệu bản thân"
               icon={<FileText className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -444,7 +418,7 @@ const CandidateComparison = () => {
             />
 
             {/* Recruiter Notes */}
-            <ComparisonRow 
+            <ComparisonRow
               label="Ghi chú của bạn"
               icon={<FileText className="h-4 w-4" />}
               values={candidates.map(c => {
@@ -480,17 +454,7 @@ const CandidateComparison = () => {
               </div>
             </div>
 
-            {/* Rating Comparison */}
-            <div>
-              <h4 className="font-medium text-sm mb-2">Đánh giá</h4>
-              <div className={`grid ${getGridCols()} gap-2`}>
-                {candidates.map((c, idx) => (
-                  <div key={idx} className="p-2 bg-gray-50 rounded">
-                    {getRatingBadge(c.candidateRating)}
-                  </div>
-                ))}
-              </div>
-            </div>
+
 
             {/* Years of Experience */}
             <div>
@@ -505,7 +469,7 @@ const CandidateComparison = () => {
                     const years = (end - start) / (1000 * 60 * 60 * 24 * 365);
                     return sum + years;
                   }, 0) || 0;
-                  
+
                   return (
                     <div key={idx} className="text-center p-2 bg-gray-50 rounded font-medium">
                       {totalYears > 0 ? `${totalYears.toFixed(1)} năm` : 'Chưa có'}

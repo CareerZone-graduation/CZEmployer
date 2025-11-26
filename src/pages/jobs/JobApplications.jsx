@@ -55,7 +55,6 @@ const JobApplications = ({ isEmbedded = false }) => {
     status: 'all',
     search: '',
     sort: '-appliedAt',
-    candidateRating: 'all',
     isReapplied: 'all',
   });
 
@@ -69,7 +68,6 @@ const JobApplications = ({ isEmbedded = false }) => {
     try {
       const apiFilters = { ...filters };
       if (apiFilters.status === 'all') delete apiFilters.status;
-      if (apiFilters.candidateRating === 'all') delete apiFilters.candidateRating;
       if (apiFilters.isReapplied === 'all') delete apiFilters.isReapplied;
 
       const [jobResponse, appsResponse] = await Promise.all([
@@ -165,9 +163,9 @@ const JobApplications = ({ isEmbedded = false }) => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
-      REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
-      INTERVIEWED: { label: 'Đã phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+      OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
     };
@@ -175,17 +173,7 @@ const JobApplications = ({ isEmbedded = false }) => {
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
-  const getRatingBadge = (rating) => {
-    const ratingConfig = {
-      NOT_RATED: { label: 'Chưa đánh giá', className: 'bg-gray-100 text-gray-800' },
-      NOT_SUITABLE: { label: 'Không phù hợp', className: 'bg-red-100 text-red-800' },
-      MAYBE: { label: 'Có thể', className: 'bg-yellow-100 text-yellow-800' },
-      SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
-      PERFECT_MATCH: { label: 'Rất phù hợp', className: 'bg-purple-100 text-purple-800' },
-    };
-    const config = ratingConfig[rating] || ratingConfig.NOT_RATED;
-    return <Badge className={config.className}>{config.label}</Badge>;
-  };
+
 
   if (isInitialLoading) {
     return <ApplicationListSkeleton />;
@@ -224,14 +212,14 @@ const JobApplications = ({ isEmbedded = false }) => {
         </Card>
         <Card className="bg-indigo-50 border-indigo-100">
           <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-            <span className="text-2xl font-bold text-indigo-700">{job?.stats?.byStatus?.reviewing || 0}</span>
-            <span className="text-xs text-indigo-600 font-medium mt-1">Đang xem xét</span>
+            <span className="text-2xl font-bold text-indigo-700">{job?.stats?.byStatus?.suitable || 0}</span>
+            <span className="text-xs text-indigo-600 font-medium mt-1">Phù hợp</span>
           </CardContent>
         </Card>
         <Card className="bg-purple-50 border-purple-100">
           <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-            <span className="text-2xl font-bold text-purple-700">{(job?.stats?.byStatus?.interviewed || 0) + (job?.stats?.byStatus?.scheduledInterview || 0)}</span>
-            <span className="text-xs text-purple-600 font-medium mt-1">Phỏng vấn</span>
+            <span className="text-2xl font-bold text-purple-700">{(job?.stats?.byStatus?.scheduledInterview || 0) + (job?.stats?.byStatus?.offerSent || 0)}</span>
+            <span className="text-xs text-purple-600 font-medium mt-1">Phỏng vấn & Offer</span>
           </CardContent>
         </Card>
         <Card className="bg-green-50 border-green-100">
@@ -276,32 +264,16 @@ const JobApplications = ({ isEmbedded = false }) => {
                 <SelectContent>
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="PENDING">Chờ duyệt</SelectItem>
-                  <SelectItem value="REVIEWING">Đang xem xét</SelectItem>
+                  <SelectItem value="SUITABLE">Phù hợp</SelectItem>
                   <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
-                  <SelectItem value="INTERVIEWED">Đã phỏng vấn</SelectItem>
+                  <SelectItem value="OFFER_SENT">Đã gửi đề nghị</SelectItem>
                   <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
                   <SelectItem value="REJECTED">Đã từ chối</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Rating Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Đánh giá tiềm năng</label>
-              <Select value={filters.candidateRating} onValueChange={(value) => handleFilterChange('candidateRating', value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Tất cả đánh giá" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả đánh giá</SelectItem>
-                  <SelectItem value="NOT_RATED">Chưa đánh giá</SelectItem>
-                  <SelectItem value="NOT_SUITABLE">Không phù hợp</SelectItem>
-                  <SelectItem value="MAYBE">Có thể</SelectItem>
-                  <SelectItem value="SUITABLE">Phù hợp</SelectItem>
-                  <SelectItem value="PERFECT_MATCH">Rất phù hợp</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
 
             {/* Reapplied Filter - Radio Style */}
             <div className="space-y-2">
@@ -386,7 +358,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                     <TableHead>Thông tin liên hệ</TableHead>
                     <TableHead>Ngày nộp</TableHead>
                     <TableHead>Trạng thái</TableHead>
-                    <TableHead>Đánh giá</TableHead>
+
                     <TableHead className="text-right">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -427,10 +399,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                         onClick={() => setViewingApplicationId(app._id)}
                         className="cursor-pointer"
                       >{getStatusBadge(app.status)}</TableCell>
-                      <TableCell
-                        onClick={() => setViewingApplicationId(app._id)}
-                        className="cursor-pointer"
-                      >{getRatingBadge(app.candidateRating)}</TableCell>
+
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
                           <Button
