@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { cn } from '@/lib/utils';
-import DashboardHeader from '@/components/DashboardHeader';
+
 import CompactSidebar from '@/components/CompactSidebar';
 import AIChatbot from '@/components/common/AIChatbot';
 import socketService from '@/services/socketService';
@@ -58,7 +58,7 @@ const DashboardLayout = () => {
         "flex flex-1 flex-col transition-all duration-300",
         isSidebarPinned ? "md:ml-64" : "md:ml-16"
       )}>
-        <DashboardHeader />
+
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
           <Outlet />
         </main>

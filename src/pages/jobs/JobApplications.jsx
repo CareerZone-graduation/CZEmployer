@@ -24,14 +24,7 @@ import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Us
 import { Checkbox } from '@/components/ui/checkbox';
 
 
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
-} from '@/components/ui/sheet';
+import Modal from '@/components/common/Modal';
 import ApplicationDetail from './ApplicationDetail';
 import CandidateCompareModal from '@/components/candidates/CandidateCompareModal';
 
@@ -486,27 +479,21 @@ const JobApplications = ({ isEmbedded = false }) => {
       />
 
       {/* Application Detail Sheet */}
-      <Sheet open={!!viewingApplicationId} onOpenChange={(open) => !open && setViewingApplicationId(null)}>
-        <SheetContent className="w-[90vw] sm:max-w-[1000px] overflow-y-auto p-0" side="right">
-          <SheetHeader className="p-4 border-b flex flex-row items-center justify-between sticky top-0 bg-white z-10">
-            <Button variant="ghost" size="icon" onClick={() => setViewingApplicationId(null)} className="-ml-2">
-              <X className="h-5 w-5" />
-            </Button>
-            <SheetTitle>Chi tiết đơn ứng tuyển</SheetTitle>
-            <SheetDescription className="hidden">Chi tiết đơn ứng tuyển</SheetDescription>
-            <div className="w-8" /> {/* Spacer for centering if needed, or just empty */}
-          </SheetHeader>
-          <div className="h-full">
-            {viewingApplicationId && (
-              <ApplicationDetail
-                applicationId={viewingApplicationId}
-                jobId={jobId}
-                isModal={true}
-              />
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Application Detail Modal */}
+      <Modal
+        isOpen={!!viewingApplicationId}
+        onClose={() => setViewingApplicationId(null)}
+        title="Chi tiết đơn ứng tuyển"
+        size="full"
+      >
+        {viewingApplicationId && (
+          <ApplicationDetail
+            applicationId={viewingApplicationId}
+            jobId={jobId}
+            isModal={true}
+          />
+        )}
+      </Modal>
     </div>
   );
 };

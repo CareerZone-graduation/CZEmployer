@@ -137,6 +137,7 @@ const AppRouter = () => {
           <Route path="jobs/recruiter/:jobId" element={<RecruiterJobDetail />} />
           <Route path="jobs/:jobId/applications" element={<JobApplications />} />
           <Route path="jobs/:jobId/applications/:applicationId" element={<ApplicationDetail />} />
+          <Route path="applications/:applicationId" element={<ApplicationDetail />} />
 
           <Route path="candidates" element={<Candidates />} />
           <Route path="candidates/compare" element={<CandidateComparison />} />
@@ -147,7 +148,7 @@ const AppRouter = () => {
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="cv-viewer" element={<CVViewer />} />
-          
+
           {/* Support Request Routes */}
           <Route path="support" element={<SupportRequestsPage />} />
           <Route path="support/new" element={<CreateSupportRequestPage />} />

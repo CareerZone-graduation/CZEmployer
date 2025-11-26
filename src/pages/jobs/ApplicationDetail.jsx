@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -177,16 +177,18 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   return (
     <div className={isModal ? "h-full p-4 space-y-4" : "container mx-auto max-w-6xl p-4 lg:p-6 space-y-6"}>
-      {!isModal && (
-        <div>
+      <div className="flex justify-between items-center">
+        {!isModal && jobId && (
           <Button asChild variant="outline" size="sm">
             <Link to={`/jobs/recruiter/${jobId}`} state={{ defaultTab: 'candidates' }}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại danh sách ứng viên
+              Quay lại danh sách
             </Link>
           </Button>
-        </div>
-      )}
+        )}
+
+
+      </div>
 
       {/* Compact Header */}
       <Card className="overflow-hidden">
