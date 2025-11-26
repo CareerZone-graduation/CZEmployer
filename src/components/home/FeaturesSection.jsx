@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { Users, BarChart, Shield, Target, Clock, Award } from 'lucide-react';
 import FeatureCard from './FeatureCard';

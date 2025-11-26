@@ -40,6 +40,11 @@ import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentFailure from '@/pages/PaymentFailure';
 import BillingPage from '@/pages/Billing';
 
+// Support Request Pages
+import SupportRequestsPage from '@/pages/support/SupportRequestsPage';
+import CreateSupportRequestPage from '@/pages/support/CreateSupportRequestPage';
+import SupportRequestDetailPage from '@/pages/support/SupportRequestDetailPage';
+
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
   <div className="text-center">
@@ -142,6 +147,11 @@ const AppRouter = () => {
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="cv-viewer" element={<CVViewer />} />
+          
+          {/* Support Request Routes */}
+          <Route path="support" element={<SupportRequestsPage />} />
+          <Route path="support/new" element={<CreateSupportRequestPage />} />
+          <Route path="support/:id" element={<SupportRequestDetailPage />} />
         </Route>
 
         {/* Interview room routes - no layout for full-screen experience */}

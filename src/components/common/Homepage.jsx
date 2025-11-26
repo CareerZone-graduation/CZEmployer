@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, BarChart, Shield, ArrowRight, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ContactSection from '../home/ContactSection';
 
 const Homepage = () => {
   return (
@@ -163,36 +164,7 @@ const Homepage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 sm:py-24 bg-white">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Sẵn sàng bắt đầu?
-            </h2>
-            <p className="mt-4 text-lg text-gray-600">
-              Gia nhập hàng nghìn doanh nghiệp đã tin tưởng CareerZone để xây dựng đội ngũ mạnh mẽ
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth/register">
-              <Button 
-                size="lg" 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                Tạo tài khoản miễn phí
-              </Button>
-            </Link>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-emerald-600 text-emerald-600 hover:bg-emerald-50"
-            >
-              Liên hệ tư vấn
-            </Button>
-          </div>
-        </div>
-      </section>
+      <ContactSection />
 
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-gray-50 py-12">
@@ -218,7 +190,7 @@ const Homepage = () => {
               <a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors">
                 Chính sách bảo mật
               </a>
-              <a href="#contact" className="text-gray-600 hover:text-emerald-600 transition-colors">
+              <a href="support" className="text-gray-600 hover:text-emerald-600 transition-colors">
                 Liên hệ
               </a>
             </div>
