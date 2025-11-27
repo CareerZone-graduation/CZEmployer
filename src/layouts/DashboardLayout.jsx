@@ -52,10 +52,10 @@ const DashboardLayout = () => {
   const isMessagingPage = location.pathname === '/messaging';
 
   return (
-    <div className="flex min-h-screen w-full bg-gray-50">
+    <div className="min-h-screen w-full bg-gray-50">
       <CompactSidebar isPinned={isSidebarPinned} onTogglePin={toggleSidebarPin} />
       <div className={cn(
-        "flex flex-1 flex-col transition-all duration-300",
+        "flex flex-col min-h-screen transition-all duration-300",
         isSidebarPinned ? "md:ml-64" : "md:ml-16"
       )}>
 

@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +43,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   // State for modals
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
-  const [isCVModalOpen, setIsCVModalOpen] = useState(false);
 
   // Add to talent pool mutation
   // Add to talent pool mutation
@@ -83,8 +82,14 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const handleStatusUpdate = async (newStatus) => {
     if (newStatus === application.status) return;
 
-    if (newStatus === 'REJECTED' && !window.confirm('Bạn có chắc chắn muốn từ chối ứng viên này?')) {
-      return;
+    if (['REJECTED', 'OFFER_SENT'].includes(newStatus)) {
+      const confirmMessage = newStatus === 'REJECTED'
+        ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này không thể hoàn tác.'
+        : 'Bạn có chắc chắn muốn gửi đề nghị cho ứng viên này?';
+
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -98,6 +103,12 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       setIsSubmitting(false);
     }
   };
+
+  // ... (fetchApplication and other methods remain same)
+
+  // ...
+
+
 
   const fetchApplication = useCallback(async () => {
     if (!applicationId) return;
@@ -154,6 +165,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
+      OFFER_DECLINED: { label: 'Đã từ chối Offer', className: 'bg-red-100 text-red-800' },
     };
 
 
@@ -241,7 +253,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   <Button
                     variant="outline"
                     className="flex-1 md:flex-none"
-                    disabled={isSubmitting || ['ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
+                    disabled={isSubmitting || ['OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
                   >
                     Cập nhật <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
@@ -249,16 +261,16 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('SUITABLE')}
-                    disabled={['SUITABLE', 'SCHEDULED_INTERVIEW', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
-                    className={['SUITABLE', 'SCHEDULED_INTERVIEW', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
+                    disabled={application.status !== 'PENDING'}
+                    className={application.status !== 'PENDING' ? "opacity-50 cursor-not-allowed" : ""}
                   >
                     <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                     Đánh giá phù hợp
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('OFFER_SENT')}
-                    disabled={['PENDING', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
-                    className={['PENDING', 'OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
+                    disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status)}
+                    className={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
                   >
                     <Gift className="mr-2 h-4 w-4 text-purple-600" />
                     Gửi đề nghị (Offer)
@@ -266,7 +278,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('REJECTED')}
                     className="text-red-600 focus:text-red-600"
-                    disabled={['REJECTED', 'ACCEPTED', 'OFFER_DECLINED'].includes(application.status)}
+                    disabled={application.status !== 'PENDING'}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Từ chối ứng viên
@@ -296,7 +308,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
               <Button
                 size="sm"
                 className="flex-1 md:flex-none"
-                disabled={!!application.interviewInfo || ['PENDING', 'REJECTED', 'ACCEPTED', 'OFFER_DECLINED'].includes(application.status)}
+                disabled={!!application.interviewInfo || application.status !== 'SUITABLE'}
                 onClick={() => setIsInterviewModalOpen(true)}
               >
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -307,109 +319,112 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         </div>
       </Card >
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-        {/* Left Column: Quick Info & Rating (5 cols) */}
-        <div className="md:col-span-5 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
+        {/* Left Column: CV Viewer & Notes (8 cols) */}
+        <div className="md:col-span-8 space-y-4 flex flex-col h-full">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                CV & Ghi chú
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div
-                onClick={() => setIsCVModalOpen(true)}
-                className="flex items-center gap-3 p-3 bg-blue-50/50 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors group cursor-pointer"
-              >
-                <div className="p-2 bg-white rounded-md shadow-sm group-hover:scale-105 transition-transform">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-gray-900 truncate">{application.submittedCV.name}</p>
-                  <p className="text-xs text-blue-600">Nhấn để xem chi tiết</p>
-                </div>
-              </div>
-
-
-
-              <div className="space-y-2 pt-2 border-t">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ghi chú nội bộ</Label>
-                  {!isEditingNotes && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNotes(true)}>
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-                {isEditingNotes ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={currentNotes}
-                      onChange={(e) => setCurrentNotes(e.target.value)}
-                      rows={3}
-                      className="text-sm resize-none"
-                      placeholder="Thêm ghi chú..."
-                      disabled={isSubmitting}
-                      autoFocus
-                    />
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setIsEditingNotes(false);
-                          setCurrentNotes(application.notes || '');
-                        }}
-                        disabled={isSubmitting}
-                      >
-                        Hủy
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleNotesSave}
-                        disabled={isSubmitting || currentNotes === (application.notes || '')}
-                      >
-                        Lưu
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md min-h-[80px] cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsEditingNotes(true)}
-                  >
-                    {application.notes || <span className="italic text-gray-400">Chưa có ghi chú. Nhấn để thêm...</span>}
-                  </div>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-sm font-medium text-gray-700 uppercase tracking-wider">Ghi chú nội bộ</CardTitle>
+                {!isEditingNotes && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNotes(true)}>
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
                 )}
               </div>
+            </CardHeader>
+            <CardContent>
+              {isEditingNotes ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={currentNotes}
+                    onChange={(e) => setCurrentNotes(e.target.value)}
+                    rows={3}
+                    className="text-sm resize-none"
+                    placeholder="Thêm ghi chú..."
+                    disabled={isSubmitting}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        setCurrentNotes(application.notes || '');
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      Hủy
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleNotesSave}
+                      disabled={isSubmitting || currentNotes === (application.notes || '')}
+                    >
+                      Lưu
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md min-h-[60px] cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsEditingNotes(true)}
+                >
+                  {application.notes || <span className="italic text-gray-400">Chưa có ghi chú. Nhấn để thêm...</span>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="flex-1 flex flex-col">
+            <CardHeader className="pb-3 border-b">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  CV: {application.submittedCV.name}
+                </CardTitle>
+                <Button variant="ghost" size="sm" asChild>
+                  <a href={application.submittedCV.path} target="_blank" rel="noopener noreferrer">
+                    <Download className="h-4 w-4 mr-2" />
+                    Tải xuống
+                  </a>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 flex-1 min-h-[500px] bg-gray-100">
+              <iframe
+                src={application.submittedCV.path}
+                title="CV Viewer"
+                className="w-full h-full min-h-[600px]"
+              />
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Tabs (7 cols) */}
-        <div className="md:col-span-7 space-y-4">
+        {/* Right Column: Tabs (4 cols) */}
+        <div className="md:col-span-4 space-y-4 flex flex-col h-full">
           <Card className="h-full flex flex-col">
             <Tabs defaultValue="cover-letter" className="flex-1 flex flex-col">
               <CardHeader className="pb-0 border-b">
-                <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-6">
+                <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-4">
                   <TabsTrigger
                     value="cover-letter"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 py-2"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 py-2 text-xs uppercase font-semibold"
                   >
                     Thư giới thiệu
                   </TabsTrigger>
                   <TabsTrigger
                     value="history"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 py-2"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 py-2 text-xs uppercase font-semibold"
                   >
                     Lịch sử hoạt động
                   </TabsTrigger>
                 </TabsList>
               </CardHeader>
-              <CardContent className="flex-1 pt-4 overflow-y-auto max-h-[500px]">
+              <CardContent className="flex-1 pt-4 overflow-y-auto max-h-[600px]">
                 <TabsContent value="cover-letter" className="mt-0 h-full">
-                  <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
                     {application.coverLetter || (
                       <div className="flex flex-col items-center justify-center h-32 text-gray-400 italic">
                         <FileText className="h-8 w-8 mb-2 opacity-20" />
@@ -433,24 +448,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         application={application}
         onSuccess={handleScheduleSuccess}
       />
-
-      {/* CV Preview Modal */}
-      <Modal
-        isOpen={isCVModalOpen}
-        onClose={() => setIsCVModalOpen(false)}
-        title={`Xem CV: ${application.submittedCV.name}`}
-        description="Xem CV của ứng viên"
-        size="full"
-      >
-        <div className="h-[80vh] w-full">
-          <iframe
-            src={application.submittedCV.path}
-            title="CV Viewer"
-            className="w-full h-full rounded-md border"
-            frameBorder="0"
-          />
-        </div>
-      </Modal>
     </div >
   );
 };
