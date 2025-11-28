@@ -38,7 +38,7 @@ const SupportRequestsPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Yêu cầu Hỗ trợ</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Yêu cầu hỗ trợ</h1>
             <p className="mt-2 text-gray-600">Quản lý các yêu cầu hỗ trợ của bạn</p>
           </div>
           <button

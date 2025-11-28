@@ -27,6 +27,9 @@ const contactFormSchema = z.object({
     .min(10, 'Số điện thoại phải có ít nhất 10 số')
     .max(15, 'Số điện thoại không được quá 15 số')
     .regex(/^[0-9+\-\s()]+$/, 'Số điện thoại không hợp lệ'),
+  title: z.string()
+    .min(5, 'Tiêu đề phải có ít nhất 5 ký tự')
+    .max(100, 'Tiêu đề không được quá 100 ký tự'),
   category: z.string()
     .min(1, 'Vui lòng chọn nhu cầu tư vấn'),
   message: z.string()
@@ -36,12 +39,12 @@ const contactFormSchema = z.object({
 
 const categories = [
   { value: '', label: 'Chọn nhu cầu tư vấn' },
-  { value: 'pricing', label: 'Tôi muốn được tư vấn về bảng giá' },
-  { value: 'features', label: 'Tôi muốn được tư vấn về các tính năng' },
-  { value: 'trial', label: 'Tôi muốn dùng thử miễn phí' },
-  { value: 'demo', label: 'Tôi muốn được demo sản phẩm' },
-  { value: 'support', label: 'Tôi cần hỗ trợ kỹ thuật' },
-  { value: 'other', label: 'Khác' }
+  { value: 'general-inquiry', label: 'Thắc mắc chung' },
+  { value: 'technical-issue', label: 'Tôi cần hỗ trợ kỹ thuật' },
+  { value: 'account-issue', label: 'Tôi cần hỗ trợ tài khoản' },
+  { value: 'payment-issue', label: 'Tôi cần hỗ trợ thanh toán' },
+  { value: 'job-posting-issue', label: 'Tôi cần hỗ trợ đăng tin tuyển dụng' },
+  { value: 'application-issue', label: 'Tôi cần hỗ trợ quản lý ứng viên' }
 ];
 
 const ContactSection = () => {
@@ -54,6 +57,7 @@ const ContactSection = () => {
       email: '',
       company: '',
       phone: '',
+      title: '',
       category: '',
       message: ''
     }
@@ -224,6 +228,24 @@ const ContactSection = () => {
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tiêu đề *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Nhập tiêu đề yêu cầu hỗ trợ"
+                            {...field}
+                            className="h-11"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}

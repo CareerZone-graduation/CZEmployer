@@ -41,7 +41,7 @@ const CreateSupportRequestPage = () => {
             <ArrowLeft className="w-5 h-5" />
             <span>Quay lại</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Tạo Yêu cầu Hỗ trợ</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Tạo Yêu cầu hỗ trợ</h1>
           <p className="mt-2 text-gray-600">
             Mô tả chi tiết vấn đề bạn đang gặp phải để chúng tôi có thể hỗ trợ bạn tốt nhất
           </p>

@@ -467,7 +467,7 @@ const JobForm = ({ onSuccess, job }) => {
             name="minSalary"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lương tối thiểu (VND)</FormLabel>
+                <FormLabel>Lương tối thiểu (VNĐ)</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -485,7 +485,7 @@ const JobForm = ({ onSuccess, job }) => {
             name="maxSalary"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lương tối đa (VND)</FormLabel>
+                <FormLabel>Lương tối đa (VNĐ)</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
