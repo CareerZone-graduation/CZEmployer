@@ -209,7 +209,7 @@ const Dashboard = () => {
               bg="bg-blue-50"
             />
             <StatsCard
-              title="Chờ duyệt"
+              title="Chờ xem xét"
               value={stats?.summary?.pendingReview?.value || 0}
               change={null} // Snapshot metric
               icon={Clock}

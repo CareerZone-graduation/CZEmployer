@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  fetchNotifications, 
-  markNotificationAsRead, 
-  markAllNotificationsAsRead 
+import {
+  fetchNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead
 } from '@/redux/notificationSlice';
 import useFirebaseMessaging from '@/hooks/useFirebaseMessaging';
 import { Button } from '@/components/ui/button';
@@ -23,16 +23,47 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useNavigate } from 'react-router-dom';
+
+const getNotificationLink = (notification) => {
+  const { type, entity, metadata } = notification;
+
+  switch (type) {
+    case 'job_applicants_rollup':
+      // Link to: /jobs/recruiter/:jobId?tab=candidates
+      return metadata?.jobId ? `/jobs/recruiter/${metadata.jobId}?tab=candidates` : '/jobs';
+    case 'interview':
+      // Link to: /interviews/:interviewId
+      return entity?.id ? `/interviews/${entity.id}` : '/interviews';
+    case 'application':
+      // Link to: /jobs/:jobId/applications/:applicationId
+      // If jobId is missing, fallback to /applications/:applicationId
+      if (metadata?.jobId && entity?.id) {
+        return `/jobs/${metadata.jobId}/applications/${entity.id}`;
+      } else if (entity?.id) {
+        return `/applications/${entity.id}`;
+      }
+      return '/jobs'; // Fallback
+    default:
+      return null;
+  }
+};
 
 const NotificationItem = ({ notification, onMarkAsRead }) => {
+  const navigate = useNavigate();
+  const link = getNotificationLink(notification);
+
   const handleClick = () => {
     if (!notification.isRead) {
       onMarkAsRead(notification._id);
     }
+    if (link) {
+      navigate(link);
+    }
   };
 
   return (
-    <div 
+    <div
       className={cn(
         "flex items-start gap-4 p-4 border-b last:border-b-0 cursor-pointer hover:bg-accent/50 transition-colors",
         !notification.isRead && "bg-blue-50/50 dark:bg-blue-950/20"
@@ -89,9 +120,10 @@ const Notifications = () => {
   const dispatch = useDispatch();
   const { notifications, pagination, loading, error } = useSelector((state) => state.notifications);
   const { requestPermission } = useFirebaseMessaging();
-  console.log(Notification.permission)
+
   const [showNotificationBanner, setShowNotificationBanner] = useState(
- typeof Notification !== 'undefined' && Notification.permission !== 'granted'  );
+    typeof Notification !== 'undefined' && Notification.permission !== 'granted'
+  );
 
   // Load notifications lần đầu
   useEffect(() => {
@@ -131,9 +163,9 @@ const Notifications = () => {
           <PaginationItem>
             <PaginationPrevious
               href="#"
-              onClick={(e) => { 
-                e.preventDefault(); 
-                if (pagination.page > 1) handlePageChange(pagination.page - 1); 
+              onClick={(e) => {
+                e.preventDefault();
+                if (pagination.page > 1) handlePageChange(pagination.page - 1);
               }}
               className={cn(pagination.page === 1 && "pointer-events-none opacity-50")}
             />
@@ -152,9 +184,9 @@ const Notifications = () => {
           <PaginationItem>
             <PaginationNext
               href="#"
-              onClick={(e) => { 
-                e.preventDefault(); 
-                if (pagination.page < pagination.pages) handlePageChange(pagination.page + 1); 
+              onClick={(e) => {
+                e.preventDefault();
+                if (pagination.page < pagination.pages) handlePageChange(pagination.page + 1);
               }}
               className={cn(pagination.page === pagination.pages && "pointer-events-none opacity-50")}
             />
@@ -193,10 +225,10 @@ const Notifications = () => {
     return (
       <div>
         {notifications.map(notification => (
-          <NotificationItem 
-            key={notification._id} 
+          <NotificationItem
+            key={notification._id}
             notification={notification}
-            onMarkAsRead={handleMarkAsRead} 
+            onMarkAsRead={handleMarkAsRead}
           />
         ))}
       </div>
@@ -214,16 +246,16 @@ const Notifications = () => {
               Bật thông báo đẩy để nhận cập nhật mới nhất về ứng viên và phỏng vấn ngay lập tức!
             </span>
             <div className="flex gap-2 ml-4">
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={handleEnableNotifications}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 Bật ngay
               </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() => setShowNotificationBanner(false)}
               >
                 <X className="h-4 w-4" />

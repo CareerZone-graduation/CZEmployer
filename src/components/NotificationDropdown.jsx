@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchRecentNotifications, fetchUnreadCount } from '@/redux/notificationSlice';
+import { fetchRecentNotifications, fetchUnreadCount, markNotificationAsRead } from '@/redux/notificationSlice';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,11 +17,42 @@ import { Bell, BellRing } from 'lucide-react';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
-const NotificationDropdownItem = ({ notification }) => {
+const getNotificationLink = (notification) => {
+  const { type, entity, metadata } = notification;
+
+  switch (type) {
+    case 'job_applicants_rollup':
+      // Link to: /jobs/:jobId/applications
+      // Link to: /jobs/recruiter/:jobId?tab=candidates
+      return metadata?.jobId ? `/jobs/recruiter/${metadata.jobId}?tab=candidates` : '/jobs';
+    case 'interview':
+      // Link to: /interviews/:interviewId
+      return entity?.id ? `/interviews/${entity.id}` : '/interviews';
+    case 'application':
+      // Link to: /jobs/:jobId/applications/:applicationId
+      // If jobId is missing, fallback to /applications/:applicationId
+      if (metadata?.jobId && entity?.id) {
+        return `/jobs/${metadata.jobId}/applications/${entity.id}`;
+      } else if (entity?.id) {
+        return `/applications/${entity.id}`;
+      }
+      return '/jobs'; // Fallback
+    default:
+      return '/notifications';
+  }
+};
+
+const NotificationDropdownItem = ({ notification, onClose }) => {
   const navigate = useNavigate();
-  
+  const dispatch = useDispatch();
+  const link = getNotificationLink(notification);
+
   const handleClick = () => {
-    navigate('/notifications');
+    if (!notification.isRead) {
+      dispatch(markNotificationAsRead(notification._id));
+    }
+    onClose();
+    navigate(link);
   };
 
   const timeAgo = notification.createdAt && isValid(new Date(notification.createdAt))
@@ -35,12 +66,19 @@ const NotificationDropdownItem = ({ notification }) => {
           <BellRing size={16} className="text-primary" />
         </div>
         <div className="grow min-w-0">
-          <p className="font-semibold text-sm leading-tight truncate">{notification.title}</p>
+          <p className={`text-sm leading-tight truncate ${!notification.isRead ? 'font-bold' : 'font-medium'}`}>
+            {notification.title}
+          </p>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{notification.message}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {timeAgo}
           </p>
         </div>
+        {!notification.isRead && (
+          <div className="shrink-0 self-center">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          </div>
+        )}
       </div>
     </DropdownMenuItem>
   );
@@ -50,6 +88,7 @@ const NotificationDropdown = () => {
   const dispatch = useDispatch();
   const { recentNotifications, unreadCount, loading } = useSelector((state) => state.notifications);
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const [open, setOpen] = useState(false);
 
   // Load notifications lần đầu khi component mount
   useEffect(() => {
@@ -88,12 +127,16 @@ const NotificationDropdown = () => {
     }
 
     return recentNotifications.map((n) => (
-      <NotificationDropdownItem key={n._id} notification={n} />
+      <NotificationDropdownItem
+        key={n._id}
+        notification={n}
+        onClose={() => setOpen(false)}
+      />
     ));
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -123,6 +166,7 @@ const NotificationDropdown = () => {
           <Link
             to="/notifications"
             className="flex items-center justify-center py-2 cursor-pointer"
+            onClick={() => setOpen(false)}
           >
             Xem tất cả thông báo
           </Link>

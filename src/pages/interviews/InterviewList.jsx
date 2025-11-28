@@ -35,7 +35,7 @@ import { formatDateTime } from '@/utils/formatDate';
 import { cn } from '@/lib/utils';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import JobListSkeleton from '@/components/common/JobListSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
 
 const InterviewList = () => {
@@ -179,14 +179,6 @@ const InterviewList = () => {
     return interview.status === statusFilter;
   });
 
-  if (isLoading) {
-    return <JobListSkeleton />;
-  }
-
-  if (error) {
-    return <ErrorState message="Không thể tải danh sách phỏng vấn. Vui lòng thử lại." onRetry={refetch} />;
-  }
-
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
@@ -207,7 +199,11 @@ const InterviewList = () => {
         </TabsList>
       </Tabs>
 
-      {filteredInterviews.length === 0 ? (
+      {isLoading ? (
+        <InterviewTableSkeleton />
+      ) : error ? (
+        <ErrorState message="Không thể tải danh sách phỏng vấn. Vui lòng thử lại." onRetry={refetch} />
+      ) : filteredInterviews.length === 0 ? (
         <EmptyState
           title="Chưa có lịch phỏng vấn"
           message={
@@ -330,5 +326,35 @@ const InterviewList = () => {
     </div>
   );
 };
+
+const InterviewTableSkeleton = () => (
+  <div className="bg-white rounded-lg shadow-md">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+          <TableHead><Skeleton className="h-5 w-40" /></TableHead>
+          <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+          <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+          <TableHead className="text-right"><Skeleton className="h-5 w-20" /></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {[...Array(5)].map((_, i) => (
+          <TableRow key={i}>
+            <TableCell>
+              <Skeleton className="h-5 w-40 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </TableCell>
+            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+            <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+            <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
+            <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+);
 
 export default InterviewList;

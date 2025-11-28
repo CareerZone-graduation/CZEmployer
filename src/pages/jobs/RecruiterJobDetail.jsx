@@ -32,7 +32,9 @@ const RecruiterJobDetail = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const defaultTab = location.state?.defaultTab || 'overview';
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || location.state?.defaultTab || 'overview';
 
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

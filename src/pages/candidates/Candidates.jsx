@@ -26,17 +26,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   Search,
-  Filter,
-  Download,
-  MoreHorizontal,
-  Eye,
-  Star,
   Users,
   UserCheck,
   Calendar,
   TrendingUp,
-  X
+  X,
+  Check,
+  ChevronsUpDown,
+  Briefcase,
+  Filter
 } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from 'cmdk';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -45,15 +47,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Briefcase } from 'lucide-react';
 import TalentPoolTab from '@/components/company/talent-pool/TalentPoolTab';
 
 // Statistics Card Component
-const StatCard = ({ title, value, icon: IconComponent, description, className = '' }) => (
+const StatCard = ({ title, value, icon: Icon, description, className = '' }) => (
   <Card className={className}>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <IconComponent className="h-4 w-4 text-muted-foreground" />
+      <Icon className="h-4 w-4 text-muted-foreground" />
     </CardHeader>
     <CardContent>
       <div className="text-2xl font-bold">{value}</div>
@@ -72,11 +73,13 @@ const Candidates = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openJobFilter, setOpenJobFilter] = useState(false);
 
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
     status: 'all',
+    jobStatus: 'ACTIVE',
     search: '',
     sort: '-appliedAt',
     jobIds: '',
@@ -85,14 +88,19 @@ const Candidates = () => {
   });
 
   // Fetch jobs for filter dropdown
+  // Fetch jobs for filter dropdown
   const fetchJobs = useCallback(async () => {
     try {
-      const response = await jobService.getMyJobs({ limit: 100 });
+      const params = { limit: 100 };
+      if (filters.jobStatus && filters.jobStatus !== 'all') {
+        params.status = filters.jobStatus;
+      }
+      const response = await jobService.getMyJobs(params);
       setJobs(response.data || []);
     } catch (err) {
       console.error('Error fetching jobs:', err);
     }
-  }, []);
+  }, [filters.jobStatus]);
 
   // Fetch applications
   const fetchApplications = useCallback(async () => {
@@ -101,6 +109,7 @@ const Candidates = () => {
     try {
       const apiFilters = { ...filters };
       if (apiFilters.status === 'all') delete apiFilters.status;
+      if (apiFilters.jobStatus === 'all') delete apiFilters.jobStatus;
       if (!apiFilters.jobIds) delete apiFilters.jobIds;
       if (!apiFilters.fromDate) delete apiFilters.fromDate;
       if (!apiFilters.toDate) delete apiFilters.toDate;
@@ -123,6 +132,7 @@ const Candidates = () => {
     try {
       const statFilters = {};
       if (filters.jobIds) statFilters.jobIds = filters.jobIds;
+      if (filters.jobStatus && filters.jobStatus !== 'all') statFilters.jobStatus = filters.jobStatus;
       if (filters.fromDate) statFilters.fromDate = filters.fromDate;
       if (filters.toDate) statFilters.toDate = filters.toDate;
 
@@ -131,7 +141,7 @@ const Candidates = () => {
     } catch (err) {
       console.error('Error fetching statistics:', err);
     }
-  }, [filters.jobIds, filters.fromDate, filters.toDate]);
+  }, [filters.jobIds, filters.jobStatus, filters.fromDate, filters.toDate]);
 
   useEffect(() => {
     fetchJobs();
@@ -145,7 +155,13 @@ const Candidates = () => {
   }, [activeTab, fetchApplications, fetchStatistics]);
 
   const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      if (key === 'jobStatus') {
+        newFilters.jobIds = ''; // Reset selected job when status changes
+      }
+      return newFilters;
+    });
   };
 
   const handleSearch = () => {
@@ -156,21 +172,11 @@ const Candidates = () => {
     setFilters((prev) => ({ ...prev, page: newPage }));
   };
 
-  const downloadCSV = (csv, filename) => {
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
+      PENDING: { label: 'Chờ xem xét', className: 'bg-yellow-100 text-yellow-800' },
       SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
       OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
@@ -179,6 +185,20 @@ const Candidates = () => {
     };
     const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
     return <Badge className={config.className}>{config.label}</Badge>;
+  };
+
+  const getJobStatusBadge = (status) => {
+    switch (status) {
+      case 'ACTIVE':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] ml-2">Đang tuyển</Badge>;
+      case 'CLOSED':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[10px] ml-2">Đã đóng</Badge>;
+      case 'EXPIRED':
+        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] ml-2">Hết hạn</Badge>;
+
+      default:
+        return null;
+    }
   };
 
 
@@ -238,94 +258,190 @@ const Candidates = () => {
         <TabsContent value="all" className="space-y-4">
           {/* Filters */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Bộ lọc</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Search */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Tìm theo tên, email, SĐT..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-                  <Button onClick={handleSearch} size="icon">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Status Filter */}
-                <Select value={filters.status} onValueChange={(val) => handleFilterChange('status', val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="PENDING">Chờ duyệt</SelectItem>
-                    <SelectItem value="SUITABLE">Phù hợp</SelectItem>
-                    <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
-                    <SelectItem value="OFFER_SENT">Đã gửi đề nghị</SelectItem>
-                    <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
-                    <SelectItem value="REJECTED">Đã từ chối</SelectItem>
-                  </SelectContent>
-                </Select>
-
-
-
-                {/* Job Filter */}
-                <Select value={filters.jobIds || 'all'} onValueChange={(val) => handleFilterChange('jobIds', val === 'all' ? '' : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tin tuyển dụng" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả tin</SelectItem>
-                    {jobs.map((job) => (
-                      <SelectItem key={job._id} value={job._id}>
-                        {job.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Active Filters Display */}
-              {(filters.status !== 'all' || filters.candidateRating !== 'all' || filters.jobIds || filters.search) && (
-                <div className="mt-4 flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Bộ lọc đang áp dụng:</span>
-                  <div className="flex gap-2 flex-wrap">
-                    {filters.status !== 'all' && (
-                      <Badge variant="secondary" className="gap-1">
-                        Trạng thái: {filters.status}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => handleFilterChange('status', 'all')} />
-                      </Badge>
-                    )}
-
-                    {filters.search && (
-                      <Badge variant="secondary" className="gap-1">
-                        Tìm kiếm: {filters.search}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => { setSearchTerm(''); handleFilterChange('search', ''); }} />
-                      </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSearchTerm('');
-                        setFilters(prev => ({
-                          ...prev,
-                          status: 'all',
-                          jobIds: '',
-                          search: ''
-                        }));
-                      }}
-                    >
-                      Xóa tất cả
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                {/* Top Row: Search and Primary Filters */}
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                  <div className="flex-1 w-full md:w-auto flex gap-2">
+                    <div className="relative flex-1 md:max-w-sm">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Tìm ứng viên..."
+                        className="pl-9"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      />
+                    </div>
+                    <Button onClick={handleSearch} variant="secondary">
+                      Tìm kiếm
                     </Button>
                   </div>
+
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                    {/* Job Status Filter */}
+                    <Select value={filters.jobStatus} onValueChange={(val) => handleFilterChange('jobStatus', val)}>
+                      <SelectTrigger className="w-[160px]">
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <SelectValue placeholder="Trạng thái Job" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả Job</SelectItem>
+                        <SelectItem value="ACTIVE">Đang tuyển</SelectItem>
+                        <SelectItem value="CLOSED">Đã đóng</SelectItem>
+                        <SelectItem value="EXPIRED">Hết hạn</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Job Filter (Searchable) */}
+                    <Popover open={openJobFilter} onOpenChange={setOpenJobFilter}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openJobFilter}
+                          className={cn(
+                            "w-[250px] justify-between font-normal",
+                            !filters.jobIds && "text-muted-foreground"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="truncate">
+                              {filters.jobIds
+                                ? jobs.find((job) => job._id === filters.jobIds)?.title || "Tin tuyển dụng"
+                                : "Chọn tin tuyển dụng..."}
+                            </span>
+                          </div>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <Command className="rounded-lg border shadow-md">
+                          <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <CommandInput
+                              placeholder="Tìm tin tuyển dụng..."
+                              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                          </div>
+                          <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden">
+                            <CommandEmpty className="py-6 text-center text-sm">Không tìm thấy tin nào.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="all_jobs_option"
+                                onSelect={() => {
+                                  handleFilterChange('jobIds', '');
+                                  setOpenJobFilter(false);
+                                }}
+                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground cursor-pointer"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    !filters.jobIds ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Tất cả tin
+                              </CommandItem>
+                              {jobs.map((job) => (
+                                <CommandItem
+                                  key={job._id}
+                                  value={job._id + ' ' + job.title}
+                                  onSelect={() => {
+                                    handleFilterChange('jobIds', job._id);
+                                    setOpenJobFilter(false);
+                                  }}
+                                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground cursor-pointer"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      filters.jobIds === job._id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {job.title}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Application Status Filter */}
+                    <Select value={filters.status} onValueChange={(val) => handleFilterChange('status', val)}>
+                      <SelectTrigger className="w-[180px]">
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="h-4 w-4 text-muted-foreground" />
+                          <SelectValue placeholder="Trạng thái HS" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                        <SelectItem value="PENDING">Chờ xem xét</SelectItem>
+                        <SelectItem value="SUITABLE">Phù hợp</SelectItem>
+                        <SelectItem value="SCHEDULED_INTERVIEW">Đã lên lịch PV</SelectItem>
+                        <SelectItem value="OFFER_SENT">Đã gửi đề nghị</SelectItem>
+                        <SelectItem value="ACCEPTED">Đã chấp nhận</SelectItem>
+                        <SelectItem value="REJECTED">Đã từ chối</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              )}
+
+                {/* Active Filters Display */}
+                {(filters.status !== 'all' || filters.jobStatus !== 'all' || filters.jobIds || filters.search) && (
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <span className="text-xs font-medium text-muted-foreground">Đang lọc:</span>
+                    <div className="flex gap-2 flex-wrap">
+                      {filters.jobStatus !== 'all' && (
+                        <Badge variant="secondary" className="gap-1 rounded-sm px-2 font-normal">
+                          Job: {filters.jobStatus === 'ACTIVE' ? 'Đang tuyển' : filters.jobStatus === 'CLOSED' ? 'Đã đóng' : 'Hết hạn'}
+                          <X className="h-3 w-3 cursor-pointer hover:text-foreground" onClick={() => handleFilterChange('jobStatus', 'all')} />
+                        </Badge>
+                      )}
+                      {filters.jobIds && (
+                        <Badge variant="secondary" className="gap-1 rounded-sm px-2 font-normal">
+                          Tin: {jobs.find((j) => j._id === filters.jobIds)?.title || 'Đã chọn'}
+                          <X className="h-3 w-3 cursor-pointer hover:text-foreground" onClick={() => handleFilterChange('jobIds', '')} />
+                        </Badge>
+                      )}
+                      {filters.status !== 'all' && (
+                        <Badge variant="secondary" className="gap-1 rounded-sm px-2 font-normal">
+                          HS: {filters.status}
+                          <X className="h-3 w-3 cursor-pointer hover:text-foreground" onClick={() => handleFilterChange('status', 'all')} />
+                        </Badge>
+                      )}
+                      {filters.search && (
+                        <Badge variant="secondary" className="gap-1 rounded-sm px-2 font-normal">
+                          Tìm: {filters.search}
+                          <X className="h-3 w-3 cursor-pointer hover:text-foreground" onClick={() => { setSearchTerm(''); handleFilterChange('search', ''); }} />
+                        </Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setFilters(prev => ({
+                            ...prev,
+                            status: 'all',
+                            jobStatus: 'ACTIVE',
+                            jobIds: '',
+                            search: ''
+                          }));
+                        }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -357,7 +473,12 @@ const Candidates = () => {
                             <p className="text-sm text-muted-foreground">{app.candidateEmail}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{app.jobTitle || app.jobSnapshot?.title}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            {app.jobTitle || app.jobSnapshot?.title}
+                            {getJobStatusBadge(app.jobStatus)}
+                          </div>
+                        </TableCell>
                         <TableCell>{utils.formatDate(app.appliedAt)}</TableCell>
                         <TableCell>{getStatusBadge(app.status)}</TableCell>
 
@@ -367,7 +488,10 @@ const Candidates = () => {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/jobs/${app.jobId}/applications`);
+                              if (app.jobStatus !== 'ACTIVE') {
+                                toast.warning('Tin tuyển dụng này đã đóng hoặc hết hạn.');
+                              }
+                              navigate(`/jobs/recruiter/${app.jobId}`);
                             }}
                           >
                             <Briefcase className="mr-2 h-4 w-4" />
