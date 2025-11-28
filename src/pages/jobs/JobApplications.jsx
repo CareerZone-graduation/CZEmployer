@@ -218,7 +218,7 @@ const JobApplications = ({ isEmbedded = false }) => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
+      PENDING: { label: 'Chờ xem xét', className: 'bg-yellow-100 text-yellow-800' },
       SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
       OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
@@ -282,7 +282,7 @@ const JobApplications = ({ isEmbedded = false }) => {
               <Card className="bg-yellow-50 border-yellow-100">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                   <span className="text-2xl font-bold text-yellow-700">{job?.stats?.byStatus?.pending || 0}</span>
-                  <span className="text-xs text-yellow-600 font-medium mt-1">Chờ duyệt</span>
+                  <span className="text-xs text-yellow-600 font-medium mt-1">Chờ xem xét</span>
                 </CardContent>
               </Card>
               <Card className="bg-indigo-50 border-indigo-100">
@@ -348,7 +348,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="PENDING" id="status-pending" />
-                        <Label htmlFor="status-pending" className="cursor-pointer font-normal">Chờ duyệt</Label>
+                        <Label htmlFor="status-pending" className="cursor-pointer font-normal">Chờ xem xét</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="SUITABLE" id="status-suitable" />

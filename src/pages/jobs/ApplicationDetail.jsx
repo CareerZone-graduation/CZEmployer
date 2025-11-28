@@ -159,7 +159,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
+      PENDING: { label: 'Chờ xem xét', className: 'bg-yellow-100 text-yellow-800' },
       SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
       SCHEDULED_INTERVIEW: { label: 'Đã lên lịch PV', className: 'bg-cyan-100 text-cyan-800' },
       OFFER_SENT: { label: 'Đã gửi đề nghị', className: 'bg-purple-100 text-purple-800' },
