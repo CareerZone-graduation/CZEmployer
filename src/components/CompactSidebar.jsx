@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,7 +16,8 @@ import {
   PinOff,
   MessageCircle,
   LogOut,
-  LifeBuoy
+  LifeBuoy,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -314,8 +314,61 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           })}
         </nav>
 
-        {/* Logout Button */}
-        <div className="p-2 mt-auto border-t border-gray-200">
+        {/* Bottom Actions: Settings & Logout */}
+        <div className="p-2 mt-auto border-t border-gray-200 space-y-1">
+          {/* Settings Item */}
+          {shouldShowExpanded ? (
+            <Link
+              to="/settings"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
+                location.pathname === '/settings'
+                  ? "bg-emerald-700 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              )}
+            >
+              <Settings className={cn(
+                "h-5 w-5 flex-shrink-0",
+                location.pathname === '/settings' ? "text-white" : "text-gray-600"
+              )} />
+              <div className="flex-1 min-w-0">
+                <div className="truncate">Cài đặt</div>
+                <div className={cn(
+                  "text-xs truncate mt-0.5",
+                  location.pathname === '/settings' ? "text-emerald-100" : "text-gray-500"
+                )}>
+                  Cài đặt tài khoản
+                </div>
+              </div>
+              {location.pathname === '/settings' && (
+                <ChevronRight className="h-4 w-4 text-white ml-auto" />
+              )}
+            </Link>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/settings"
+                  className={cn(
+                    "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
+                    location.pathname === '/settings'
+                      ? "bg-emerald-700 text-white"
+                      : "text-gray-600 hover:bg-gray-100"
+                  )}
+                >
+                  <Settings className="h-5 w-5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="ml-2">
+                <div>
+                  <div className="font-medium">Cài đặt</div>
+                  <div className="text-xs text-gray-500 mt-1">Cài đặt tài khoản</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Logout Button */}
           {shouldShowExpanded ? (
             <Button
               variant="ghost"
