@@ -23,6 +23,15 @@ const PRIORITY_CONFIG = {
   urgent: { label: 'Khẩn cấp', color: 'bg-red-100 text-red-800' }
 };
 
+const CATEGORY_LABELS = {
+  'technical-issue': 'Vấn đề kỹ thuật',
+  'account-issue': 'Vấn đề tài khoản',
+  'payment-issue': 'Vấn đề thanh toán',
+  'job-posting-issue': 'Vấn đề đăng tin',
+  'application-issue': 'Vấn đề ứng tuyển',
+  'general-inquiry': 'Thắc mắc chung'
+};
+
 const SupportRequestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -89,7 +98,7 @@ const SupportRequestDetailPage = () => {
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{request?.subject}</h1>
               <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>Danh mục: {request?.category}</span>
+                <span>Danh mục: {CATEGORY_LABELS[request?.category] || request?.category}</span>
                 <span>•</span>
                 <span>Tạo lúc: {format(new Date(request?.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</span>
               </div>
@@ -182,7 +191,12 @@ const SupportRequestDetailPage = () => {
 
         {/* Messages */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Lịch sử trao đổi</h2>
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h2 className="text-lg font-semibold text-gray-900">Lịch sử tin nhắn</h2>
+          </div>
           <MessageThread
             messages={request?.messages || []}
             adminResponses={request?.adminResponses || []}
