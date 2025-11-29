@@ -17,3 +17,17 @@ export const createPaymentOrder = async (orderData) => {
     throw error;
   }
 };
+
+/**
+ * Lấy lịch sử nạp xu
+ * @param {Object} params - Tham số query (page, limit)
+ */
+export const getRechargeHistory = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/users/me/recharge-history', { params });
+    return response;
+  } catch (error) {
+    console.error('Error fetching recharge history:', error);
+    throw error;
+  }
+};

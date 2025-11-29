@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { CreditCard, History } from 'lucide-react';
 import CreditHistory from '@/components/billing/CreditHistory';
+import RechargeHistory from '@/components/billing/RechargeHistory';
 
 const coinPackages = [
   { amount: 50, price: 5000, popular: false },
@@ -219,6 +220,8 @@ const BillingPage = () => {
                   </Button>
                 </div>
               </div>
+
+              <RechargeHistory />
             </TabsContent>
 
             <TabsContent value="history">

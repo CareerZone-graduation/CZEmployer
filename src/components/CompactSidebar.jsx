@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -44,6 +45,10 @@ const sidebarItems = [
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
   { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
+];
+
+const bottomItems = [
+  { href: '/settings', label: 'Cài đặt', icon: Settings, description: 'Cài đặt tài khoản' },
   { href: '/support', label: 'Hỗ trợ', icon: LifeBuoy, description: 'Yêu cầu hỗ trợ' },
 ];
 
@@ -314,83 +319,97 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           })}
         </nav>
 
-        {/* Bottom Actions: Settings & Logout */}
-        <div className="p-2 mt-auto border-t border-gray-200 space-y-1">
-          {/* Settings Item */}
-          {shouldShowExpanded ? (
-            <Link
-              to="/settings"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
-                location.pathname === '/settings'
-                  ? "bg-emerald-700 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              )}
-            >
-              <Settings className={cn(
-                "h-5 w-5 flex-shrink-0",
-                location.pathname === '/settings' ? "text-white" : "text-gray-600"
-              )} />
-              <div className="flex-1 min-w-0">
-                <div className="truncate">Cài đặt</div>
-                <div className={cn(
-                  "text-xs truncate mt-0.5",
-                  location.pathname === '/settings' ? "text-emerald-100" : "text-gray-500"
-                )}>
-                  Cài đặt tài khoản
-                </div>
-              </div>
-              {location.pathname === '/settings' && (
-                <ChevronRight className="h-4 w-4 text-white ml-auto" />
-              )}
-            </Link>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
+        {/* Bottom Items: Settings, Support, Logout */}
+        <div className="p-2 mt-auto border-t border-gray-200 space-y-2">
+          {bottomItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href ||
+              (item.href !== '/' && location.pathname.startsWith(item.href));
+
+            if (shouldShowExpanded) {
+              return (
                 <Link
-                  to="/settings"
+                  key={item.href}
+                  to={item.href}
                   className={cn(
-                    "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
-                    location.pathname === '/settings'
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
+                    isActive
                       ? "bg-emerald-700 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
+                      : "text-gray-700 hover:bg-gray-100"
                   )}
                 >
-                  <Settings className="h-5 w-5" />
+                  <Icon className={cn(
+                    "h-5 w-5 flex-shrink-0",
+                    isActive ? "text-white" : "text-gray-600"
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate">{item.label}</div>
+                    <div className={cn(
+                      "text-xs truncate mt-0.5",
+                      isActive ? "text-emerald-100" : "text-gray-500"
+                    )}>
+                      {item.description}
+                    </div>
+                  </div>
+                  {isActive && (
+                    <ChevronRight className="h-4 w-4 text-white ml-auto" />
+                  )}
                 </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="ml-2">
-                <div>
-                  <div className="font-medium">Cài đặt</div>
-                  <div className="text-xs text-gray-500 mt-1">Cài đặt tài khoản</div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
+              );
+            }
+
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={item.href}
+                    className={cn(
+                      "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
+                      isActive
+                        ? "bg-emerald-700 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="ml-2">
+                  <div>
+                    <div className="font-medium">{item.label}</div>
+                    <div className="text-xs text-gray-500 mt-1">{item.description}</div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
 
           {/* Logout Button */}
           {shouldShowExpanded ? (
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            <button
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-red-600 hover:bg-red-50"
               onClick={handleLogout}
             >
-              <LogOut className="h-5 w-5 mr-3" />
-              Đăng xuất
-            </Button>
+              <LogOut className="h-5 w-5 flex-shrink-0" />
+              <div className="flex-1 min-w-0 text-left">
+                <div className="truncate">Đăng xuất</div>
+
+              </div>
+            </button>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full h-12 justify-center text-red-600 hover:text-red-700 hover:bg-red-50"
+                <button
+                  className="flex items-center justify-center w-12 h-12 rounded-lg transition-colors text-red-600 hover:bg-red-50"
                   onClick={handleLogout}
                 >
                   <LogOut className="h-5 w-5" />
-                </Button>
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="right">
-                Đăng xuất
+              <TooltipContent side="right" className="ml-2">
+                <div>
+                  <div className="font-medium">Đăng xuất</div>
+                  <div className="text-xs text-gray-500 mt-1">Thoát khỏi hệ thống</div>
+                </div>
               </TooltipContent>
             </Tooltip>
           )}
