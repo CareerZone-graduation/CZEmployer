@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as talentPoolService from '@/services/talentPoolService';
+import { getAccessToken } from '@/utils/token';
 import * as utils from '@/utils';
 
 import { Button } from '@/components/ui/button';
@@ -383,21 +384,37 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 <CardTitle className="text-base flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   CV: {application.submittedCV.name}
+                  {application.submittedCV.source === 'TEMPLATE' && (
+                    <Badge variant="secondary" className="ml-2 text-xs">CV Template</Badge>
+                  )}
                 </CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={application.submittedCV.path} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" />
-                    Tải xuống
-                  </a>
-                </Button>
+                {/* Chỉ hiển thị nút tải xuống cho CV uploaded (có path) */}
+                {application.submittedCV.path && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={application.submittedCV.path} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4 mr-2" />
+                      Tải xuống
+                    </a>
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-0 flex-1 min-h-[500px] bg-gray-100">
-              <iframe
-                src={application.submittedCV.path}
-                title="CV Viewer"
-                className="w-full h-full min-h-[600px]"
-              />
+              {application.submittedCV.source === 'TEMPLATE' ? (
+                // CV Template: Render qua iframe trỏ về Candidate FE
+                <iframe
+                  src={`${import.meta.env.VITE_CANDIDATE_FE_URL || 'http://localhost:3000'}/render-application.html?applicationId=${application._id}&token=${getAccessToken()}`}
+                  title="CV Template Viewer"
+                  className="w-full h-full min-h-[600px] border-0"
+                />
+              ) : (
+                // CV Uploaded: Hiển thị PDF trực tiếp
+                <iframe
+                  src={application.submittedCV.path}
+                  title="CV Viewer"
+                  className="w-full h-full min-h-[600px]"
+                />
+              )}
             </CardContent>
           </Card>
         </div>

@@ -45,6 +45,9 @@ import SupportRequestsPage from '@/pages/support/SupportRequestsPage';
 import CreateSupportRequestPage from '@/pages/support/CreateSupportRequestPage';
 import SupportRequestDetailPage from '@/pages/support/SupportRequestDetailPage';
 
+// Settings Page
+import SettingsPage from '@/pages/settings/SettingsPage';
+
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
   <div className="text-center">
@@ -153,6 +156,9 @@ const AppRouter = () => {
           <Route path="support" element={<SupportRequestsPage />} />
           <Route path="support/new" element={<CreateSupportRequestPage />} />
           <Route path="support/:id" element={<SupportRequestDetailPage />} />
+
+          {/* Settings Route */}
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Interview room routes - no layout for full-screen experience */}
