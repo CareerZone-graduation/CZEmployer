@@ -19,6 +19,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video } from 'lucide-react';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
+import Modal from '@/components/common/Modal';
+import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
 
 const DetailItem = ({ label, children, className }) => (
   <div className={className}>
@@ -85,6 +87,7 @@ const InterviewDetail = () => {
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [viewingApplicationId, setViewingApplicationId] = useState(null);
 
   const fetchInterviewDetail = useCallback(async () => {
     setLoading(true);
@@ -199,9 +202,22 @@ const InterviewDetail = () => {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{interview.job?.title}</h1>
-              <p className="text-md text-gray-600 dark:text-gray-300 mt-1">
-                Ứng viên: {interview.candidate?.fullName}
-              </p>
+              <div className="flex items-center gap-4 mt-1">
+                <p className="text-md text-gray-600 dark:text-gray-300">
+                  Ứng viên: <span className="font-semibold text-gray-900 dark:text-white">{interview.candidate?.fullName}</span>
+                </p>
+                {interview.application?.id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                    onClick={() => setViewingApplicationId(interview.application.id)}
+                  >
+                    <FilePlus className="mr-2 h-4 w-4" />
+                    Xem hồ sơ ứng tuyển
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0">
               <Badge variant={getStatusVariant(interview.status)} className="text-sm px-3 py-1">
@@ -336,6 +352,22 @@ const InterviewDetail = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Modal
+        isOpen={!!viewingApplicationId}
+        onClose={() => setViewingApplicationId(null)}
+        title="Chi tiết đơn ứng tuyển"
+        size="full"
+      >
+        {viewingApplicationId && (
+          <ApplicationDetail
+            applicationId={viewingApplicationId}
+            jobId={interview.job?.id || interview.job?._id}
+            isModal={true}
+            onViewPreviousApplication={(prevAppId) => setViewingApplicationId(prevAppId)}
+          />
+        )}
+      </Modal>
     </div>
   );
 };
