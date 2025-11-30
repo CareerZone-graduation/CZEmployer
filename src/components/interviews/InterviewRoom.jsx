@@ -1,22 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  PhoneOff,
-  MessageSquare,
-  Circle,
-  Wifi,
-  WifiOff,
-  AlertCircle
+  Loader2,
+  AlertCircle,
+  MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ChatPanel from './ChatPanel';
 import RecordingControls from './RecordingControls';
 import ConnectionQualityIndicator from './ConnectionQualityIndicator';
@@ -25,6 +17,10 @@ import recordingService from '@/services/recording.service';
 import interviewSocketService from '@/services/interviewSocket.service';
 import { uploadRecording } from '@/services/interviewService';
 import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import VideoFrame from './VideoFrame';
+import ControlBar from './ControlBar';
+import ParticipantList from './ParticipantList';
+import { cn } from '@/lib/utils';
 
 const InterviewRoom = () => {
   const { interviewId } = useParams();
@@ -41,11 +37,12 @@ const InterviewRoom = () => {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [connectionQuality] = useState('good'); // 'excellent', 'good', 'fair', 'poor'
+  const [connectionQuality] = useState('good');
   const [qualityDetails] = useState(null);
   const [_isConnected, setIsConnected] = useState(false);
   const [isRemoteUserJoined, setIsRemoteUserJoined] = useState(false);
@@ -55,19 +52,30 @@ const InterviewRoom = () => {
   const [error, setError] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
   const [confirmEndCallOpen, setConfirmEndCallOpen] = useState(false);
+
+  // Remote peer state
+  const [remotePeerState, setRemotePeerState] = useState({
+    isMuted: false,
+    isCameraOff: false,
+    name: 'Ứng viên'
+  });
+
+  const isChatOpenRef = useRef(isChatOpen);
+  const processedMessageIdsRef = useRef(new Set());
+
+  useEffect(() => {
+    isChatOpenRef.current = isChatOpen;
+  }, [isChatOpen]);
 
   // Main setup effect
   useEffect(() => {
+    processedMessageIdsRef.current.clear();
     const loadInterviewData = async () => {
       try {
         setIsLoading(true);
-
-        // TODO: Fetch interview data from API
-        // const data = await interviewService.getInterviewById(interviewId);
-        // setInterviewData(data);
-
-        // Mock data for now
+        // Mock data for now (or fetch from API if available)
         setInterviewData({
           id: interviewId,
           candidateName: 'Nguyễn Văn A',
@@ -75,7 +83,6 @@ const InterviewRoom = () => {
           scheduledAt: new Date(),
           duration: 60
         });
-
       } catch {
         setError('Không thể tải thông tin phỏng vấn');
         toast.error('Không thể tải thông tin phỏng vấn');
@@ -85,44 +92,23 @@ const InterviewRoom = () => {
 
     const setupInterview = async () => {
       try {
-        // 1. Connect to socket
         await interviewSocketService.connect();
-        console.log('[InterviewRoom] Socket connected');
-
-        // 2. Get User ID
         const userId = interviewSocketService.getCurrentUserId();
-        if (userId) {
-          setCurrentUserId(userId);
-          console.log('[InterviewRoom] Current user ID from JWT:', userId);
-        } else {
-          console.warn('[InterviewRoom] Could not get user ID immediately after connect.');
-        }
+        if (userId) setCurrentUserId(userId);
 
-        // 3. Setup local media and get stream immediately
         const stream = await setupLocalMedia();
-
-        // 4. Setup all event handlers, passing the stable userId and stream
         setupEventHandlers(userId, stream);
-        console.log('[InterviewRoom] All event handlers setup');
 
-        // 5. Join interview room
         const joinResponse = await interviewSocketService.joinInterview(interviewId, {
           role: 'recruiter'
         });
-        console.log('[InterviewRoom] Joined interview room:', joinResponse);
 
-        // 6. Check for existing users and initiate connection if needed
         if (joinResponse.existingUsers && joinResponse.existingUsers.length > 0) {
           const candidateExists = joinResponse.existingUsers.some(u => u.userRole === 'candidate');
           if (candidateExists) {
-            console.log('[InterviewRoom] Found existing candidate:', joinResponse.existingUsers);
             setIsRemoteUserJoined(true);
             initiateWebRTCConnection(stream);
-          } else {
-            console.log('[InterviewRoom] Users in room but no candidate yet');
           }
-        } else {
-          console.log('[InterviewRoom] Waiting for candidate to join...');
         }
 
         setIsConnected(true);
@@ -135,360 +121,186 @@ const InterviewRoom = () => {
 
     const setupLocalMedia = async () => {
       try {
-        console.log('[InterviewRoom] Setting up local media');
-
-        // Load saved device settings
         const savedSettings = localStorage.getItem('interviewDeviceSettings');
         const deviceSettings = savedSettings ? JSON.parse(savedSettings) : {};
-        console.log('[InterviewRoom] Using device settings:', deviceSettings);
 
-        // Build constraints with saved device IDs
         const constraints = {
           video: deviceSettings.videoDeviceId
-            ? {
-              deviceId: { exact: deviceSettings.videoDeviceId },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }
-            : {
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            },
+            ? { deviceId: { exact: deviceSettings.videoDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: deviceSettings.audioDeviceId
-            ? {
-              deviceId: { exact: deviceSettings.audioDeviceId },
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-            : {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
+            ? { deviceId: { exact: deviceSettings.audioDeviceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         };
 
-        console.log('[InterviewRoom] Requesting media with EXACT device IDs:', {
-          video: deviceSettings.videoDeviceId,
-          audio: deviceSettings.audioDeviceId
-        });
-        const stream = await webrtcService.getUserMedia(constraints);
+        let stream;
+        try {
+          stream = await webrtcService.getUserMedia(constraints);
+        } catch {
+          console.warn('Exact device failed, trying fallback');
+          stream = await webrtcService.getUserMedia({ video: true, audio: true });
+        }
+
         setLocalStream(stream);
-
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-
-        // Log which devices are actually being used
-        const videoTrack = stream.getVideoTracks()[0];
-        const audioTrack = stream.getAudioTracks()[0];
-        if (videoTrack) {
-          const settings = videoTrack.getSettings();
-          console.log('[InterviewRoom] ✓ Using video device:', videoTrack.label, 'ID:', settings.deviceId);
-        }
-        if (audioTrack) {
-          const settings = audioTrack.getSettings();
-          console.log('[InterviewRoom] ✓ Using audio device:', audioTrack.label, 'ID:', settings.deviceId);
-        }
-
-        console.log('[InterviewRoom] Local media setup complete');
-        return stream; // Return stream for immediate use
+        return stream;
       } catch (error) {
         console.error('[InterviewRoom] Failed to setup local media:', error);
-
-        // If exact device fails, try without device constraints
-        if (error.name === 'OverconstrainedError' || error.name === 'NotFoundError') {
-          console.warn('[InterviewRoom] Saved device not found, trying default devices');
-          try {
-            const fallbackConstraints = {
-              video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-            };
-            const stream = await webrtcService.getUserMedia(fallbackConstraints);
-            setLocalStream(stream);
-
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-            }
-
-            toast.warning('Thiết bị đã lưu không khả dụng, sử dụng thiết bị mặc định');
-            return stream;
-          } catch (fallbackError) {
-            console.error('[InterviewRoom] Fallback also failed:', fallbackError);
-            toast.error('Không thể truy cập camera/microphone. Vui lòng kiểm tra quyền truy cập.');
-            throw fallbackError;
-          }
-        }
-
-        toast.error('Không thể truy cập camera/microphone. Vui lòng kiểm tra quyền truy cập.');
-        throw error; // Propagate error to stop setup
+        toast.error('Không thể truy cập camera/microphone.');
+        throw error;
       }
     };
 
     const setupEventHandlers = (userId, stream) => {
-      // Clear any existing WebRTC handlers to avoid duplicates
       webrtcService.eventHandlers.clear();
+      interviewSocketService.removeAllListeners();
 
-      // Socket Handlers
       interviewSocketService.on('onUserJoined', (data) => {
-        console.log('[InterviewRoom] User joined:', data);
         if (data.userRole === 'candidate') {
           setIsRemoteUserJoined(true);
+          setRemotePeerState(prev => ({ ...prev, name: data.userName || 'Ứng viên' }));
           toast.success(`${data.userName || 'Ứng viên'} đã tham gia.`);
 
-          // Only initiate if we haven't already AND peer connection doesn't exist
           const peerExists = webrtcService.peerConnection &&
             webrtcService.peerConnection.connectionState !== 'closed' &&
             webrtcService.peerConnection.connectionState !== 'failed';
 
           if (!connectionInitiatedRef.current && !peerExists) {
-            console.log('[InterviewRoom] Candidate joined, recruiter initiating WebRTC connection...');
             initiateWebRTCConnection(stream);
-          } else {
-            console.log('[InterviewRoom] Connection already initiated or peer exists, skipping');
-            console.log('[InterviewRoom] connectionInitiatedRef:', connectionInitiatedRef.current);
-            console.log('[InterviewRoom] peerExists:', peerExists);
-            console.log('[InterviewRoom] peer state:', webrtcService.peerConnection?.connectionState);
           }
         }
       });
 
       interviewSocketService.on('onUserLeft', (data) => {
-        console.log('[InterviewRoom] User left:', data);
         setIsRemoteUserJoined(false);
+        setRemoteStream(null);
         toast.warning(`${data.userName || 'Ứng viên'} đã rời khỏi phỏng vấn.`);
-        connectionInitiatedRef.current = false; // Reset flag
-
-        // Clean up peer connection but keep local stream
-        if (webrtcService.peerConnection && webrtcService.peerConnection.connectionState !== 'closed') {
-          console.log('[InterviewRoom] Cleaning up peer connection due to user leaving');
-          webrtcService.closePeerConnection(); // Only close peer, keep local stream
-        }
-
-        // Clear remote video
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = null;
-        }
-
-        // IMPORTANT: Keep local stream active - don't destroy it
-        console.log('[InterviewRoom] Local stream preserved after peer disconnect');
+        connectionInitiatedRef.current = false;
+        if (webrtcService.peerConnection) webrtcService.closePeerConnection();
       });
 
-      // Handle peer disconnected event (for abrupt disconnections)
-      interviewSocketService.on('onPeerDisconnected', (data) => {
-        console.log('[InterviewRoom] Peer disconnected abruptly:', data);
+      interviewSocketService.on('onPeerDisconnected', () => {
         setIsRemoteUserJoined(false);
+        setRemoteStream(null);
         connectionInitiatedRef.current = false;
-
-        // Clean up peer connection
-        if (webrtcService.peerConnection) {
-          console.log('[InterviewRoom] Cleaning up peer connection after abrupt disconnect');
-          webrtcService.closePeerConnection();
-        }
-
-        // Clear remote video
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = null;
-        }
-
-        // Keep local stream active
-        console.log('[InterviewRoom] Local stream preserved after abrupt disconnect');
+        if (webrtcService.peerConnection) webrtcService.closePeerConnection();
       });
 
       interviewSocketService.on('onSignal', (data) => {
         const signalFrom = data.from || data.fromUserId;
-        console.log('[InterviewRoom] ===== Signal received =====');
-        console.log('[InterviewRoom] Signal from:', signalFrom);
-        console.log('[InterviewRoom] Current user:', userId);
-        console.log('[InterviewRoom] Signal type:', data.signal?.type);
-
-        if (signalFrom && signalFrom === userId) {
-          console.log('[InterviewRoom] Ignoring own signal');
-          return; // Ignore own signals
-        }
-
-        // Check peer state before handling signal
-        const peerState = webrtcService.peerConnection?.signalingState;
-        console.log('[InterviewRoom] Current peer signaling state:', peerState);
-
+        if (signalFrom && signalFrom === userId) return;
         webrtcService.handleSignal(data.signal);
       });
 
       interviewSocketService.on('onChatMessage', (data) => {
-        console.log('[InterviewRoom] Chat message received:', data);
-        console.log('[InterviewRoom] Comparing senderId:', data.senderId, 'with userId:', userId);
+        if (String(data.senderId) === String(userId)) return;
 
-        // Skip if this is our own message (shouldn't happen with socket.to(), but just in case)
-        // Convert both to string for comparison
-        if (String(data.senderId) === String(userId)) {
-          console.log('[InterviewRoom] Skipping own message from socket event');
+        const messageId = data._id || data.messageId;
+        if (messageId && processedMessageIdsRef.current.has(messageId)) {
           return;
         }
+        if (messageId) processedMessageIdsRef.current.add(messageId);
 
         const newMessage = {
-          id: data._id || data.messageId || Date.now(),
+          id: messageId || Date.now(),
           senderId: data.senderId,
-          senderName: data.senderName || 'Ứng viên',
+          senderName: 'Ứng viên',
           message: data.message,
           timestamp: new Date(data.timestamp)
         };
-        setChatMessages(prev => [...prev, newMessage]);
+
+        setChatMessages(prev => {
+          if (prev.some(msg => msg.id === newMessage.id)) return prev;
+          return [...prev, newMessage];
+        });
+
+        if (!isChatOpenRef.current) toast('Tin nhắn mới', { description: `Ứng viên: ${data.message}` });
       });
 
-      // WebRTC Handlers
-      webrtcService.on('onSignal', (signal) => {
-        console.log('[InterviewRoom] Sending signal:', signal.type);
-        interviewSocketService.sendSignal(interviewId, signal);
-      });
-
-      webrtcService.on('onRemoteStream', (remoteStream) => {
-        console.log('[InterviewRoom] ===== Remote stream received =====');
-        if (remoteVideoRef.current) {
-          console.log('[InterviewRoom] Attaching remote stream to video element.');
-          remoteVideoRef.current.srcObject = remoteStream;
-          remoteVideoRef.current.play().catch(e => console.error("Remote video play failed", e));
-        } else {
-          console.error('[InterviewRoom] CRITICAL: remoteVideoRef is null when stream was received!');
+      // Media State Updates
+      interviewSocketService.on('onMediaStateChanged', (data) => {
+        if (data.userId !== userId) {
+          setRemotePeerState(prev => ({
+            ...prev,
+            isMuted: data.isAudioEnabled !== undefined ? !data.isAudioEnabled : prev.isMuted,
+            isCameraOff: data.isVideoEnabled !== undefined ? !data.isVideoEnabled : prev.isCameraOff
+          }));
         }
       });
 
+      webrtcService.on('onSignal', (signal) => {
+        interviewSocketService.sendSignal(interviewId, signal);
+      });
+
+      webrtcService.on('onRemoteStream', (stream) => {
+        setRemoteStream(stream);
+      });
+
       webrtcService.on('onConnectionEstablished', () => {
-        console.log('[InterviewRoom] WebRTC connection established');
         toast.success('Đã kết nối với ứng viên');
       });
 
-      webrtcService.on('onError', (error) => {
-        console.error('[InterviewRoom] WebRTC error:', error);
-        toast.error(`Lỗi kết nối: ${error.message}`);
-      });
-
       webrtcService.on('onLocalStreamUpdate', (stream) => {
-        console.log('[InterviewRoom] Local stream updated from WebRTC service');
-        // Update state to trigger effect
         setLocalStream(stream);
       });
     };
 
     const initiateWebRTCConnection = (stream) => {
       try {
-        // Prevent duplicate initialization
-        if (connectionInitiatedRef.current) {
-          console.log('[InterviewRoom] Connection already initiated, skipping');
-          return;
-        }
-
-        // Check if peer already exists and is active
+        if (connectionInitiatedRef.current) return;
         if (webrtcService.peerConnection && webrtcService.peerConnection.connectionState !== 'closed') {
-          console.log('[InterviewRoom] Peer connection already exists and is active, not creating new one');
           connectionInitiatedRef.current = true;
           return;
         }
+        if (!stream) throw new Error("No local stream");
 
-        const streamToUse = stream;
-        if (!streamToUse) {
-          throw new Error("Local stream is not available to initiate connection.");
-        }
-
-        console.log('[InterviewRoom] Initializing peer as initiator (recruiter)');
         connectionInitiatedRef.current = true;
-        webrtcService.initializePeerConnection(streamToUse);
+        webrtcService.initializePeerConnection(stream);
       } catch (error) {
-        console.error('[InterviewRoom] Failed to initiate connection:', error);
-        connectionInitiatedRef.current = false; // Reset on error
+        console.error('Failed to initiate connection:', error);
+        connectionInitiatedRef.current = false;
         toast.error('Không thể khởi tạo kết nối: ' + error.message);
       }
     };
 
     if (interviewId) {
       loadInterviewData().then(() => {
-        // Mock loading finished
         setIsLoading(false);
         setupInterview();
       });
     }
 
-    // Cleanup
     return () => {
-      console.log('[InterviewRoom] Cleaning up component.');
-
-      // Clear WebRTC event handlers
       webrtcService.eventHandlers.clear();
       webrtcService.destroy();
-
-      // Clear socket event handlers
-      interviewSocketService.off('onUserJoined');
-      interviewSocketService.off('onUserLeft');
-      interviewSocketService.off('onPeerDisconnected');
-      interviewSocketService.off('onSignal');
-      interviewSocketService.off('onChatMessage');
-
-      interviewSocketService.disconnect();
-
-      // Stop and cleanup recording if active
+      interviewSocketService.reset();
       if (recordingService.getState() !== 'inactive') {
-        recordingService.stopRecording().catch(err => console.error('Error stopping recording on unmount:', err));
+        recordingService.stopRecording().catch(console.error);
       }
       recordingService.reset();
-
-      // Reset connection flag
       connectionInitiatedRef.current = false;
     };
   }, [interviewId]);
 
-
-  // Effect to update local video when stream or video state changes
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      console.log('[InterviewRoom] Effect: Updating local video element');
-      console.log('[InterviewRoom] Video enabled:', isVideoEnabled);
-      console.log('[InterviewRoom] Stream active:', localStream.active);
-
-      localVideoRef.current.srcObject = localStream;
-
-      if (isVideoEnabled) {
-        localVideoRef.current.play().catch(e => {
-          console.log('[InterviewRoom] Effect: Play failed:', e);
-        });
-      }
-    }
-  }, [isVideoEnabled, localStream]);
-
-  // Toggle audio
   const toggleAudio = async () => {
     const newEnabled = !isAudioEnabled;
     const success = await webrtcService.toggleAudio(newEnabled);
     if (success) {
       setIsAudioEnabled(newEnabled);
-      toast.info(newEnabled ? 'Đã bật micro' : 'Đã tắt micro');
-    } else {
-      toast.error('Không thể thay đổi trạng thái micro');
+      interviewSocketService.notifyMediaStateChanged(interviewId, newEnabled, isVideoEnabled);
     }
   };
 
-  // Toggle video
   const toggleVideo = async () => {
     const newEnabled = !isVideoEnabled;
-    console.log('[InterviewRoom] Toggling video to:', newEnabled);
-
     const success = await webrtcService.toggleVideo(newEnabled);
     if (success) {
-      console.log('[InterviewRoom] Video toggle successful');
       setIsVideoEnabled(newEnabled);
-
-      // Update local stream state to trigger effect
       const updatedStream = webrtcService.getLocalStream();
-      if (updatedStream) {
-        setLocalStream(updatedStream);
-      }
-
-      toast.info(newEnabled ? 'Đã bật camera' : 'Đã tắt camera');
-    } else {
-      console.error('[InterviewRoom] Video toggle failed');
-      toast.error('Không thể thay đổi trạng thái camera');
+      if (updatedStream) setLocalStream(updatedStream);
+      interviewSocketService.notifyMediaStateChanged(interviewId, isAudioEnabled, newEnabled);
     }
   };
 
-  // End call
   const handleEndCall = () => {
     setConfirmEndCallOpen(true);
   };
@@ -499,101 +311,57 @@ const InterviewRoom = () => {
     interviewSocketService.disconnect();
     toast.info('Đã kết thúc cuộc phỏng vấn');
     navigate(`/interviews/${interviewId}`);
-    setConfirmEndCallOpen(false);
   };
 
-  // Toggle chat
-  const toggleChat = () => {
-    setIsChatOpen(prev => !prev);
-  };
-
-  // Handle recording toggle
   const handleRecordingToggle = async (recording) => {
     setIsRecording(recording);
-
     if (recording) {
       interviewSocketService.notifyRecordingStarted(interviewId);
-      console.log('[InterviewRoom] Recording started, notified participants');
     } else {
       await handleRecordingUpload();
     }
   };
 
-  // Handle recording pause
   const handleRecordingPause = () => {
-    try {
-      recordingService.pauseRecording();
-      setIsRecordingPaused(true);
-      toast.info('Đã tạm dừng ghi hình');
-    } catch (error) {
-      console.error('Failed to pause recording:', error);
-      toast.error('Không thể tạm dừng ghi hình');
-    }
+    recordingService.pauseRecording();
+    setIsRecordingPaused(true);
   };
 
-  // Handle recording resume
   const handleRecordingResume = () => {
-    try {
-      recordingService.resumeRecording();
-      setIsRecordingPaused(false);
-      toast.info('Đã tiếp tục ghi hình');
-    } catch (error) {
-      console.error('Failed to resume recording:', error);
-      toast.error('Không thể tiếp tục ghi hình');
-    }
+    recordingService.resumeRecording();
+    setIsRecordingPaused(false);
   };
 
-  // Handle recording upload
   const handleRecordingUpload = async () => {
     try {
       const recordedBlob = recordingService.getRecordedBlob();
-
-      if (!recordedBlob) {
-        console.warn('[InterviewRoom] No recorded blob available');
-        return;
-      }
+      if (!recordedBlob) return;
 
       setIsUploading(true);
       setUploadProgress(0);
-
       const duration = recordingService.getDuration();
-      const metadata = {
-        duration,
-        size: recordedBlob.size
-      };
 
-      console.log('[InterviewRoom] Uploading recording:', metadata);
       toast.info('Đang tải video lên server...');
-
       await uploadRecording(
         interviewId,
         recordedBlob,
-        metadata,
-        (progress) => {
-          setUploadProgress(progress);
-          console.log(`[InterviewRoom] Upload progress: ${progress}%`);
-        }
+        { duration, size: recordedBlob.size },
+        (progress) => setUploadProgress(progress)
       );
 
       setIsUploading(false);
       setUploadProgress(0);
       toast.success('Video đã được tải lên thành công');
-
       interviewSocketService.notifyRecordingStopped(interviewId, duration);
-      console.log('[InterviewRoom] Recording uploaded, notified participants');
     } catch (error) {
-      console.error('[InterviewRoom] Failed to upload recording:', error);
       setIsUploading(false);
       toast.error('Không thể tải video lên: ' + error.message);
     }
   };
 
-  // Handle send message
   const handleSendMessage = async (message) => {
     try {
       const response = await interviewSocketService.sendChatMessage(interviewId, message);
-
-      // Add message to local state immediately for better UX
       const newMessage = {
         id: response.message?._id || Date.now(),
         senderId: currentUserId,
@@ -602,18 +370,37 @@ const InterviewRoom = () => {
         timestamp: response.message?.timestamp || new Date()
       };
       setChatMessages(prev => [...prev, newMessage]);
-    } catch (error) {
-      console.error('[InterviewRoom] Failed to send message:', error);
+    } catch {
       toast.error('Không thể gửi tin nhắn');
     }
   };
 
+  // Participants list
+  const participants = [
+    {
+      id: 'local',
+      name: 'Bạn (Nhà tuyển dụng)',
+      isLocal: true,
+      isMuted: !isAudioEnabled,
+      isCameraOff: !isVideoEnabled,
+      isActiveSpeaker: false
+    },
+    ...(isRemoteUserJoined ? [{
+      id: 'remote',
+      name: remotePeerState.name,
+      isLocal: false,
+      isMuted: remotePeerState.isMuted,
+      isCameraOff: remotePeerState.isCameraOff,
+      isActiveSpeaker: false
+    }] : [])
+  ];
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center h-screen bg-slate-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white">Đang tải phòng phỏng vấn...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
+          <p className="text-slate-300 text-lg">Đang chuẩn bị phòng họp...</p>
         </div>
       </div>
     );
@@ -621,164 +408,159 @@ const InterviewRoom = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <Card className="p-6 max-w-md">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Lỗi</h2>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => navigate('/interviews')}>
-              Quay lại danh sách phỏng vấn
-            </Button>
-          </div>
+      <div className="flex items-center justify-center h-screen bg-slate-950 p-4">
+        <Card className="max-w-md p-6 bg-slate-900 border-slate-800">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Lỗi</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <Button className="w-full mt-4" onClick={() => navigate('/interviews')}>
+            Quay lại
+          </Button>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
-      {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-lg font-semibold text-white">
-                Phỏng vấn: {interviewData?.candidateName}
-              </h1>
-              <p className="text-sm text-gray-400">
-                {interviewData?.jobTitle}
-              </p>
-            </div>
-            {isRecording && (
-              <Badge variant="destructive" className="flex items-center gap-1">
-                <Circle className="h-2 w-2 fill-current animate-pulse" />
-                Đang ghi hình
-              </Badge>
-            )}
-            {isUploading && (
-              <Badge variant="secondary" className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                Đang tải lên {uploadProgress}%
-              </Badge>
-            )}
-          </div>
+    <div className="h-screen w-full bg-[#202124] flex flex-col overflow-hidden text-slate-100 font-sans relative">
 
-          <div className="flex items-center gap-3">
-            <ConnectionQualityIndicator
-              quality={connectionQuality}
-              details={qualityDetails}
-            />
-            {!isRemoteUserJoined && (
-              <Badge variant="outline" className="text-yellow-500 border-yellow-500">
-                Đang chờ ứng viên tham gia...
-              </Badge>
-            )}
+      {/* Floating Header (Overlay) */}
+      <div className="absolute top-0 left-0 right-0 p-6 z-40 flex justify-between items-start pointer-events-none">
+        <div className="pointer-events-auto bg-[#202124]/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 shadow-lg flex flex-col">
+          <h1 className="text-sm font-medium text-white tracking-tight">
+            {interviewData?.candidateName || 'Phỏng vấn ứng viên'}
+          </h1>
+          <p className="text-xs text-zinc-400">
+            {interviewData?.jobTitle || 'Vị trí'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 pointer-events-auto">
+          {isRecording && (
+            <div className="bg-red-500/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 animate-pulse font-medium shadow-lg border border-red-500/20">
+              <span className="w-2 h-2 bg-white rounded-full shadow-sm" />
+              REC
+            </div>
+          )}
+          {isUploading && (
+            <div className="bg-blue-500/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 font-medium shadow-lg border border-blue-500/20">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Uploading {uploadProgress}%
+            </div>
+          )}
+          <div className="bg-[#202124]/80 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-lg flex items-center gap-2">
+            <ConnectionQualityIndicator quality={connectionQuality} details={qualityDetails} />
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Video Area */}
-        <div className="flex-1 relative p-4">
-          {/* Remote Video (Main) */}
-          <div className="w-full h-full bg-gray-800 rounded-lg overflow-hidden relative">
-            {isRemoteUserJoined ? (
-              <>
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 left-4 bg-black/50 px-3 py-1 rounded-md">
-                  <p className="text-white text-sm font-medium">
-                    {interviewData?.candidateName}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Video className="h-12 w-12 text-gray-500" />
-                  </div>
-                  <p className="text-gray-400">Đang chờ ứng viên tham gia...</p>
-                </div>
-              </div>
-            )}
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden relative">
 
-          {/* Local Video (Picture-in-Picture) */}
-          <div className="absolute bottom-8 right-8 w-64 h-48 bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-700 shadow-lg">
-            {isVideoEnabled ? (
-              <>
-                <video
-                  key="local-video-enabled"
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover mirror"
-                />
-                <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded-md">
-                  <p className="text-white text-xs font-medium">Bạn</p>
-                </div>
-              </>
-            ) : (
-              <div key="local-video-disabled" className="flex items-center justify-center h-full bg-gray-700">
-                <VideoOff className="h-8 w-8 text-gray-500" />
+        {/* Video Grid */}
+        <div className={cn(
+          "flex-1 transition-all duration-300 ease-in-out flex items-center justify-center",
+          (isChatOpen || isParticipantsOpen) ? "p-2" : "p-4"
+        )}>
+
+          <div className={cn(
+            "w-full h-full transition-all duration-500",
+            isRemoteUserJoined
+              ? "grid grid-cols-1 md:grid-cols-2 gap-4 items-center content-center"
+              : "flex justify-center items-center",
+            (isRemoteUserJoined && !isChatOpen && !isParticipantsOpen) && "max-w-6xl mx-auto"
+          )}>
+
+            {/* Remote Video */}
+            {isRemoteUserJoined && (
+              <VideoFrame
+                stream={remoteStream}
+                isMuted={remotePeerState.isMuted}
+                isCameraOff={remotePeerState.isCameraOff}
+                userName={remotePeerState.name}
+                isLocal={false}
+                connectionQuality={connectionQuality}
+                className="w-full h-full max-h-[calc(100vh-100px)] object-cover rounded-xl border border-white/10"
+              />
+            )}
+
+            {/* Local Video */}
+            <VideoFrame
+              stream={localStream}
+              isMuted={!isAudioEnabled}
+              isCameraOff={!isVideoEnabled}
+              userName="Bạn (Nhà tuyển dụng)"
+              isLocal={true}
+              className={cn(
+                "transition-all duration-500 rounded-xl overflow-hidden bg-[#3c4043] border border-white/10",
+                !isRemoteUserJoined
+                  ? cn(
+                    "aspect-video shadow-2xl",
+                    (isChatOpen || isParticipantsOpen)
+                      ? "w-full max-h-[calc(100vh-100px)]"
+                      : "w-full max-w-4xl max-h-[calc(100vh-100px)]"
+                  )
+                  : "w-full h-full max-h-[calc(100vh-100px)] object-cover"
+              )}
+            />
+
+            {/* Waiting State Overlay */}
+            {!isRemoteUserJoined && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-24 bg-[#202124]/90 backdrop-blur px-6 py-3 rounded-full border border-gray-700 flex items-center gap-3 shadow-lg z-10">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+                <span className="text-gray-200">Đang chờ ứng viên tham gia...</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Chat Panel */}
+        {/* Sidebars */}
+        {isParticipantsOpen && (
+          <ParticipantList
+            participants={participants}
+            onClose={() => setIsParticipantsOpen(false)}
+          />
+        )}
+
         {isChatOpen && (
-          <div className="w-80 border-l border-gray-700 bg-gray-800">
+          <div className="w-80 border-l border-gray-800 bg-[#202124] flex flex-col h-full z-20 shadow-xl">
             <ChatPanel
               messages={chatMessages}
               onSendMessage={handleSendMessage}
-              onClose={toggleChat}
+              onClose={() => setIsChatOpen(false)}
               currentUserId={currentUserId}
+              className="flex-1"
             />
           </div>
         )}
       </div>
 
-      {/* Control Panel */}
-      <div className="bg-gray-800 border-t border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-center gap-4">
-          {/* Audio Toggle */}
-          <Button
-            size="lg"
-            variant={isAudioEnabled ? "default" : "destructive"}
-            onClick={toggleAudio}
-            className="rounded-full w-14 h-14"
-          >
-            {isAudioEnabled ? (
-              <Mic className="h-6 w-6" />
-            ) : (
-              <MicOff className="h-6 w-6" />
-            )}
-          </Button>
-
-          {/* Video Toggle */}
-          <Button
-            size="lg"
-            variant={isVideoEnabled ? "default" : "destructive"}
-            onClick={toggleVideo}
-            className="rounded-full w-14 h-14"
-          >
-            {isVideoEnabled ? (
-              <Video className="h-6 w-6" />
-            ) : (
-              <VideoOff className="h-6 w-6" />
-            )}
-          </Button>
-
-          {/* Recording Controls */}
+      {/* Bottom Control Bar - Fixed at bottom */}
+      <div className="w-full z-50 bg-[#202124] border-t border-gray-800">
+        <ControlBar
+          isAudioEnabled={isAudioEnabled}
+          isVideoEnabled={isVideoEnabled}
+          isScreenSharing={false}
+          isChatOpen={isChatOpen}
+          isParticipantsOpen={isParticipantsOpen}
+          onToggleAudio={toggleAudio}
+          onToggleVideo={toggleVideo}
+          onToggleScreenShare={() => toast.info('Tính năng chia sẻ màn hình đang phát triển')}
+          onToggleChat={() => {
+            setIsChatOpen(!isChatOpen);
+            if (isParticipantsOpen) setIsParticipantsOpen(false);
+          }}
+          onToggleParticipants={() => {
+            setIsParticipantsOpen(!isParticipantsOpen);
+            if (isChatOpen) setIsChatOpen(false);
+          }}
+          onEndCall={handleEndCall}
+          interviewId={interviewId}
+          interviewTitle={interviewData?.jobTitle}
+        >
+          {/* Recording Controls injected here */}
           <RecordingControls
             isRecording={isRecording}
             onToggle={handleRecordingToggle}
@@ -786,46 +568,19 @@ const InterviewRoom = () => {
             isPaused={isRecordingPaused}
             onPause={handleRecordingPause}
             onResume={handleRecordingResume}
-            localStream={webrtcService.getLocalStream()}
-            remoteStream={webrtcService.getRemoteStream()}
+            localStream={localStream}
+            remoteStream={remoteStream}
             localVideoRef={localVideoRef}
             remoteVideoRef={remoteVideoRef}
           />
-
-          {/* Chat Toggle */}
-          <Button
-            size="lg"
-            variant={isChatOpen ? "secondary" : "outline"}
-            onClick={toggleChat}
-            className="rounded-full w-14 h-14 relative"
-          >
-            <MessageSquare className="h-6 w-6" />
-            {chatMessages.length > 0 && !isChatOpen && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {chatMessages.length}
-              </span>
-            )}
-          </Button>
-
-          <Separator orientation="vertical" className="h-12 bg-gray-700" />
-
-          {/* End Call */}
-          <Button
-            size="lg"
-            variant="destructive"
-            onClick={handleEndCall}
-            className="rounded-full w-14 h-14 bg-red-600 hover:bg-red-700"
-          >
-            <PhoneOff className="h-6 w-6" />
-          </Button>
-        </div>
+        </ControlBar>
       </div>
 
       <ConfirmationDialog
         open={confirmEndCallOpen}
         onOpenChange={setConfirmEndCallOpen}
         title="Kết thúc phỏng vấn?"
-        description="Bạn có chắc chắn muốn kết thúc cuộc phỏng vấn này? Hành động này sẽ ngắt kết nối với ứng viên."
+        description="Bạn có chắc chắn muốn kết thúc cuộc phỏng vấn này?"
         onConfirm={executeEndCall}
         confirmText="Kết thúc"
         cancelText="Hủy"

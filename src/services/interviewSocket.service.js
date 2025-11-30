@@ -19,7 +19,7 @@ class InterviewSocketService {
     this.connectionPromise = null;
     this.currentUser = null;
     this.currentUserId = null;
-    
+
     // Get Socket.io URL from environment
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     this.socketUrl = apiUrl.replace(/\/api$/, '');
@@ -44,11 +44,23 @@ class InterviewSocketService {
    */
   off(event, handler) {
     if (!this.eventHandlers.has(event)) return;
-    
+
     const handlers = this.eventHandlers.get(event);
     const index = handlers.indexOf(handler);
     if (index > -1) {
       handlers.splice(index, 1);
+    }
+  }
+
+  /**
+   * Remove all listeners for an event or all events
+   * @param {string} event - Event name (optional)
+   */
+  removeAllListeners(event = null) {
+    if (event) {
+      this.eventHandlers.delete(event);
+    } else {
+      this.eventHandlers.clear();
     }
   }
 
@@ -60,7 +72,7 @@ class InterviewSocketService {
    */
   _triggerHandler(event, data) {
     if (!this.eventHandlers.has(event)) return;
-    
+
     const handlers = this.eventHandlers.get(event);
     handlers.forEach(handler => {
       try {
@@ -92,7 +104,7 @@ class InterviewSocketService {
     this.isConnecting = true;
     this.connectionPromise = new Promise((resolve, reject) => {
       const authToken = token || getAccessToken();
-      
+
       if (!authToken) {
         console.error('[InterviewSocket] No authentication token available');
         this.isConnecting = false;
@@ -148,7 +160,7 @@ class InterviewSocketService {
         console.error('[InterviewSocket] Connection error:', error.message);
         this.isConnected = false;
         this.reconnectAttempts++;
-        
+
         this._triggerHandler('onConnectionError', {
           error,
           attempt: this.reconnectAttempts
@@ -172,13 +184,13 @@ class InterviewSocketService {
         console.log(`[InterviewSocket] Reconnected after ${attemptNumber} attempts`);
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        
+
         // Rejoin interview room if we were in one
         if (this.currentInterviewId) {
           console.log('[InterviewSocket] Rejoining interview after reconnect');
           this.joinInterview(this.currentInterviewId);
         }
-        
+
         this._triggerHandler('onReconnect', attemptNumber);
       });
 
@@ -213,7 +225,7 @@ class InterviewSocketService {
     this._clearInterviewListeners();
 
     // ==================== Room Management ====================
-    
+
     // User joined interview
     this.socket.on('interview:user-joined', (data) => {
       console.log('[InterviewSocket] User joined:', data);
@@ -233,7 +245,7 @@ class InterviewSocketService {
     });
 
     // ==================== WebRTC Signaling ====================
-    
+
     // Received WebRTC offer
     this.socket.on('interview:offer', (data) => {
       console.log('[InterviewSocket] Received offer from:', data.from);
@@ -265,15 +277,21 @@ class InterviewSocketService {
     });
 
     // ==================== Chat Messages ====================
-    
+
     // New chat message
     this.socket.on('interview:chat-message', (data) => {
       console.log('[InterviewSocket] Chat message received:', data);
       this._triggerHandler('onChatMessage', data);
     });
 
+    // Media state changed
+    this.socket.on('interview:media-state', (data) => {
+      console.log('[InterviewSocket] Media state changed:', data);
+      this._triggerHandler('onMediaStateChanged', data);
+    });
+
     // ==================== Recording Events ====================
-    
+
     // Recording started
     this.socket.on('interview:recording-started', (data) => {
       console.log('[InterviewSocket] Recording started:', data);
@@ -287,7 +305,7 @@ class InterviewSocketService {
     });
 
     // ==================== Interview Control ====================
-    
+
     // Interview started
     this.socket.on('interview:started', (data) => {
       console.log('[InterviewSocket] Interview started:', data);
@@ -301,7 +319,7 @@ class InterviewSocketService {
     });
 
     // ==================== Connection Quality ====================
-    
+
     // Connection quality update
     this.socket.on('interview:connection-quality', (data) => {
       console.log('[InterviewSocket] Connection quality:', data);
@@ -309,7 +327,7 @@ class InterviewSocketService {
     });
 
     // ==================== Error Handling ====================
-    
+
     // Interview error
     this.socket.on('interview:error', (error) => {
       console.error('[InterviewSocket] Interview error:', error);
@@ -337,11 +355,11 @@ class InterviewSocketService {
         reject(new Error('Join interview timeout'));
       }, 10000);
 
-      this.socket.emit('interview:join', 
-        { 
+      this.socket.emit('interview:join',
+        {
           roomId: interviewId, // Backend expects both roomId and interviewId
-          interviewId, 
-          ...userData 
+          interviewId,
+          ...userData
         },
         (response) => {
           clearTimeout(timeout);
@@ -376,7 +394,7 @@ class InterviewSocketService {
 
     console.log('[InterviewSocket] Leaving interview:', id);
     this.socket.emit('interview:leave', { interviewId: id });
-    
+
     this.currentInterviewId = null;
     this.currentRoomId = null;
   }
@@ -466,7 +484,7 @@ class InterviewSocketService {
       signalType: signal.type,
       to
     });
-    
+
     // Use unified interview:signal event for all signal types
     this.socket.emit('interview:signal', {
       interviewId,
@@ -474,7 +492,7 @@ class InterviewSocketService {
       signal,
       to
     });
-    
+
     console.log('[InterviewSocket] Signal emitted successfully');
   }
 
@@ -510,7 +528,7 @@ class InterviewSocketService {
       }
 
       console.log('[InterviewSocket] Sending chat message');
-      
+
       const timeout = setTimeout(() => {
         reject(new Error('Send message timeout'));
       }, 10000);
@@ -530,6 +548,28 @@ class InterviewSocketService {
           }
         }
       );
+    });
+  }
+
+  /**
+   * Notify media state changed (audio/video toggle)
+   * @param {string} interviewId - Interview ID
+   * @param {boolean} isAudioEnabled - Is audio enabled
+   * @param {boolean} isVideoEnabled - Is video enabled
+   */
+  notifyMediaStateChanged(interviewId, isAudioEnabled, isVideoEnabled) {
+    if (!this.socket || !this.isConnected) {
+      console.warn('[InterviewSocket] Cannot notify media state - socket not connected');
+      return;
+    }
+
+    console.log('[InterviewSocket] Notifying media state changed:', { isAudioEnabled, isVideoEnabled });
+
+    this.socket.emit('interview:media-state', {
+      roomId: this.currentRoomId || interviewId,
+      interviewId,
+      isAudioEnabled,
+      isVideoEnabled
     });
   }
 
