@@ -10,7 +10,6 @@ import {
     Users,
     MoreVertical,
     Info,
-    Hand,
     Smile
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,17 +19,23 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-export const ControlButton = ({
+export const ControlButton = React.forwardRef(({
     icon: Icon,
     label,
     onClick,
     isActive,
     variant = 'default', // 'default' | 'danger' | 'secondary' | 'ghost'
-    className
-}) => {
+    className,
+    ...props
+}, ref) => {
     let baseStyles = "rounded-full w-10 h-10 transition-all duration-200 flex items-center justify-center";
     let variantStyles = "";
 
@@ -59,10 +64,12 @@ export const ControlButton = ({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button
+                        ref={ref}
                         variant="ghost"
                         size="icon"
                         onClick={onClick}
                         className={cn(baseStyles, variantStyles, className)}
+                        {...props}
                     >
                         <Icon className="h-5 w-5" />
                     </Button>
@@ -73,7 +80,7 @@ export const ControlButton = ({
             </Tooltip>
         </TooltipProvider>
     );
-};
+});
 
 const ControlBar = ({
     isAudioEnabled,
@@ -87,12 +94,14 @@ const ControlBar = ({
     onToggleChat,
     onToggleParticipants,
     onEndCall,
+    onSendEmoji,
     className,
     children,
     interviewTitle,
     interviewId
 }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const emojis = ['👍', '👏', '❤️', '😂', '😮', '😢', '🎉'];
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -136,23 +145,32 @@ const ControlBar = ({
                     onClick={onToggleVideo}
                 />
 
-                <ControlButton
-                    icon={Hand} // Placeholder for Raise Hand
-                    label="Giơ tay"
-                    isActive={true} // Always "neutral" style
-                    variant="secondary"
-                    onClick={() => { }}
-                    className="hidden md:flex"
-                />
-
-                <ControlButton
-                    icon={Smile} // Placeholder for Reactions
-                    label="Cảm xúc"
-                    isActive={true}
-                    variant="secondary"
-                    onClick={() => { }}
-                    className="hidden md:flex"
-                />
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <div>
+                            <ControlButton
+                                icon={Smile}
+                                label="Cảm xúc"
+                                isActive={true}
+                                variant="secondary"
+                                className="hidden md:flex"
+                            />
+                        </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2 bg-[#202124] border-gray-700" sideOffset={10}>
+                        <div className="flex gap-2">
+                            {emojis.map(emoji => (
+                                <button
+                                    key={emoji}
+                                    className="text-2xl hover:bg-white/10 p-2 rounded transition-colors cursor-pointer"
+                                    onClick={() => onSendEmoji && onSendEmoji(emoji)}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </PopoverContent>
+                </Popover>
 
                 <ControlButton
                     icon={MonitorUp}

@@ -284,6 +284,12 @@ class InterviewSocketService {
       this._triggerHandler('onChatMessage', data);
     });
 
+    // Received emoji
+    this.socket.on('interview:emoji', (data) => {
+      console.log('[InterviewSocket] Emoji received:', data);
+      this._triggerHandler('onEmoji', data);
+    });
+
     // Media state changed
     this.socket.on('interview:media-state', (data) => {
       console.log('[InterviewSocket] Media state changed:', data);
@@ -552,6 +558,24 @@ class InterviewSocketService {
   }
 
   /**
+   * Send emoji reaction
+   * @param {string} interviewId - Interview ID
+   * @param {string} emoji - Emoji character
+   */
+  sendEmoji(interviewId, emoji) {
+    if (!this.socket || !this.isConnected) {
+      console.warn('[InterviewSocket] Cannot send emoji: not connected');
+      return;
+    }
+
+    this.socket.emit('interview:emoji', {
+      roomId: this.currentRoomId || interviewId,
+      interviewId,
+      emoji
+    });
+  }
+
+  /**
    * Notify media state changed (audio/video toggle)
    * @param {string} interviewId - Interview ID
    * @param {boolean} isAudioEnabled - Is audio enabled
@@ -665,7 +689,8 @@ class InterviewSocketService {
       'interview:started',
       'interview:ended',
       'interview:connection-quality',
-      'interview:error'
+      'interview:error',
+      'interview:emoji'
     ];
 
     events.forEach(event => {
