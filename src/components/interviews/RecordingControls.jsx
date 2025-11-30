@@ -19,10 +19,11 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import recordingService from '@/services/recording.service';
+import { ControlButton } from './ControlBar';
 
-const RecordingControls = ({ 
-  isRecording, 
-  onToggle, 
+const RecordingControls = ({
+  isRecording,
+  onToggle,
   disabled = false,
   isPaused = false,
   onPause,
@@ -39,7 +40,7 @@ const RecordingControls = ({
   // Update duration every second while recording
   useEffect(() => {
     let interval;
-    
+
     if (isRecording && !isPaused) {
       interval = setInterval(() => {
         const duration = recordingService.getDuration();
@@ -53,11 +54,13 @@ const RecordingControls = ({
   }, [isRecording, isPaused]);
 
   const handleStartRecording = () => {
-    setShowStartDialog(true);
+    // setShowStartDialog(true);
+    toast.info('Tính năng ghi hình đang phát triển');
   };
 
   const handleStopRecording = () => {
     setShowStopDialog(true);
+    toast.info('Tính năng ghi hình đang phát triển');
   };
 
   const handlePauseResume = () => {
@@ -70,7 +73,7 @@ const RecordingControls = ({
 
   const confirmStartRecording = async () => {
     setShowStartDialog(false);
-    
+
     try {
       if (!localStream && !remoteStream) {
         toast.error('Không có stream nào để ghi hình');
@@ -94,7 +97,7 @@ const RecordingControls = ({
 
   const confirmStopRecording = async () => {
     setShowStopDialog(false);
-    
+
     try {
       const blob = await recordingService.stopRecording();
       onToggle(false);
@@ -114,7 +117,7 @@ const RecordingControls = ({
 
   const buttonContent = (
     <div className="flex items-center gap-2">
-      <Button
+      {/* <Button
         size="lg"
         variant={isRecording ? "destructive" : "outline"}
         onClick={isRecording ? handleStopRecording : handleStartRecording}
@@ -126,7 +129,15 @@ const RecordingControls = ({
         ) : (
           <Circle className="h-6 w-6" />
         )}
-      </Button>
+      </Button> */}
+      <ControlButton
+        icon={Circle}
+        label="Ghi hình cuộc họp"
+        isActive={false}
+        variant="secondary"
+        onClick={() => toast.info('Tính năng ghi hình đang phát triển')}
+      />
+
 
       {isRecording && (
         <>
@@ -142,7 +153,7 @@ const RecordingControls = ({
               <Pause className="h-6 w-6" />
             )}
           </Button>
-          
+
           <div className="text-white text-sm font-mono bg-gray-800 px-3 py-2 rounded-md">
             {formatDuration(recordingDuration)}
           </div>
