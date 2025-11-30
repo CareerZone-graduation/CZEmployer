@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  PhoneOff, 
+import {
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  PhoneOff,
   MessageSquare,
   Circle,
   Wifi,
@@ -24,18 +24,19 @@ import webrtcService from '@/services/webrtc.service';
 import recordingService from '@/services/recording.service';
 import interviewSocketService from '@/services/interviewSocket.service';
 import { uploadRecording } from '@/services/interviewService';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 
 const InterviewRoom = () => {
   const { interviewId } = useParams();
   const navigate = useNavigate();
-  
+
   // Video refs
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  
+
   // Track if we've already initiated connection to prevent duplicates
   const connectionInitiatedRef = useRef(false);
-  
+
   // State management
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -44,7 +45,7 @@ const InterviewRoom = () => {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [connectionQuality, setConnectionQuality] = useState('good'); // 'excellent', 'good', 'fair', 'poor'
+  const [connectionQuality] = useState('good'); // 'excellent', 'good', 'fair', 'poor'
   const [qualityDetails] = useState(null);
   const [_isConnected, setIsConnected] = useState(false);
   const [isRemoteUserJoined, setIsRemoteUserJoined] = useState(false);
@@ -54,17 +55,18 @@ const InterviewRoom = () => {
   const [error, setError] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [localStream, setLocalStream] = useState(null);
+  const [confirmEndCallOpen, setConfirmEndCallOpen] = useState(false);
 
   // Main setup effect
   useEffect(() => {
     const loadInterviewData = async () => {
       try {
         setIsLoading(true);
-        
+
         // TODO: Fetch interview data from API
         // const data = await interviewService.getInterviewById(interviewId);
         // setInterviewData(data);
-        
+
         // Mock data for now
         setInterviewData({
           id: interviewId,
@@ -73,7 +75,7 @@ const InterviewRoom = () => {
           scheduledAt: new Date(),
           duration: 60
         });
-        
+
       } catch {
         setError('Không thể tải thông tin phỏng vấn');
         toast.error('Không thể tải thông tin phỏng vấn');
@@ -134,38 +136,38 @@ const InterviewRoom = () => {
     const setupLocalMedia = async () => {
       try {
         console.log('[InterviewRoom] Setting up local media');
-        
+
         // Load saved device settings
         const savedSettings = localStorage.getItem('interviewDeviceSettings');
         const deviceSettings = savedSettings ? JSON.parse(savedSettings) : {};
         console.log('[InterviewRoom] Using device settings:', deviceSettings);
-        
+
         // Build constraints with saved device IDs
         const constraints = {
-          video: deviceSettings.videoDeviceId 
-            ? { 
-                deviceId: { exact: deviceSettings.videoDeviceId },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              }
-            : { 
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              },
+          video: deviceSettings.videoDeviceId
+            ? {
+              deviceId: { exact: deviceSettings.videoDeviceId },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+            : {
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
           audio: deviceSettings.audioDeviceId
             ? {
-                deviceId: { exact: deviceSettings.audioDeviceId },
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-              }
+              deviceId: { exact: deviceSettings.audioDeviceId },
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
             : {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-              }
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
         };
-        
+
         console.log('[InterviewRoom] Requesting media with EXACT device IDs:', {
           video: deviceSettings.videoDeviceId,
           audio: deviceSettings.audioDeviceId
@@ -176,7 +178,7 @@ const InterviewRoom = () => {
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
-        
+
         // Log which devices are actually being used
         const videoTrack = stream.getVideoTracks()[0];
         const audioTrack = stream.getAudioTracks()[0];
@@ -188,12 +190,12 @@ const InterviewRoom = () => {
           const settings = audioTrack.getSettings();
           console.log('[InterviewRoom] ✓ Using audio device:', audioTrack.label, 'ID:', settings.deviceId);
         }
-        
+
         console.log('[InterviewRoom] Local media setup complete');
         return stream; // Return stream for immediate use
       } catch (error) {
         console.error('[InterviewRoom] Failed to setup local media:', error);
-        
+
         // If exact device fails, try without device constraints
         if (error.name === 'OverconstrainedError' || error.name === 'NotFoundError') {
           console.warn('[InterviewRoom] Saved device not found, trying default devices');
@@ -204,11 +206,11 @@ const InterviewRoom = () => {
             };
             const stream = await webrtcService.getUserMedia(fallbackConstraints);
             setLocalStream(stream);
-            
+
             if (localVideoRef.current) {
               localVideoRef.current.srcObject = stream;
             }
-            
+
             toast.warning('Thiết bị đã lưu không khả dụng, sử dụng thiết bị mặc định');
             return stream;
           } catch (fallbackError) {
@@ -217,7 +219,7 @@ const InterviewRoom = () => {
             throw fallbackError;
           }
         }
-        
+
         toast.error('Không thể truy cập camera/microphone. Vui lòng kiểm tra quyền truy cập.');
         throw error; // Propagate error to stop setup
       }
@@ -226,19 +228,19 @@ const InterviewRoom = () => {
     const setupEventHandlers = (userId, stream) => {
       // Clear any existing WebRTC handlers to avoid duplicates
       webrtcService.eventHandlers.clear();
-      
+
       // Socket Handlers
       interviewSocketService.on('onUserJoined', (data) => {
         console.log('[InterviewRoom] User joined:', data);
         if (data.userRole === 'candidate') {
           setIsRemoteUserJoined(true);
           toast.success(`${data.userName || 'Ứng viên'} đã tham gia.`);
-          
+
           // Only initiate if we haven't already AND peer connection doesn't exist
-          const peerExists = webrtcService.peerConnection && 
-                            webrtcService.peerConnection.connectionState !== 'closed' &&
-                            webrtcService.peerConnection.connectionState !== 'failed';
-          
+          const peerExists = webrtcService.peerConnection &&
+            webrtcService.peerConnection.connectionState !== 'closed' &&
+            webrtcService.peerConnection.connectionState !== 'failed';
+
           if (!connectionInitiatedRef.current && !peerExists) {
             console.log('[InterviewRoom] Candidate joined, recruiter initiating WebRTC connection...');
             initiateWebRTCConnection(stream);
@@ -256,18 +258,18 @@ const InterviewRoom = () => {
         setIsRemoteUserJoined(false);
         toast.warning(`${data.userName || 'Ứng viên'} đã rời khỏi phỏng vấn.`);
         connectionInitiatedRef.current = false; // Reset flag
-        
+
         // Clean up peer connection but keep local stream
         if (webrtcService.peerConnection && webrtcService.peerConnection.connectionState !== 'closed') {
           console.log('[InterviewRoom] Cleaning up peer connection due to user leaving');
           webrtcService.closePeerConnection(); // Only close peer, keep local stream
         }
-        
+
         // Clear remote video
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = null;
         }
-        
+
         // IMPORTANT: Keep local stream active - don't destroy it
         console.log('[InterviewRoom] Local stream preserved after peer disconnect');
       });
@@ -277,18 +279,18 @@ const InterviewRoom = () => {
         console.log('[InterviewRoom] Peer disconnected abruptly:', data);
         setIsRemoteUserJoined(false);
         connectionInitiatedRef.current = false;
-        
+
         // Clean up peer connection
         if (webrtcService.peerConnection) {
           console.log('[InterviewRoom] Cleaning up peer connection after abrupt disconnect');
           webrtcService.closePeerConnection();
         }
-        
+
         // Clear remote video
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = null;
         }
-        
+
         // Keep local stream active
         console.log('[InterviewRoom] Local stream preserved after abrupt disconnect');
       });
@@ -299,30 +301,30 @@ const InterviewRoom = () => {
         console.log('[InterviewRoom] Signal from:', signalFrom);
         console.log('[InterviewRoom] Current user:', userId);
         console.log('[InterviewRoom] Signal type:', data.signal?.type);
-        
+
         if (signalFrom && signalFrom === userId) {
           console.log('[InterviewRoom] Ignoring own signal');
           return; // Ignore own signals
         }
-        
+
         // Check peer state before handling signal
         const peerState = webrtcService.peerConnection?.signalingState;
         console.log('[InterviewRoom] Current peer signaling state:', peerState);
-        
+
         webrtcService.handleSignal(data.signal);
       });
-      
+
       interviewSocketService.on('onChatMessage', (data) => {
         console.log('[InterviewRoom] Chat message received:', data);
         console.log('[InterviewRoom] Comparing senderId:', data.senderId, 'with userId:', userId);
-        
+
         // Skip if this is our own message (shouldn't happen with socket.to(), but just in case)
         // Convert both to string for comparison
         if (String(data.senderId) === String(userId)) {
           console.log('[InterviewRoom] Skipping own message from socket event');
           return;
         }
-        
+
         const newMessage = {
           id: data._id || data.messageId || Date.now(),
           senderId: data.senderId,
@@ -374,19 +376,19 @@ const InterviewRoom = () => {
           console.log('[InterviewRoom] Connection already initiated, skipping');
           return;
         }
-        
+
         // Check if peer already exists and is active
         if (webrtcService.peerConnection && webrtcService.peerConnection.connectionState !== 'closed') {
           console.log('[InterviewRoom] Peer connection already exists and is active, not creating new one');
           connectionInitiatedRef.current = true;
           return;
         }
-        
-        const streamToUse = stream || localStream;
+
+        const streamToUse = stream;
         if (!streamToUse) {
           throw new Error("Local stream is not available to initiate connection.");
         }
-        
+
         console.log('[InterviewRoom] Initializing peer as initiator (recruiter)');
         connectionInitiatedRef.current = true;
         webrtcService.initializePeerConnection(streamToUse);
@@ -408,26 +410,26 @@ const InterviewRoom = () => {
     // Cleanup
     return () => {
       console.log('[InterviewRoom] Cleaning up component.');
-      
+
       // Clear WebRTC event handlers
       webrtcService.eventHandlers.clear();
       webrtcService.destroy();
-      
+
       // Clear socket event handlers
       interviewSocketService.off('onUserJoined');
       interviewSocketService.off('onUserLeft');
       interviewSocketService.off('onPeerDisconnected');
       interviewSocketService.off('onSignal');
       interviewSocketService.off('onChatMessage');
-      
+
       interviewSocketService.disconnect();
-      
+
       // Stop and cleanup recording if active
       if (recordingService.getState() !== 'inactive') {
         recordingService.stopRecording().catch(err => console.error('Error stopping recording on unmount:', err));
       }
       recordingService.reset();
-      
+
       // Reset connection flag
       connectionInitiatedRef.current = false;
     };
@@ -440,9 +442,9 @@ const InterviewRoom = () => {
       console.log('[InterviewRoom] Effect: Updating local video element');
       console.log('[InterviewRoom] Video enabled:', isVideoEnabled);
       console.log('[InterviewRoom] Stream active:', localStream.active);
-      
+
       localVideoRef.current.srcObject = localStream;
-      
+
       if (isVideoEnabled) {
         localVideoRef.current.play().catch(e => {
           console.log('[InterviewRoom] Effect: Play failed:', e);
@@ -467,18 +469,18 @@ const InterviewRoom = () => {
   const toggleVideo = async () => {
     const newEnabled = !isVideoEnabled;
     console.log('[InterviewRoom] Toggling video to:', newEnabled);
-    
+
     const success = await webrtcService.toggleVideo(newEnabled);
     if (success) {
       console.log('[InterviewRoom] Video toggle successful');
       setIsVideoEnabled(newEnabled);
-      
+
       // Update local stream state to trigger effect
       const updatedStream = webrtcService.getLocalStream();
       if (updatedStream) {
         setLocalStream(updatedStream);
       }
-      
+
       toast.info(newEnabled ? 'Đã bật camera' : 'Đã tắt camera');
     } else {
       console.error('[InterviewRoom] Video toggle failed');
@@ -488,13 +490,16 @@ const InterviewRoom = () => {
 
   // End call
   const handleEndCall = () => {
-    if (window.confirm('Bạn có chắc chắn muốn kết thúc cuộc phỏng vấn?')) {
-      interviewSocketService.notifyInterviewEnd(interviewId);
-      webrtcService.destroy();
-      interviewSocketService.disconnect();
-      toast.info('Đã kết thúc cuộc phỏng vấn');
-      navigate(`/interviews/${interviewId}`);
-    }
+    setConfirmEndCallOpen(true);
+  };
+
+  const executeEndCall = () => {
+    interviewSocketService.notifyInterviewEnd(interviewId);
+    webrtcService.destroy();
+    interviewSocketService.disconnect();
+    toast.info('Đã kết thúc cuộc phỏng vấn');
+    navigate(`/interviews/${interviewId}`);
+    setConfirmEndCallOpen(false);
   };
 
   // Toggle chat
@@ -505,7 +510,7 @@ const InterviewRoom = () => {
   // Handle recording toggle
   const handleRecordingToggle = async (recording) => {
     setIsRecording(recording);
-    
+
     if (recording) {
       interviewSocketService.notifyRecordingStarted(interviewId);
       console.log('[InterviewRoom] Recording started, notified participants');
@@ -542,7 +547,7 @@ const InterviewRoom = () => {
   const handleRecordingUpload = async () => {
     try {
       const recordedBlob = recordingService.getRecordedBlob();
-      
+
       if (!recordedBlob) {
         console.warn('[InterviewRoom] No recorded blob available');
         return;
@@ -573,7 +578,7 @@ const InterviewRoom = () => {
       setIsUploading(false);
       setUploadProgress(0);
       toast.success('Video đã được tải lên thành công');
-      
+
       interviewSocketService.notifyRecordingStopped(interviewId, duration);
       console.log('[InterviewRoom] Recording uploaded, notified participants');
     } catch (error) {
@@ -587,7 +592,7 @@ const InterviewRoom = () => {
   const handleSendMessage = async (message) => {
     try {
       const response = await interviewSocketService.sendChatMessage(interviewId, message);
-      
+
       // Add message to local state immediately for better UX
       const newMessage = {
         id: response.message?._id || Date.now(),
@@ -658,10 +663,10 @@ const InterviewRoom = () => {
               </Badge>
             )}
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <ConnectionQualityIndicator 
-              quality={connectionQuality} 
+            <ConnectionQualityIndicator
+              quality={connectionQuality}
               details={qualityDetails}
             />
             {!isRemoteUserJoined && (
@@ -809,12 +814,23 @@ const InterviewRoom = () => {
             size="lg"
             variant="destructive"
             onClick={handleEndCall}
-            className="rounded-full w-14 h-14"
+            className="rounded-full w-14 h-14 bg-red-600 hover:bg-red-700"
           >
             <PhoneOff className="h-6 w-6" />
           </Button>
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={confirmEndCallOpen}
+        onOpenChange={setConfirmEndCallOpen}
+        title="Kết thúc phỏng vấn?"
+        description="Bạn có chắc chắn muốn kết thúc cuộc phỏng vấn này? Hành động này sẽ ngắt kết nối với ứng viên."
+        onConfirm={executeEndCall}
+        confirmText="Kết thúc"
+        cancelText="Hủy"
+        variant="destructive"
+      />
     </div>
   );
 };

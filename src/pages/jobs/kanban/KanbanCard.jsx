@@ -13,6 +13,7 @@ import {
     FileText,
     MoreHorizontal,
     Download,
+    RefreshCcw,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -51,7 +52,12 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                                 <AvatarFallback className="bg-blue-50 text-blue-600 font-medium text-[10px]">{application.candidateName?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                                <h4 className="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-blue-600 transition-colors leading-tight">{application.candidateName}</h4>
+                                <div className="flex items-center gap-1.5">
+                                    <h4 className="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-blue-600 transition-colors leading-tight">{application.candidateName}</h4>
+                                    {application.isReapplied && (
+                                        <RefreshCcw className="h-3 w-3 text-orange-500 shrink-0" title="Ứng tuyển lại" />
+                                    )}
+                                </div>
                                 <span className="text-[10px] text-gray-400 block mt-0.5">
                                     {utils.formatDate(application.appliedAt)}
                                 </span>
@@ -65,6 +71,14 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                             </Badge>
                         )}
                     </div>
+                    {application.isReapplied && (
+                        <div className="mt-1.5">
+                            <Badge variant="outline" className="text-[10px] px-1.5 h-4 text-orange-600 border-orange-300 bg-orange-50">
+                                <RefreshCcw className="h-2.5 w-2.5 mr-1" />
+                                Ứng tuyển lại
+                            </Badge>
+                        </div>
+                    )}
                     {(application.status === 'OFFER_DECLINED' || application.isDeclineByCandidate) && (
                         <div className="mt-2">
                             <Badge variant="destructive" className="w-full justify-center bg-red-100 text-red-700 hover:bg-red-200 border-red-200 shadow-none">

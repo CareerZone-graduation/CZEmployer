@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as talentPoolService from '@/services/talentPoolService';
@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight, Download, RefreshCw, History } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,11 +26,13 @@ import ActivityHistory from '@/components/jobs/ActivityHistory';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ScheduleInterview from '@/components/interviews/ScheduleInterview';
 import Modal from '@/components/common/Modal';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 
-const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal = false }) => {
+const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal = false, onViewPreviousApplication }) => {
   const { applicationId: paramAppId, jobId: paramJobId } = useParams();
   const applicationId = propAppId || paramAppId;
   const jobId = propJobId || paramJobId;
+  const navigate = useNavigate();
 
   const queryClient = useQueryClient();
   const [application, setApplication] = useState(null);
@@ -44,6 +46,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   // State for modals
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   // Add to talent pool mutation
   // Add to talent pool mutation
@@ -80,28 +84,29 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
-  const handleStatusUpdate = async (newStatus) => {
-    if (newStatus === application.status) return;
-
-    if (['REJECTED', 'OFFER_SENT'].includes(newStatus)) {
-      const confirmMessage = newStatus === 'REJECTED'
-        ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này không thể hoàn tác.'
-        : 'Bạn có chắc chắn muốn gửi đề nghị cho ứng viên này?';
-
-      if (!window.confirm(confirmMessage)) {
-        return;
-      }
-    }
-
+  const updateStatus = async (status) => {
     setIsSubmitting(true);
     try {
-      const response = await applicationService.updateApplicationStatus(applicationId, newStatus);
+      const response = await applicationService.updateApplicationStatus(applicationId, status);
       setApplication(response.data);
       toast.success('Cập nhật trạng thái thành công');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
     } finally {
       setIsSubmitting(false);
+      setConfirmOpen(false);
+      setPendingStatus(null);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus) => {
+    if (newStatus === application.status) return;
+
+    if (['REJECTED', 'OFFER_SENT'].includes(newStatus)) {
+      setPendingStatus(newStatus);
+      setConfirmOpen(true);
+    } else {
+      updateStatus(newStatus);
     }
   };
 
@@ -213,8 +218,16 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             </Avatar>
             <div className="space-y-1 flex-1">
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-gray-900">{application.candidateName}</h2>
+                  {application.isReapplied && (
+                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs px-2 py-0.5">
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Ứng tuyển lại
+                    </Badge>
+                  )}
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">
                     Ứng tuyển: <span className="font-medium text-gray-700">{application.jobSnapshot.title}</span>
                   </p>
@@ -319,6 +332,42 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
           </div>
         </div>
       </Card >
+
+      {/* Previous Application History - chỉ hiển thị nếu đây là đơn ứng tuyển lại */}
+      {application.previousApplicationId && (
+        <Card className="bg-orange-50 border-orange-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <History className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-orange-900">Đây là đơn ứng tuyển lại</p>
+                  <p className="text-sm text-orange-700">Ứng viên đã từng ứng tuyển vào vị trí này trước đó</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                onClick={() => {
+                  if (isModal && onViewPreviousApplication) {
+                    // Trong modal: gọi callback để thay đổi applicationId
+                    onViewPreviousApplication(application.previousApplicationId);
+                  } else {
+                    // Ngoài modal: navigate sang trang mới
+                    navigate(`/applications/${application.previousApplicationId}`);
+                  }
+                }}
+              >
+                <History className="h-4 w-4 mr-2" />
+                Xem đơn trước
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
         {/* Left Column: CV Viewer & Notes (8 cols) */}
@@ -464,6 +513,20 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         onOpenChange={setIsInterviewModalOpen}
         application={application}
         onSuccess={handleScheduleSuccess}
+      />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={pendingStatus === 'REJECTED' ? 'Từ chối ứng viên?' : 'Gửi đề nghị (Offer)?'}
+        description={pendingStatus === 'REJECTED'
+          ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này sẽ gửi email thông báo cho ứng viên và không thể hoàn tác.'
+          : 'Bạn có chắc chắn muốn gửi đề nghị làm việc cho ứng viên này?'}
+        onConfirm={() => updateStatus(pendingStatus)}
+        confirmText={pendingStatus === 'REJECTED' ? 'Từ chối' : 'Gửi Offer'}
+        cancelText="Hủy bỏ"
+        variant={pendingStatus === 'REJECTED' ? 'destructive' : 'default'}
+        isLoading={isSubmitting}
       />
     </div >
   );

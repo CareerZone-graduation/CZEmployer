@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, File, FileText, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ALLOWED_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -25,23 +26,23 @@ const AttachmentUploader = ({ files = [], onChange, error }) => {
 
   const validateFile = (file) => {
     const extension = file.name.split('.').pop().toLowerCase();
-    
+
     if (!ALLOWED_FILE_TYPES.includes(extension)) {
       return `Loại tệp "${extension}" không được hỗ trợ. Chỉ chấp nhận: ${ALLOWED_FILE_TYPES.join(', ')}`;
     }
-    
+
     if (file.size > MAX_FILE_SIZE) {
       return `Tệp "${file.name}" vượt quá giới hạn 10MB`;
     }
-    
+
     return null;
   };
 
   const handleFiles = (newFiles) => {
     const fileArray = Array.from(newFiles);
-    
+
     if (files.length + fileArray.length > MAX_FILES) {
-      alert(`Chỉ được tải lên tối đa ${MAX_FILES} tệp`);
+      toast.error(`Chỉ được tải lên tối đa ${MAX_FILES} tệp`);
       return;
     }
 
@@ -58,7 +59,7 @@ const AttachmentUploader = ({ files = [], onChange, error }) => {
     });
 
     if (errors.length > 0) {
-      alert(errors.join('\n'));
+      toast.error(errors.join('\n'));
     }
 
     if (validFiles.length > 0) {
@@ -80,7 +81,7 @@ const AttachmentUploader = ({ files = [], onChange, error }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files);
     }
@@ -105,11 +106,10 @@ const AttachmentUploader = ({ files = [], onChange, error }) => {
     <div className="w-full">
       {/* Upload Area */}
       <div
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          dragActive
+        className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${dragActive
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 hover:border-gray-400'
-        } ${error ? 'border-red-500' : ''}`}
+          } ${error ? 'border-red-500' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -124,7 +124,7 @@ const AttachmentUploader = ({ files = [], onChange, error }) => {
           onChange={handleChange}
           className="hidden"
         />
-        
+
         <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
         <p className="text-sm text-gray-600 mb-2">
           Kéo thả tệp vào đây hoặc click để chọn

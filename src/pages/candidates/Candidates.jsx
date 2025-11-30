@@ -34,7 +34,8 @@ import {
   Check,
   ChevronsUpDown,
   Briefcase,
-  Filter
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from 'cmdk';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -468,9 +469,17 @@ const Candidates = () => {
                     {applications.map((app) => (
                       <TableRow key={app._id} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/jobs/${app.jobId}/applications/${app._id}`)}>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{app.candidateName}</p>
-                            <p className="text-sm text-muted-foreground">{app.candidateEmail}</p>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium">{app.candidateName}</p>
+                              <p className="text-sm text-muted-foreground">{app.candidateEmail}</p>
+                            </div>
+                            {app.isReapplied && (
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs px-1.5 py-0.5">
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Ứng tuyển lại
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>

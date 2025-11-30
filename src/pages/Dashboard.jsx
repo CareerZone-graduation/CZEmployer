@@ -344,7 +344,7 @@ const Dashboard = () => {
                             {format(new Date(interview.scheduledTime), 'dd/MM')}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{interview.candidateId?.fullname}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">{interview.roomName}</p>
                             <p className="text-xs text-gray-500 truncate">{interview.jobId?.title}</p>
                           </div>
                           <div className="text-right">

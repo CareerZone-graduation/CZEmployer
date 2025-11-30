@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import KanbanColumn from './KanbanColumn';
 import * as applicationService from '@/services/applicationService';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 
 const COLUMNS = [
     { id: 'PENDING', title: 'Tiếp nhận', color: 'bg-yellow-100' },
@@ -32,6 +33,12 @@ const KanbanBoard = ({
 }) => {
     const [columns, setColumns] = useState({});
     const [draggingStatus, setDraggingStatus] = useState(null);
+    const [confirmConfig, setConfirmConfig] = useState({
+        open: false,
+        applicationId: null,
+        newStatus: null,
+        oldStatus: null
+    });
 
     // Group applications by status
     useEffect(() => {
@@ -62,6 +69,34 @@ const KanbanBoard = ({
         setDraggingStatus(null);
     };
 
+    const executeStatusChange = async (applicationId, newStatus, oldStatus) => {
+        // Intercept SCHEDULED_INTERVIEW
+        if (newStatus === 'SCHEDULED_INTERVIEW') {
+            const appToMove = applications.find(app => app._id === applicationId);
+            if (onScheduleInterview) {
+                onScheduleInterview(appToMove);
+            } else {
+                toast.error("Chức năng lên lịch phỏng vấn chưa được cấu hình");
+            }
+            return;
+        }
+
+        // Optimistic update
+        onStatusChange(applicationId, newStatus);
+
+        try {
+            await applicationService.updateApplicationStatus(applicationId, newStatus);
+            toast.success(`Đã chuyển sang trạng thái ${COLUMNS.find(c => c.id === newStatus)?.title}`);
+        } catch (error) {
+            // Revert on failure
+            onStatusChange(applicationId, oldStatus);
+            toast.error('Không thể cập nhật trạng thái');
+            console.error(error);
+        } finally {
+            setConfirmConfig(prev => ({ ...prev, open: false }));
+        }
+    };
+
     const handleDrop = async (applicationId, newStatus) => {
         setDraggingStatus(null); // Reset dragging state
         const appToMove = applications.find(app => app._id === applicationId);
@@ -82,37 +117,16 @@ const KanbanBoard = ({
 
         // Confirmation for final/semi-final states
         if (['REJECTED', 'OFFER_SENT'].includes(newStatus)) {
-            const confirmMessage = newStatus === 'REJECTED'
-                ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này không thể hoàn tác.'
-                : 'Bạn có chắc chắn muốn gửi đề nghị cho ứng viên này?';
-
-            if (!window.confirm(confirmMessage)) {
-                return;
-            }
-        }
-
-        // Intercept SCHEDULED_INTERVIEW
-        if (newStatus === 'SCHEDULED_INTERVIEW') {
-            if (onScheduleInterview) {
-                onScheduleInterview(appToMove);
-            } else {
-                toast.error("Chức năng lên lịch phỏng vấn chưa được cấu hình");
-            }
+            setConfirmConfig({
+                open: true,
+                applicationId,
+                newStatus,
+                oldStatus
+            });
             return;
         }
 
-        // Optimistic update
-        onStatusChange(applicationId, newStatus);
-
-        try {
-            await applicationService.updateApplicationStatus(applicationId, newStatus);
-            toast.success(`Đã chuyển sang trạng thái ${COLUMNS.find(c => c.id === newStatus)?.title}`);
-        } catch (error) {
-            // Revert on failure
-            onStatusChange(applicationId, oldStatus);
-            toast.error('Không thể cập nhật trạng thái');
-            console.error(error);
-        }
+        executeStatusChange(applicationId, newStatus, oldStatus);
     };
 
     if (isLoading) {
@@ -146,6 +160,18 @@ const KanbanBoard = ({
                     />
                 );
             })}
+            <ConfirmationDialog
+                open={confirmConfig.open}
+                onOpenChange={(open) => setConfirmConfig(prev => ({ ...prev, open }))}
+                title={confirmConfig.newStatus === 'REJECTED' ? 'Từ chối ứng viên?' : 'Gửi đề nghị (Offer)?'}
+                description={confirmConfig.newStatus === 'REJECTED'
+                    ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này sẽ gửi email thông báo cho ứng viên và không thể hoàn tác.'
+                    : 'Bạn có chắc chắn muốn gửi đề nghị làm việc cho ứng viên này?'}
+                onConfirm={() => executeStatusChange(confirmConfig.applicationId, confirmConfig.newStatus, confirmConfig.oldStatus)}
+                confirmText={confirmConfig.newStatus === 'REJECTED' ? 'Từ chối' : 'Gửi Offer'}
+                cancelText="Hủy bỏ"
+                variant={confirmConfig.newStatus === 'REJECTED' ? 'destructive' : 'default'}
+            />
         </div>
     );
 };

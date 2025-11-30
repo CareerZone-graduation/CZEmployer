@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 
@@ -493,7 +493,27 @@ const JobApplications = ({ isEmbedded = false }) => {
                                   onClick={() => setViewingApplicationId(app._id)}
                                   className="cursor-pointer"
                                 >
-                                  <div className="font-medium">{app.candidateName}</div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{app.candidateName}</span>
+                                    {app.isReapplied && (
+                                      <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs">
+                                        <RefreshCcw className="h-3 w-3 mr-1" />
+                                        Ứng tuyển lại
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {app.isReapplied && app.previousApplicationId && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setViewingApplicationId(app.previousApplicationId);
+                                      }}
+                                      className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1"
+                                    >
+                                      <History className="h-3 w-3" />
+                                      Xem đơn trước
+                                    </button>
+                                  )}
                                 </TableCell>
                                 <TableCell
                                   onClick={() => setViewingApplicationId(app._id)}
@@ -612,6 +632,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                 applicationId={viewingApplicationId}
                 jobId={jobId}
                 isModal={true}
+                onViewPreviousApplication={(prevAppId) => setViewingApplicationId(prevAppId)}
               />
             )}
           </Modal>
