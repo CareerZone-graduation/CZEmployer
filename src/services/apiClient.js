@@ -12,7 +12,7 @@ export const setupApiClient = (appStore) => {
 };
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:5000/api", // Lấy URL từ biến môi trường
+  baseURL: "/api", 
   timeout: 15000,
   withCredentials: false, // KHÔNG gửi cookie mặc định
 });
@@ -80,16 +80,16 @@ apiClient.interceptors.response.use(
         // Break the circular dependency by calling the refresh endpoint directly
         const refreshResponse = await refreshToken();
         console.log("Refresh response:", refreshResponse);
-        
+
         // 🚨 THAY ĐỔI Ở ĐÂY 🚨
         // refreshResponse bây giờ là data, không phải là response object đầy đủ
-        const { accessToken } = refreshResponse.data; 
+        const { accessToken } = refreshResponse.data;
         console.log("Refreshed access token:", accessToken);
-        
+
         saveAccessToken(accessToken);
-        
+
         publishRefresh(accessToken);
-        
+
         config.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(config);
       } catch (refreshErr) {
