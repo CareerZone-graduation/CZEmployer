@@ -134,6 +134,7 @@ class InterviewSocketService {
         reconnectionDelay: this.reconnectDelay,
         reconnectionDelayMax: 10000,
         timeout: 20000,
+        path: '/socket.io',
       });
 
       // Connection successful
