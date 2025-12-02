@@ -32,13 +32,13 @@ export default defineConfig(({ mode }) => {
       port: 4000,
       open: true,
       host: true,
-      proxy: {
-        "/api": {
-          target: env.VITE_API_URL,
-          changeOrigin: true,
-          secure: false,
-        },
-      },
+      // proxy: {
+      //   "/api": {
+      //     target: env.VITE_API_URL,
+      //     changeOrigin: true,
+      //     secure: false,
+      //   },
+      // },
     },
 
     build: {

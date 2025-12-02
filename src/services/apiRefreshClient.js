@@ -4,7 +4,7 @@ import axios from 'axios';
 // Instance này CHỈ dùng để refresh token
 // Nó không có request interceptor để gắn Authorization header
 const apiRefreshClient = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL + '/api',
   timeout: 10000,
   // Rất quan trọng: để gửi httpOnly cookie chứa refresh token
   withCredentials: true, 
