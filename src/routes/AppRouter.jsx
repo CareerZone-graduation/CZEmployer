@@ -18,7 +18,7 @@ import ArchivedJobs from '@/pages/jobs/ArchivedJobs';
 import RecruiterJobDetail from '@/pages/jobs/RecruiterJobDetail';
 import JobApplications from '@/pages/jobs/JobApplications';
 import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
-import Notifications from '@/pages/notifications';
+import Notifications from '@/pages/Notifications';
 import InterviewList from '@/pages/interviews/InterviewList';
 import InterviewDetail from '@/pages/interviews/InterviewDetail';
 import DeviceTest from '@/components/interviews/DeviceTest';
