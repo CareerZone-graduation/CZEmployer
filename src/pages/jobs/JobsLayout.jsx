@@ -4,7 +4,7 @@ import ModuleTabs from '@/components/common/ModuleTabs';
 const jobTabs = [
   { to: '', label: 'Danh sách' },
   { to: '/create', label: 'Tạo mới' },
-  { to: '/archived', label: 'Đã ẩn / Chờ duyệt' },
+  { to: '/archived', label: 'Chờ duyệt' },
 ];
 
 const JobsLayout = () => {

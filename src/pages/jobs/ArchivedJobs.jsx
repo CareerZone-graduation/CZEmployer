@@ -76,14 +76,14 @@ const ArchivedJobs = () => {
 
   const getStatusBadge = (job) => {
     // Check if job is pending approval
-    if (job.approved === false) {
+    if (job.moderationStatus === 'PENDING') {
       return (
         <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
           Chờ phê duyệt
         </Badge>
       );
     }
-    
+
     // Check status for approved jobs
     const statusConfig = {
       INACTIVE: { label: 'Đã ẩn', variant: 'outline', className: 'bg-gray-100 text-gray-800' },
@@ -132,7 +132,7 @@ const ArchivedJobs = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-800">
             <Briefcase className="h-5 w-5" />
-            Đã ẩn / Chờ duyệt ({meta.totalItems || 0})
+            Danh sách chờ duyệt ({meta.totalItems || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -141,7 +141,7 @@ const ArchivedJobs = () => {
           ) : error ? (
             <ErrorState onRetry={fetchJobs} message={error} />
           ) : jobs.length === 0 ? (
-            <EmptyState message="Không có công việc nào đã ẩn hoặc đang chờ phê duyệt." />
+            <EmptyState message="Không có công việc nào đang chờ phê duyệt." />
           ) : (
             <div className="space-y-4">
               {jobs.map((job) => (
@@ -183,8 +183,8 @@ const ArchivedJobs = () => {
                                   {job.minSalary && job.maxSalary
                                     ? `${utils.formatCurrency(job.minSalary)} - ${utils.formatCurrency(job.maxSalary)}`
                                     : job.minSalary
-                                    ? `Từ ${utils.formatCurrency(job.minSalary)}`
-                                    : `Lên đến ${utils.formatCurrency(job.maxSalary)}`}
+                                      ? `Từ ${utils.formatCurrency(job.minSalary)}`
+                                      : `Lên đến ${utils.formatCurrency(job.maxSalary)}`}
                                 </span>
                               </div>
                             )}

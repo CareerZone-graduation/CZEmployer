@@ -151,12 +151,21 @@ const JobList = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (job) => {
+    if (job.moderationStatus === 'PENDING') {
+      return (
+        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+          Chờ duyệt
+        </Badge>
+      );
+    }
+
     const statusConfig = {
-      ACTIVE: { label: 'Đang tuyển', variant: 'default', className: 'bg-green-100 text-green-800' },
-      INACTIVE: { label: 'Đã ẩn', variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
+      ACTIVE: { label: 'Đang tuyển dụng', variant: 'default', className: 'bg-green-100 text-green-800' },
+      INACTIVE: { label: 'Ngừng tuyển dụng', variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
+      EXPIRED: { label: 'Hết hạn nộp', variant: 'outline', className: 'bg-red-50 text-red-600 border-red-200' },
     };
-    const config = statusConfig[status] || statusConfig.ACTIVE;
+    const config = statusConfig[job.status] || statusConfig.ACTIVE;
     return (
       <Badge variant={config.variant} className={config.className}>
         {config.label}
@@ -194,9 +203,9 @@ const JobList = () => {
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Đang tuyển</SelectItem>
-                  <SelectItem value="INACTIVE">Đã đóng</SelectItem>
-                  <SelectItem value="EXPIRED">Hết hạn</SelectItem>
+                  <SelectItem value="ACTIVE">Đang tuyển dụng</SelectItem>
+                  <SelectItem value="INACTIVE">Ngừng tuyển dụng</SelectItem>
+                  <SelectItem value="EXPIRED">Hết hạn nộp</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -267,7 +276,7 @@ const JobList = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">{getStatusBadge(job.status)}</div>
+                          <div className="text-right">{getStatusBadge(job)}</div>
                         </div>
 
                         <p className="text-gray-700 text-sm mb-3 line-clamp-2">{job.description}</p>
