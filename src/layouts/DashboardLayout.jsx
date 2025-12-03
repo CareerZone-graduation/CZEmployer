@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import CompactSidebar from '@/components/CompactSidebar';
 import AIChatbot from '@/components/common/AIChatbot';
 import socketService from '@/services/socketService';
-import { fetchRecentNotifications, incrementUnreadCount } from '@/redux/notificationSlice';
+import { fetchRecentNotifications, incrementUnreadCount, fetchUnreadCount } from '@/redux/notificationSlice';
 import { toast } from 'sonner';
 
 const DashboardLayout = () => {
@@ -20,6 +20,10 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      // Fetch initial data
+      dispatch(fetchUnreadCount());
+      dispatch(fetchRecentNotifications());
+
       // Kết nối socket
       socketService.connect();
 

@@ -123,9 +123,13 @@ const MessageThread = ({
       hasJoined = true;
 
       // Mark messages as read
-      markConversationAsRead(conversationId).catch(err => {
-        console.error('Failed to mark conversation as read:', err);
-      });
+      markConversationAsRead(conversationId)
+        .then(() => {
+          queryClient.invalidateQueries(['conversations']);
+        })
+        .catch(err => {
+          console.error('Failed to mark conversation as read:', err);
+        });
     };
 
     // If already connected, join immediately
@@ -170,7 +174,7 @@ const MessageThread = ({
         socketService.leaveConversation(conversationId);
       }
     };
-  }, [conversationId]);
+  }, [conversationId, queryClient]);
 
   // Re-join conversation on reconnect
   useEffect(() => {
@@ -218,11 +222,15 @@ const MessageThread = ({
 
     // Mark as read if from other user
     if (message.senderId !== currentUser?._id) {
-      markConversationAsRead(conversationId).catch(err => {
-        console.error('Failed to mark message as read:', err);
-      });
+      markConversationAsRead(conversationId)
+        .then(() => {
+          queryClient.invalidateQueries(['conversations']);
+        })
+        .catch(err => {
+          console.error('Failed to mark message as read:', err);
+        });
     }
-  }, [conversationId, currentUser]);
+  }, [conversationId, currentUser, queryClient]);
 
   // Handle message read receipt
   const handleMessageRead = useCallback((data) => {

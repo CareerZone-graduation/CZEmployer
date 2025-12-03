@@ -36,13 +36,13 @@ const CandidateComparison = () => {
   useEffect(() => {
     if (!applicationIds || applicationIds.length === 0) {
       toast.error('Không có ứng viên nào được chọn để so sánh');
-      navigate('/candidates');
+      navigate('/talent-pool');
       return;
     }
 
     if (applicationIds.length > 5) {
       toast.error('Chỉ có thể so sánh tối đa 5 ứng viên');
-      navigate('/candidates');
+      navigate('/talent-pool');
       return;
     }
 
@@ -74,7 +74,7 @@ const CandidateComparison = () => {
     const updatedIds = applicationIds.filter(id => id !== applicationId);
     if (updatedIds.length < 2) {
       toast.error('Cần ít nhất 2 ứng viên để so sánh');
-      navigate('/candidates');
+      navigate('/talent-pool');
       return;
     }
     navigate('/candidates/compare', {
@@ -144,7 +144,7 @@ const CandidateComparison = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/candidates')}>
+          <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Quay lại
           </Button>

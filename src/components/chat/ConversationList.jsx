@@ -170,6 +170,7 @@ const ConversationList = ({ selectedConversation, selectedConversationId, onConv
   // Optimistically mark conversation as read when selected
   useEffect(() => {
     if (selectedConversationId && conversations.length > 0) {
+      // Update list with search param
       queryClient.setQueryData(['conversations', debouncedSearch], (oldData) => {
         if (!oldData) return oldData;
         return {
@@ -183,6 +184,21 @@ const ConversationList = ({ selectedConversation, selectedConversationId, onConv
               return conv;
             })
           }))
+        };
+      });
+
+      // Update sidebar list (no search param)
+      queryClient.setQueryData(['conversations'], (oldData) => {
+        if (!oldData || !oldData.data) return oldData;
+
+        return {
+          ...oldData,
+          data: oldData.data.map(conv => {
+            if (conv._id === selectedConversationId && conv.unreadCount > 0) {
+              return { ...conv, unreadCount: 0 };
+            }
+            return conv;
+          })
         };
       });
     }

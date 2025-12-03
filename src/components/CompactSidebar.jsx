@@ -20,6 +20,13 @@ import {
   LifeBuoy,
   Settings
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,16 +47,11 @@ const sidebarItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
   { href: '/company-profile', label: 'Công ty', icon: Building2, description: 'Hồ sơ và thông tin công ty' },
   { href: '/jobs', label: 'Việc làm', icon: Briefcase, description: 'Quản lý tin tuyển dụng' },
-  { href: '/candidates', label: 'Ứng viên', icon: Users, description: 'Quản lý ứng viên' },
+  { href: '/talent-pool', label: 'Talent Pool', icon: Users, description: 'Quản lý hồ sơ đã lưu' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
   { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
-];
-
-const bottomItems = [
-  { href: '/settings', label: 'Cài đặt', icon: Settings, description: 'Cài đặt tài khoản' },
-  { href: '/support', label: 'Hỗ trợ', icon: LifeBuoy, description: 'Yêu cầu hỗ trợ' },
 ];
 
 const CompactSidebar = ({ isPinned, onTogglePin }) => {
@@ -261,12 +263,12 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                     </div>
                   </div>
                   {isMessageItem && unreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center text-white">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Badge>
                   )}
                   {item.href === '/notifications' && notificationUnreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center text-white">
                       {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                     </Badge>
                   )}
@@ -293,7 +295,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                     {isMessageItem && unreadCount > 0 && (
                       <Badge
                         variant="destructive"
-                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] text-white"
                       >
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </Badge>
@@ -301,7 +303,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                     {item.href === '/notifications' && notificationUnreadCount > 0 && (
                       <Badge
                         variant="destructive"
-                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] text-white"
                       >
                         {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                       </Badge>
@@ -319,100 +321,63 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           })}
         </nav>
 
-        {/* Bottom Items: Settings, Support, Logout */}
-        <div className="p-2 mt-auto border-t border-gray-200 space-y-2">
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.href ||
-              (item.href !== '/' && location.pathname.startsWith(item.href));
+        {/* Bottom Section: System Menu (Settings, Support, Logout) */}
+        <div className="p-2 mt-auto border-t border-gray-200">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full group relative",
+                  (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support'))
+                    ? "bg-emerald-700 text-white"
+                    : "text-gray-700 hover:bg-gray-100",
+                  !shouldShowExpanded && "justify-center px-0 w-12 h-12"
+                )}
+              >
+                <Settings className={cn(
+                  "h-5 w-5 flex-shrink-0",
+                  (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white" : "text-gray-600"
+                )} />
 
-            if (shouldShowExpanded) {
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
-                    isActive
-                      ? "bg-emerald-700 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  )}
-                >
-                  <Icon className={cn(
-                    "h-5 w-5 flex-shrink-0",
-                    isActive ? "text-white" : "text-gray-600"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate">{item.label}</div>
-                    <div className={cn(
-                      "text-xs truncate mt-0.5",
-                      isActive ? "text-emerald-100" : "text-gray-500"
-                    )}>
-                      {item.description}
+                {shouldShowExpanded && (
+                  <>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="truncate">Hệ thống</div>
+                      <div className={cn(
+                        "text-xs truncate mt-0.5",
+                        (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-emerald-100" : "text-gray-500"
+                      )}>
+                        Cài đặt & Hỗ trợ
+                      </div>
                     </div>
-                  </div>
-                  {isActive && (
-                    <ChevronRight className="h-4 w-4 text-white ml-auto" />
-                  )}
+                    <ChevronRight className={cn(
+                      "h-4 w-4 ml-auto",
+                      (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white" : "text-gray-400"
+                    )} />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="w-56" sideOffset={10}>
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="cursor-pointer w-full flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Cài đặt</span>
                 </Link>
-              );
-            }
-
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
-                  <Link
-                    to={item.href}
-                    className={cn(
-                      "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
-                      isActive
-                        ? "bg-emerald-700 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="ml-2">
-                  <div>
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{item.description}</div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-
-          {/* Logout Button */}
-          {shouldShowExpanded ? (
-            <button
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-red-600 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              <div className="flex-1 min-w-0 text-left">
-                <div className="truncate">Đăng xuất</div>
-
-              </div>
-            </button>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="flex items-center justify-center w-12 h-12 rounded-lg transition-colors text-red-600 hover:bg-red-50"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="ml-2">
-                <div>
-                  <div className="font-medium">Đăng xuất</div>
-                  <div className="text-xs text-gray-500 mt-1">Thoát khỏi hệ thống</div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/support" className="cursor-pointer w-full flex items-center">
+                  <LifeBuoy className="mr-2 h-4 w-4" />
+                  <span>Hỗ trợ</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer w-full flex items-center">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Đăng xuất</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </TooltipProvider>
