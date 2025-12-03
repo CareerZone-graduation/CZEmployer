@@ -36,8 +36,8 @@ const JobApplications = ({ isEmbedded = false }) => {
   const [job, setJob] = useState(null);
   const [applications, setApplications] = useState([]);
   const [meta, setMeta] = useState({});
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
+  const [isJobLoading, setIsJobLoading] = useState(true);
+  const [isAppsLoading, setIsAppsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplications, setSelectedApplications] = useState([]);
@@ -68,45 +68,50 @@ const JobApplications = ({ isEmbedded = false }) => {
     }
   }, [viewMode]);
 
-  const fetchJobAndApplications = useCallback(async (isInitial = false) => {
-    if (isInitial) {
-      setIsInitialLoading(true);
-    } else {
-      setIsFetching(true);
+  const fetchJob = useCallback(async () => {
+    setIsJobLoading(true);
+    try {
+      const jobResponse = await jobService.getRecruiterJobById(jobId);
+      setJob(jobResponse.data);
+    } catch (err) {
+      console.error("Error fetching job:", err);
+      const errorMessage = err.response?.data?.message || 'Không thể tải thông tin công việc.';
+      toast.error(errorMessage);
+    } finally {
+      setIsJobLoading(false);
     }
+  }, [jobId]);
+
+  const fetchApplications = useCallback(async () => {
+    setIsAppsLoading(true);
     setError(null);
     try {
       const apiFilters = { ...filters };
       if (apiFilters.status === 'all') delete apiFilters.status;
       if (apiFilters.isReapplied === 'all') delete apiFilters.isReapplied;
 
-      const [jobResponse, appsResponse] = await Promise.all([
-        jobService.getRecruiterJobById(jobId),
-        applicationService.getJobApplications(jobId, apiFilters),
-      ]);
-      setJob(jobResponse.data);
+      const appsResponse = await applicationService.getJobApplications(jobId, apiFilters);
       setApplications(appsResponse.data);
       setMeta(appsResponse.meta);
     } catch (err) {
-      console.error("Error fetching data:", err);
-      const errorMessage = err.response?.data?.message || 'Không thể tải dữ liệu.';
+      console.error("Error fetching applications:", err);
+      const errorMessage = err.response?.data?.message || 'Không thể tải danh sách ứng viên.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setIsInitialLoading(false);
-      setIsFetching(false);
+      setIsAppsLoading(false);
     }
   }, [jobId, filters]);
 
+  // Fetch job details (only when jobId changes)
   useEffect(() => {
-    fetchJobAndApplications(true);
-  }, [fetchJobAndApplications]);
+    fetchJob();
+  }, [fetchJob]);
 
+  // Fetch applications (when jobId or filters change)
   useEffect(() => {
-    if (!isInitialLoading) {
-      fetchJobAndApplications(false);
-    }
-  }, [filters, isInitialLoading, fetchJobAndApplications]);
+    fetchApplications();
+  }, [fetchApplications]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
@@ -179,7 +184,7 @@ const JobApplications = ({ isEmbedded = false }) => {
     if (schedulingApplication) {
       handleStatusChange(schedulingApplication._id, 'SCHEDULED_INTERVIEW');
     }
-    fetchJobAndApplications(false);
+    fetchApplications();
   };
 
   const handleCardAction = (action, application) => {
@@ -267,11 +272,11 @@ const JobApplications = ({ isEmbedded = false }) => {
       </div>
 
       {error ? (
-        <ErrorState onRetry={() => fetchJobAndApplications(true)} message={error} />
+        <ErrorState onRetry={() => { fetchJob(); fetchApplications(); }} message={error} />
       ) : (
         <>
           {/* Stats Summary Bar */}
-          {isInitialLoading ? <StatsSkeleton /> : (
+          {isJobLoading ? <StatsSkeleton /> : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6 max-w-7xl mx-auto w-full">
               <Card className="bg-blue-50 border-blue-100">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
@@ -418,7 +423,7 @@ const JobApplications = ({ isEmbedded = false }) => {
             </CardHeader>
 
             <CardContent className="px-0 min-w-0">
-              {(isInitialLoading || (isFetching && viewMode === 'list')) ? (
+              {(isAppsLoading && viewMode === 'list') ? (
                 <ListSkeleton />
               ) : viewMode === 'kanban' ? (
                 <KanbanBoard
@@ -427,7 +432,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                   onCardClick={(app) => setViewingApplicationId(app._id)}
                   onCardAction={handleCardAction}
                   onScheduleInterview={handleOpenScheduleModal}
-                  isLoading={isFetching}
+                  isLoading={isAppsLoading}
                 />
               ) : (
                 <Card>

@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MoreHorizontal, Calendar as CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateTime } from '@/utils/formatDate';
 import { cn } from '@/lib/utils';
@@ -37,11 +38,15 @@ import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 const InterviewList = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
@@ -49,7 +54,7 @@ const InterviewList = () => {
 
   // Fetch interviews with TanStack Query
   const { data: interviews = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['interviews', statusFilter],
+    queryKey: ['interviews', statusFilter, debouncedSearch, dateRange],
     queryFn: async () => {
       const params = { page: 1, limit: 100 };
       // Only send status to API if it's a valid backend enum value
@@ -57,10 +62,23 @@ const InterviewList = () => {
       if (statusFilter !== 'all' && statusFilter !== 'upcoming' && statusFilter !== 'past') {
         params.status = statusFilter;
       }
+      if (debouncedSearch) {
+        params.search = debouncedSearch;
+      }
+      if (dateRange?.from) {
+        params.startDate = dateRange.from.toISOString();
+      }
+      if (dateRange?.to) {
+        params.endDate = dateRange.to.toISOString();
+      }
       const response = await interviewService.getMyInterviews(params);
       return response.data || [];
     },
   });
+
+  const handleSearch = () => {
+    setDebouncedSearch(search);
+  };
 
   // Cancel interview mutation
   const cancelMutation = useMutation({
@@ -188,16 +206,33 @@ const InterviewList = () => {
         </p>
       </div>
 
-      <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">Tất cả</TabsTrigger>
-          <TabsTrigger value="upcoming">Sắp tới</TabsTrigger>
-          <TabsTrigger value="SCHEDULED">Đã lên lịch</TabsTrigger>
-          <TabsTrigger value="RESCHEDULED">Đã dời lịch</TabsTrigger>
-          <TabsTrigger value="COMPLETED">Hoàn thành</TabsTrigger>
-          <TabsTrigger value="CANCELLED">Đã hủy</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
+          <TabsList>
+            <TabsTrigger value="all">Tất cả</TabsTrigger>
+            <TabsTrigger value="upcoming">Sắp tới</TabsTrigger>
+            <TabsTrigger value="SCHEDULED">Đã lên lịch</TabsTrigger>
+            <TabsTrigger value="RESCHEDULED">Đã dời lịch</TabsTrigger>
+            <TabsTrigger value="COMPLETED">Hoàn thành</TabsTrigger>
+            <TabsTrigger value="CANCELLED">Đã hủy</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="flex w-full md:w-auto items-center gap-2">
+          <DateRangePicker date={dateRange} setDate={setDateRange} />
+          <div className="relative flex-1 md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Tìm kiếm phỏng vấn..."
+              className="pl-9 bg-white"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
+          <Button onClick={handleSearch} variant="secondary">Tìm kiếm</Button>
+        </div>
+      </div>
 
       {isLoading ? (
         <InterviewTableSkeleton />
@@ -207,9 +242,9 @@ const InterviewList = () => {
         <EmptyState
           title="Chưa có lịch phỏng vấn"
           message={
-            statusFilter === 'all'
+            statusFilter === 'all' && !debouncedSearch && !dateRange?.from
               ? "Hiện tại bạn chưa có cuộc phỏng vấn nào được lên lịch."
-              : `Không có phỏng vấn nào với trạng thái "${getStatusInfo(statusFilter).label}".`
+              : "Không tìm thấy phỏng vấn nào phù hợp với bộ lọc."
           }
         />
       ) : (

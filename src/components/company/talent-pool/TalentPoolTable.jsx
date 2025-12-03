@@ -5,7 +5,6 @@ import * as talentPoolService from '@/services/talentPoolService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -39,7 +38,6 @@ import { useNavigate } from 'react-router-dom';
 const TalentPoolTable = ({ data, meta, onPageChange }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedItems, setSelectedItems] = useState([]);
   const [entryToDelete, setEntryToDelete] = useState(null);
   const [entryToEdit, setEntryToEdit] = useState(null);
 
@@ -55,22 +53,6 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
       toast.error(error?.response?.data?.message || 'Lỗi khi xóa ứng viên');
     },
   });
-
-  const handleSelectAll = (checked) => {
-    if (checked) {
-      setSelectedItems(data.map((item) => item._id));
-    } else {
-      setSelectedItems([]);
-    }
-  };
-
-  const handleSelectItem = (itemId, checked) => {
-    if (checked) {
-      setSelectedItems([...selectedItems, itemId]);
-    } else {
-      setSelectedItems(selectedItems.filter((id) => id !== itemId));
-    }
-  };
 
   const handleRemove = (talentPoolId) => {
     setEntryToDelete(talentPoolId);
@@ -117,12 +99,6 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={selectedItems.length === data.length && data.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
               <TableHead>Ứng viên</TableHead>
               <TableHead>Ghi chú</TableHead>
               <TableHead>Công việc đã ứng tuyển</TableHead>
@@ -133,12 +109,6 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
           <TableBody>
             {data.map((entry) => (
               <TableRow key={entry._id}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedItems.includes(entry._id)}
-                    onCheckedChange={(checked) => handleSelectItem(entry._id, checked)}
-                  />
-                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">

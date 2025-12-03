@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
@@ -6,14 +6,15 @@ import { Search, X } from 'lucide-react';
 const TalentPoolFilters = ({ filters, onFilterChange }) => {
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onFilterChange({ search: searchTerm });
-    }, 500);
+  const handleSearch = () => {
+    onFilterChange({ search: searchTerm });
+  };
 
-    return () => clearTimeout(timer);
-  }, [searchTerm, onFilterChange]);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const handleClearAll = () => {
     setSearchTerm('');
@@ -28,12 +29,14 @@ const TalentPoolFilters = ({ filters, onFilterChange }) => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm theo tên, ghi chú..."
+            placeholder="Tìm kiếm theo tên, email, ghi chú..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="pl-9"
           />
         </div>
+        <Button onClick={handleSearch} variant="secondary">Tìm kiếm</Button>
 
         {hasActiveFilters && (
           <Button variant="ghost" onClick={handleClearAll} className="gap-2">

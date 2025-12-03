@@ -67,7 +67,10 @@ const TalentPoolTab = () => {
     );
   }
 
-  if (!talentPool || talentPool.length === 0) {
+  const hasFilters = !!filters.search || (filters.tags && filters.tags.length > 0);
+  const isEmpty = !talentPool || talentPool.length === 0;
+
+  if (isEmpty && !hasFilters) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -89,11 +92,21 @@ const TalentPoolTab = () => {
             filters={filters}
             onFilterChange={handleFilterChange}
           />
-          <TalentPoolTable
-            data={talentPool}
-            meta={meta}
-            onPageChange={handlePageChange}
-          />
+          {isEmpty ? (
+            <div className="py-8">
+              <EmptyState
+                icon="search"
+                message="Không tìm thấy kết quả phù hợp"
+                description="Vui lòng thử lại với từ khóa hoặc bộ lọc khác."
+              />
+            </div>
+          ) : (
+            <TalentPoolTable
+              data={talentPool}
+              meta={meta}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
