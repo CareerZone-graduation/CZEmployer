@@ -27,6 +27,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ScheduleInterview from '@/components/interviews/ScheduleInterview';
 import Modal from '@/components/common/Modal';
 import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import AddToTalentPoolDialog from '@/components/company/talent-pool/AddToTalentPoolDialog';
 
 const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal = false, onViewPreviousApplication }) => {
   const { applicationId: paramAppId, jobId: paramJobId } = useParams();
@@ -46,22 +47,9 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   // State for modals
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+  const [isAddToTalentPoolOpen, setIsAddToTalentPoolOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
-
-  // Add to talent pool mutation
-  // Add to talent pool mutation
-  const addToTalentPoolMutation = useMutation({
-    mutationFn: (applicationId) => talentPoolService.addToTalentPool(applicationId, [], ''),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['talentPool']);
-      toast.success('Đã thêm ứng viên vào Talent Pool');
-      fetchApplication();
-    },
-    onError: (error) => {
-      toast.error(error?.response?.data?.message || 'Lỗi khi thêm vào Talent Pool');
-    },
-  });
 
   // Remove from talent pool mutation
   const removeFromTalentPoolMutation = useMutation({
@@ -69,7 +57,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     onSuccess: () => {
       queryClient.invalidateQueries(['talentPool']);
       toast.success('Đã xóa ứng viên khỏi Talent Pool');
-      fetchApplication();
+      fetchApplication(false);
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || 'Lỗi khi xóa khỏi Talent Pool');
@@ -80,7 +68,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     if (application.isInTalentPool && application.talentPoolId) {
       removeFromTalentPoolMutation.mutate(application.talentPoolId);
     } else {
-      addToTalentPoolMutation.mutate(applicationId);
+      setIsAddToTalentPoolOpen(true);
     }
   };
 
@@ -116,9 +104,9 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
 
 
-  const fetchApplication = useCallback(async () => {
+  const fetchApplication = useCallback(async (showLoading = true) => {
     if (!applicationId) return;
-    setIsLoading(true);
+    if (showLoading) setIsLoading(true);
     setError(null);
     try {
       const response = await applicationService.getApplicationById(applicationId);
@@ -130,7 +118,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   }, [applicationId]);
 
@@ -158,7 +146,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
 
   const handleScheduleSuccess = () => {
-    fetchApplication(); // Refetch to update status
+    fetchApplication(false); // Refetch to update status
   };
 
 
@@ -314,7 +302,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 variant={application.isInTalentPool ? "secondary" : "outline"}
                 className={`flex-1 md:flex-none ${application.isInTalentPool ? "bg-yellow-50 hover:bg-yellow-100 border-yellow-200 text-yellow-700" : ""}`}
                 onClick={handleTalentPoolToggle}
-                disabled={addToTalentPoolMutation.isLoading || removeFromTalentPoolMutation.isLoading}
+                disabled={removeFromTalentPoolMutation.isLoading}
               >
                 <Star className={`mr-2 h-3.5 w-3.5 ${application.isInTalentPool ? "fill-yellow-500 text-yellow-500" : ""}`} />
                 {application.isInTalentPool ? "Đã lưu Talent Pool" : "Talent Pool"}
@@ -528,24 +516,107 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         variant={pendingStatus === 'REJECTED' ? 'destructive' : 'default'}
         isLoading={isSubmitting}
       />
+
+      {application && (
+        <AddToTalentPoolDialog
+          open={isAddToTalentPoolOpen}
+          onClose={() => setIsAddToTalentPoolOpen(false)}
+          applicationId={application._id}
+          candidateName={application.candidateName}
+          onSuccess={() => fetchApplication(false)}
+        />
+      )}
     </div >
   );
 };
 
 const ApplicationDetailSkeleton = () => (
-  <div className="p-4 space-y-4">
-    <Card className="p-4">
-      <div className="flex gap-4">
-        <Skeleton className="w-16 h-16 rounded-full" />
-        <div className="space-y-2 flex-1">
-          <Skeleton className="h-6 w-1/3" />
-          <Skeleton className="h-4 w-1/4" />
+  <div className="container mx-auto max-w-6xl p-4 lg:p-6 space-y-6">
+    {/* Header Skeleton */}
+    <div className="flex justify-between items-center">
+      <Skeleton className="h-9 w-40" />
+    </div>
+
+    <Card className="overflow-hidden">
+      <div className="p-4 md:p-6 flex flex-col md:flex-row gap-6 justify-between items-start">
+        <div className="flex gap-4 w-full">
+          <Skeleton className="w-16 h-16 rounded-full" />
+          <div className="space-y-2 flex-1">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+            <Skeleton className="h-5 w-64" />
+            <div className="flex gap-4 mt-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+          <Skeleton className="h-6 w-24" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-24" />
+          </div>
         </div>
       </div>
     </Card>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Skeleton className="h-64 w-full rounded-xl" />
-      <Skeleton className="h-64 w-full rounded-xl" />
+
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
+      {/* Left Column (8 cols) */}
+      <div className="md:col-span-8 space-y-4 flex flex-col h-full">
+        {/* Notes Skeleton */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-6 w-6" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[60px] w-full rounded-md" />
+          </CardContent>
+        </Card>
+
+        {/* CV Viewer Skeleton */}
+        <Card className="flex-1 flex flex-col">
+          <CardHeader className="pb-3 border-b">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 flex-1 min-h-[500px] bg-gray-100">
+            <div className="w-full h-full min-h-[600px] flex items-center justify-center">
+              <Skeleton className="h-full w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right Column (4 cols) */}
+      <div className="md:col-span-4 space-y-4 flex flex-col h-full">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="pb-0 border-b">
+            <div className="flex gap-4">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 pt-4">
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   </div>
 );

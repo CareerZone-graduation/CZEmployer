@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
         '.ngrok-free.app'
       ],
       port: 4000,
-      open: true,
+      // open: true,
       host: true
     },
 

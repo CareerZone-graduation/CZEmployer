@@ -90,7 +90,7 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
     // Navigate to application detail page
     const applicationId = entry.applicationId?._id || entry.applicationId;
     const jobId = entry.candidateSnapshot?.appliedJobId;
-    
+
     if (applicationId && jobId) {
       navigate(`/jobs/${jobId}/applications/${applicationId}`);
     } else {
@@ -124,8 +124,6 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
                 />
               </TableHead>
               <TableHead>Ứng viên</TableHead>
-              <TableHead>Vị trí/Kỹ năng</TableHead>
-              <TableHead>Tags</TableHead>
               <TableHead>Ghi chú</TableHead>
               <TableHead>Công việc đã ứng tuyển</TableHead>
               <TableHead>Ngày thêm</TableHead>
@@ -155,45 +153,6 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
                         {entry.candidateSnapshot?.email}
                       </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    {entry.candidateProfile?.title || entry.candidateSnapshot?.title || '-'}
-                  </div>
-                  {entry.candidateProfile?.skills && entry.candidateProfile.skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {entry.candidateProfile.skills.slice(0, 3).map((skill, idx) => {
-                        // Handle skill as object or string
-                        const skillName = typeof skill === 'object' ? skill.name : skill;
-                        return (
-                          <span key={idx} className="text-xs text-muted-foreground">
-                            {skillName}{idx < Math.min(2, entry.candidateProfile.skills.length - 1) ? ',' : ''}
-                          </span>
-                        );
-                      })}
-                      {entry.candidateProfile.skills.length > 3 && (
-                        <span className="text-xs text-muted-foreground">+{entry.candidateProfile.skills.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {entry.tags && entry.tags.length > 0 ? (
-                      entry.tags.slice(0, 3).map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
-                    {entry.tags && entry.tags.length > 3 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{entry.tags.length - 3}
-                      </Badge>
-                    )}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -233,7 +192,7 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(entry)}>
                         <Edit className="mr-2 h-4 w-4" />
-                        Chỉnh sửa Tags/Ghi chú
+                        Chỉnh sửa Ghi chú
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
