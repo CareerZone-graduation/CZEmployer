@@ -25,8 +25,15 @@ export const getApplicationById = async (applicationId) => {
  * @param {string} status - Trạng thái mới.
  * @returns {Promise<object>}
  */
-export const updateApplicationStatus = async (applicationId, status) => {
-  return await apiClient.patch(`/applications/${applicationId}/status`, { status });
+export const updateApplicationStatus = async (applicationId, statusOrFormData) => {
+  if (statusOrFormData instanceof FormData) {
+    return await apiClient.patch(`/applications/${applicationId}/status`, statusOrFormData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+  return await apiClient.patch(`/applications/${applicationId}/status`, { status: statusOrFormData });
 };
 
 

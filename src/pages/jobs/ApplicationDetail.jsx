@@ -72,10 +72,21 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
-  const updateStatus = async (status) => {
+  const updateStatus = async (status, data = {}) => {
     setIsSubmitting(true);
     try {
-      const response = await applicationService.updateApplicationStatus(applicationId, status);
+      let response;
+      if (status === 'OFFER_SENT' && (data.offerLetter || data.offerFile)) {
+        const formData = new FormData();
+        formData.append('status', status);
+        if (data.offerLetter) formData.append('offerLetter', data.offerLetter);
+        if (data.offerFile) formData.append('offerFile', data.offerFile);
+
+        response = await applicationService.updateApplicationStatus(applicationId, formData);
+      } else {
+        response = await applicationService.updateApplicationStatus(applicationId, status);
+      }
+
       setApplication(response.data);
       toast.success('Cập nhật trạng thái thành công');
     } catch (err) {
@@ -510,12 +521,45 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         description={pendingStatus === 'REJECTED'
           ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này sẽ gửi email thông báo cho ứng viên và không thể hoàn tác.'
           : 'Bạn có chắc chắn muốn gửi đề nghị làm việc cho ứng viên này?'}
-        onConfirm={() => updateStatus(pendingStatus)}
+        onConfirm={(data) => updateStatus(pendingStatus, data)}
         confirmText={pendingStatus === 'REJECTED' ? 'Từ chối' : 'Gửi Offer'}
         cancelText="Hủy bỏ"
         variant={pendingStatus === 'REJECTED' ? 'destructive' : 'default'}
         isLoading={isSubmitting}
+        showOfferInputs={pendingStatus === 'OFFER_SENT'}
       />
+
+      {/* Offer Details Section */}
+      {(application.offerLetter || application.offerFile) && (
+        <Card className="mb-6 border-purple-200 bg-purple-50/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-purple-600" />
+              <CardTitle className="text-lg text-purple-900">Thư mời đã gửi (Offer Letter)</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {application.offerLetter && (
+              <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-sm">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
+                  {application.offerLetter}
+                </p>
+              </div>
+            )}
+
+            {application.offerFile && (
+              <div className="flex items-center gap-3">
+                <Button variant="outline" className="border-purple-200 hover:bg-purple-50 text-purple-700" asChild>
+                  <a href={application.offerFile} target="_blank" rel="noopener noreferrer" download>
+                    <Download className="h-4 w-4 mr-2" />
+                    Tải xuống file đính kèm
+                  </a>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {application && (
         <AddToTalentPoolDialog
