@@ -30,6 +30,36 @@ const registerDeviceToken = async (token) => {
 };
 
 /**
+ * Unregisters the device token from the backend server.
+ * @param {string} token The FCM device token.
+ */
+export const unregisterDeviceToken = async (token) => {
+  try {
+    await apiClient.post('/users/unregister-device', { token });
+    console.log('Device token unregistered successfully from the backend.');
+    // Remove from local storage
+    localStorage.removeItem('fcm_token');
+  } catch (error) {
+    console.error('Failed to unregister device token from the backend:', error);
+  }
+};
+
+/**
+ * Checks if the device token is registered with the backend.
+ * @param {string} token The FCM device token.
+ * @returns {Promise<boolean>}
+ */
+export const checkDeviceRegistration = async (token) => {
+  try {
+    const response = await apiClient.post('/users/check-device', { token });
+    return response.data?.isRegistered || false;
+  } catch (error) {
+    console.error('Failed to check device registration:', error);
+    return false;
+  }
+};
+
+/**
  * Requests permission to receive push notifications and returns the device token.
  * If a token is retrieved, it is also sent to the backend.
  * @returns {Promise<string|null>} The Firebase Cloud Messaging token.
@@ -39,10 +69,10 @@ export const requestForToken = async () => {
     const currentToken = await getToken(messaging);
     if (currentToken) {
       console.log('FCM Token:', currentToken);
-      
+
       // Kiểm tra xem token đã được gửi chưa (cache trong localStorage)
       const cachedToken = localStorage.getItem('fcm_token');
-      
+
       if (cachedToken !== currentToken) {
         console.log('Token changed or first time, registering with backend...');
         await registerDeviceToken(currentToken);
@@ -60,6 +90,8 @@ export const requestForToken = async () => {
     return null;
   }
 };
+
+export const getFCMMessaging = () => messaging;
 
 /**
  * Sets up a listener for incoming foreground messages.

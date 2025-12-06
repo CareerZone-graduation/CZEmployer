@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchNotifications,
@@ -9,12 +9,11 @@ import useFirebaseMessaging from '@/hooks/useFirebaseMessaging';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { BellRing, CheckCheck, RefreshCw, AlertCircle, BellPlus, X } from 'lucide-react';
+import { BellRing, CheckCheck, RefreshCw, AlertCircle, BellPlus, BellOff } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -125,11 +124,7 @@ const EmptyState = ({ message }) => (
 const Notifications = () => {
   const dispatch = useDispatch();
   const { notifications, pagination, loading, error } = useSelector((state) => state.notifications);
-  const { requestPermission } = useFirebaseMessaging();
-
-  const [showNotificationBanner, setShowNotificationBanner] = useState(
-    typeof Notification !== 'undefined' && Notification.permission !== 'granted'
-  );
+  const { requestPermission, isPushEnabled, disableNotifications } = useFirebaseMessaging();
 
   // Load notifications lần đầu
   useEffect(() => {
@@ -138,7 +133,6 @@ const Notifications = () => {
 
   const handleEnableNotifications = async () => {
     await requestPermission();
-    setShowNotificationBanner(false);
   };
 
   const handleMarkAllRead = () => {
@@ -243,38 +237,30 @@ const Notifications = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      {/* Banner bật thông báo */}
-      {showNotificationBanner && (
-        <Alert className="mb-6 max-w-4xl mx-auto bg-blue-50 border-blue-200">
-          <BellPlus className="h-5 w-5 text-blue-600" />
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-sm text-blue-900">
-              Bật thông báo đẩy để nhận cập nhật mới nhất về ứng viên và phỏng vấn ngay lập tức!
-            </span>
-            <div className="flex gap-2 ml-4">
-              <Button
-                size="sm"
-                onClick={handleEnableNotifications}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Bật ngay
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowNotificationBanner(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Card className="max-w-4xl mx-auto">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-2xl font-bold">Thông báo của bạn</CardTitle>
           <div className="flex items-center gap-2">
+            {isPushEnabled ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={disableNotifications}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+              >
+                <BellOff className="mr-2 h-4 w-4" />
+                Tắt thông báo đẩy
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnableNotifications} // Reusing handler
+              >
+                <BellPlus className="mr-2 h-4 w-4" />
+                Bật thông báo đẩy
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
