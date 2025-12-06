@@ -101,18 +101,10 @@ const BillingPage = () => {
                           <span className="text-blue-600 font-bold mt-0.5">•</span>
                           <span><strong>Đăng tin tuyển dụng</strong> - 100 xu/tin</span>
                         </li>
-                        {/* <li className="flex items-start gap-2">
-                          <span className="text-blue-600 font-bold mt-0.5">•</span>
-                          <span><strong>Xem thông tin ứng viên</strong> - Chi phí tùy theo gói</span>
-                        </li>
                         <li className="flex items-start gap-2">
                           <span className="text-blue-600 font-bold mt-0.5">•</span>
-                          <span><strong>Mở khóa CV</strong> - Truy cập hồ sơ chi tiết ứng viên</span>
+                          <span><strong>Mở khóa hồ sơ ứng viên phù hợp khi xem chi tiết job</strong> - 50 xu</span>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-blue-600 font-bold mt-0.5">•</span>
-                          <span><strong>Các tính năng cao cấp khác</strong></span>
-                        </li> */}
                       </ul>
                     </div>
                   </div>

@@ -73,9 +73,9 @@ const CompanyProfile = () => {
           <div className="flex-1">
             <div className="flex items-center space-x-4">
               <CardTitle className="text-3xl font-bold">{company.name}</CardTitle>
-              {company.verified && <Badge className="bg-green-500 text-white">Đã xác thực</Badge>}
-              {/* chưa xác thực */}
-              {!company.verified && <Badge className="bg-yellow-500 text-white">Chưa xác thực</Badge>}
+              {company.status === 'approved' && <Badge className="bg-green-500 hover:bg-green-600 text-white">Đã xác thực</Badge>}
+              {company.status === 'pending' && <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Đang chờ duyệt</Badge>}
+              {company.status === 'rejected' && <Badge className="bg-red-500 hover:bg-red-600 text-white">Đã bị từ chối</Badge>}
             </div>
             <CardDescription className="mt-2 text-lg">{company.industry}</CardDescription>
             {company.website && (
@@ -91,6 +91,15 @@ const CompanyProfile = () => {
           </Button>
         </CardHeader>
         <CardContent>
+          {company.status === 'rejected' && company.rejectReason && (
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r">
+              <p className="font-bold flex items-center">
+                Có vấn đề với hồ sơ công ty của bạn
+              </p>
+              <p className="mt-1">Lý do từ chối: {company.rejectReason}</p>
+              <p className="mt-2 text-sm">Vui lòng chỉnh sửa thông tin và cập nhật lại hồ sơ để được xét duyệt.</p>
+            </div>
+          )}
           <div className="prose max-w-none text-gray-700">
             <p>{company.about}</p>
           </div>

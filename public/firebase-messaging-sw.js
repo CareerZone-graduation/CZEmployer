@@ -34,7 +34,11 @@ self.addEventListener("notificationclick", function (event) {
   console.log("On notification click: ", event.notification);
   event.notification.close();
 
-  const targetUrl = "https://careerzone.vn";
+  let url = '/';
+  if (event.notification.data && event.notification.data.url) {
+    url = event.notification.data.url;
+  }
+  const targetUrl = new URL(url, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then(windowClients => {

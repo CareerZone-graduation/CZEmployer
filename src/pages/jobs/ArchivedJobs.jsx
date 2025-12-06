@@ -19,7 +19,7 @@ const ArchivedJobs = () => {
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
-    status: 'PENDING', // Default to PENDING status (awaiting approval)
+    status: 'PENDING,REJECTED', // Fetch both PENDING and REJECTED
     sortBy: 'createdAt:desc',
     search: '',
   });
@@ -75,10 +75,19 @@ const ArchivedJobs = () => {
   }, []);
 
   const getStatusBadge = (job) => {
+    // Check if job is rejected
+    if (job.moderationStatus === 'REJECTED') {
+      return (
+        <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+          Đã từ chối
+        </Badge>
+      );
+    }
+
     // Check if job is pending approval
     if (job.moderationStatus === 'PENDING') {
       return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
           Chờ phê duyệt
         </Badge>
       );
@@ -169,7 +178,7 @@ const ArchivedJobs = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">{getStatusBadge(job.status)}</div>
+                          <div className="text-right">{getStatusBadge(job)}</div>
                         </div>
 
                         <p className="text-gray-700 text-sm mb-3 line-clamp-2">{job.description}</p>

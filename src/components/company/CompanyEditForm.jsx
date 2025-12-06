@@ -165,11 +165,40 @@ const CompanyEditForm = ({ company, onSuccess }) => {
     fileInputRef.current?.click();
   };
 
+  const [businessLicenseFile, setBusinessLicenseFile] = useState(null);
+  const [businessLicensePreview, setBusinessLicensePreview] = useState(company?.businessRegistrationUrl || null);
+
+  const handleBusinessLicenseChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error('Kích thước tài liệu không được vượt quá 10MB');
+        return;
+      }
+      setBusinessLicenseFile(file);
+      // For preview if it's an image, or just show name if pdf
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setBusinessLicensePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setBusinessLicensePreview(null); // Or some icon
+      }
+    }
+  };
+
   const handleSubmit = useCallback(async (values) => {
     try {
       // 1. Update general company info
       const formData = new FormData();
       formData.append('companyData', JSON.stringify(values));
+
+      // Append business license file if selected
+      if (businessLicenseFile) {
+        formData.append('businessRegistrationFile', businessLicenseFile);
+      }
 
       await companyService.updateMyCompany(formData);
 
@@ -181,7 +210,7 @@ const CompanyEditForm = ({ company, onSuccess }) => {
       }
 
       toast.success('Cập nhật thành công!', {
-        description: 'Thông tin công ty đã được cập nhật.'
+        description: 'Thông tin công ty đã được cập nhật. Nếu có thay đổi thông tin pháp lý, công ty sẽ cần được xác thực lại.'
       });
       onSuccess?.();
     } catch (err) {
@@ -190,10 +219,25 @@ const CompanyEditForm = ({ company, onSuccess }) => {
         description: errorMessage
       });
     }
-  }, [onSuccess, logoFile]);
+  }, [onSuccess, logoFile, businessLicenseFile]);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
+      <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r shadow-sm">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-amber-700">
+              Lưu ý: Việc thay đổi các thông tin quan trọng như <span className="font-semibold">Tên công ty, Mã số thuế, Giấy phép kinh doanh, hoặc Địa chỉ</span> sẽ khiến trạng thái xác thực của công ty trở về <span className="font-semibold">Chưa xác thực</span> và cần được Ban quản trị phê duyệt lại.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
 
@@ -335,6 +379,27 @@ const CompanyEditForm = ({ company, onSuccess }) => {
                 </FormItem>
               )}
             />
+          </div>
+
+          {/* Business License Upload */}
+          <div className="space-y-2">
+            <FormLabel>Giấy phép kinh doanh (Cập nhật nếu thay đổi)</FormLabel>
+            <div className="flex items-center gap-4">
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleBusinessLicenseChange}
+                className="cursor-pointer"
+              />
+              {businessLicensePreview && typeof businessLicensePreview === 'string' && businessLicensePreview.startsWith('http') && (
+                <a href={businessLicensePreview} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm whitespace-nowrap">
+                  Xem hiện tại
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tải lên bản scan hoặc ảnh chụp giấy phép kinh doanh (PDF, JPG, PNG). Tối đa 10MB.
+            </p>
           </div>
 
           {/* Contact Information */}

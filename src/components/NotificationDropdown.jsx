@@ -37,6 +37,12 @@ const getNotificationLink = (notification) => {
         return `/applications/${entity.id}`;
       }
       return '/jobs'; // Fallback
+    case 'company_verification':
+      return '/company-profile';
+    case 'job_approval':
+      return `/jobs/recruiter/${entity?.id || metadata?.jobId}`;
+    case 'support_request':
+      return `/support/${entity?.id || metadata?.supportRequestId}`;
     default:
       return '/notifications';
   }
