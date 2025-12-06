@@ -538,7 +538,8 @@ const InterviewRoom = () => {
     webrtcService.destroy();
     interviewSocketService.disconnect();
     toast.info('Đã kết thúc cuộc phỏng vấn');
-    navigate(`/interviews/${interviewId}`);
+    // Use replace: true to prevent going back to interview room when pressing back button
+    navigate(`/interviews/${interviewId}`, { replace: true });
   };
 
   const handleRecordingToggle = async (recording) => {

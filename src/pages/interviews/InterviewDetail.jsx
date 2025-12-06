@@ -192,7 +192,7 @@ const InterviewDetail = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+      <Button variant="ghost" onClick={() => navigate('/interviews')} className="mb-4">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Quay lại
       </Button>
