@@ -9,8 +9,10 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  HelpCircle
 } from 'lucide-react';
+import DevicePermissionGuide from '@/components/common/DevicePermissionGuide';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -30,7 +32,7 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
   const navigate = useNavigate();
   const { interviewId: paramInterviewId } = useParams();
   const interviewId = propInterviewId || paramInterviewId;
-  
+
   const videoRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -39,26 +41,27 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
   // Device lists
   const [videoDevices, setVideoDevices] = useState([]);
   const [audioDevices, setAudioDevices] = useState([]);
-  
+
   // Selected devices
   const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
-  
+
   // Device states
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [audioLevel, setAudioLevel] = useState(0);
-  
+
   // Stream
   const [localStream, setLocalStream] = useState(null);
-  
+
   // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
   const [permissionStatus, setPermissionStatus] = useState({
     camera: 'checking', // 'checking', 'granted', 'denied'
     microphone: 'checking'
   });
-  
+  const [isPermissionGuideOpen, setIsPermissionGuideOpen] = useState(false);
+
   // Browser compatibility
   const [browserCompatibility, setBrowserCompatibility] = useState({
     isCompatible: true,
@@ -72,33 +75,33 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
 
   const checkBrowserCompatibility = () => {
     const issues = [];
-    
+
     // Check for getUserMedia support
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       issues.push('Trình duyệt không hỗ trợ truy cập camera/microphone');
     }
-    
+
     // Check for WebRTC support
     if (!window.RTCPeerConnection) {
       issues.push('Trình duyệt không hỗ trợ WebRTC');
     }
-    
+
     // Check for secure context (HTTPS)
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
       issues.push('Yêu cầu kết nối HTTPS để sử dụng camera/microphone');
     }
-    
+
     // Browser recommendations
     const userAgent = navigator.userAgent.toLowerCase();
     const isChrome = userAgent.includes('chrome') && !userAgent.includes('edge');
     const isFirefox = userAgent.includes('firefox');
     const isEdge = userAgent.includes('edge');
     const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
-    
+
     if (!isChrome && !isFirefox && !isEdge && !isSafari) {
       issues.push('Khuyến nghị sử dụng Chrome, Firefox, Edge hoặc Safari để có trải nghiệm tốt nhất');
     }
-    
+
     setBrowserCompatibility({
       isCompatible: issues.length === 0,
       issues
@@ -110,30 +113,30 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
     const requestPermissionsAndGetDevices = async () => {
       try {
         setIsLoading(true);
-        
+
         // Load saved device settings
         const savedSettings = localStorage.getItem('interviewDeviceSettings');
         const deviceSettings = savedSettings ? JSON.parse(savedSettings) : null;
         console.log('[DeviceTest] Loaded saved settings:', deviceSettings);
-        
+
         // Request permissions first to get full device list with labels
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true
         });
-        
+
         // Stop the temporary stream immediately
         stream.getTracks().forEach(track => track.stop());
-        
+
         // Now enumerate devices with permissions granted
         const devices = await navigator.mediaDevices.enumerateDevices();
-        
+
         const videoInputs = devices.filter(device => device.kind === 'videoinput');
         const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        
+
         setVideoDevices(videoInputs);
         setAudioDevices(audioInputs);
-        
+
         // Set devices from saved settings or use default
         if (videoInputs.length > 0) {
           if (deviceSettings?.videoDeviceId && videoInputs.some(d => d.deviceId === deviceSettings.videoDeviceId)) {
@@ -142,7 +145,7 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
             setSelectedVideoDevice(videoInputs[0].deviceId);
           }
         }
-        
+
         if (audioInputs.length > 0) {
           if (deviceSettings?.audioDeviceId && audioInputs.some(d => d.deviceId === deviceSettings.audioDeviceId)) {
             setSelectedAudioDevice(deviceSettings.audioDeviceId);
@@ -150,7 +153,7 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
             setSelectedAudioDevice(audioInputs[0].deviceId);
           }
         }
-        
+
         // Apply saved enabled states
         if (deviceSettings) {
           if (typeof deviceSettings.isVideoEnabled === 'boolean') {
@@ -160,16 +163,16 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
             setIsAudioEnabled(deviceSettings.isAudioEnabled);
           }
         }
-        
+
         setPermissionStatus({
           camera: 'granted',
           microphone: 'granted'
         });
-        
+
         setIsLoading(false);
       } catch (error) {
         console.error('Error requesting permissions or enumerating devices:', error);
-        
+
         // Handle specific errors
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
           setPermissionStatus({
@@ -186,7 +189,7 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
         } else {
           toast.error('Không thể truy cập thiết bị: ' + error.message);
         }
-        
+
         setIsLoading(false);
       }
     };
@@ -199,7 +202,7 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
     if (selectedVideoDevice && selectedAudioDevice) {
       startMediaStream();
     }
-    
+
     return () => {
       stopMediaStream();
     };
@@ -215,10 +218,10 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
   const startMediaStream = async () => {
     try {
       setIsLoading(true);
-      
+
       // Stop existing stream
       stopMediaStream();
-      
+
       const constraints = {
         video: isVideoEnabled ? {
           deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
@@ -232,26 +235,26 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
           autoGainControl: true
         } : false
       };
-      
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
+
       setLocalStream(stream);
-      
+
       // Setup audio level monitoring
       if (isAudioEnabled) {
         setupAudioMonitoring(stream);
       }
-      
+
       // Update permission status
       setPermissionStatus({
         camera: isVideoEnabled ? 'granted' : 'checking',
         microphone: isAudioEnabled ? 'granted' : 'checking'
       });
-      
+
       setIsLoading(false);
     } catch (error) {
       console.error('Error accessing media devices:', error);
-      
+
       // Handle specific errors
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         setPermissionStatus({
@@ -264,7 +267,7 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
       } else {
         toast.error('Không thể truy cập thiết bị: ' + error.message);
       }
-      
+
       setIsLoading(false);
     }
   };
@@ -274,12 +277,12 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
       localStream.getTracks().forEach(track => track.stop());
       setLocalStream(null);
     }
-    
+
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
-    
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -291,13 +294,13 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
-      
+
       analyser.fftSize = 256;
       microphone.connect(analyser);
-      
+
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
-      
+
       updateAudioLevel();
     } catch (error) {
       console.error('Error setting up audio monitoring:', error);
@@ -306,16 +309,16 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
 
   const updateAudioLevel = () => {
     if (!analyserRef.current) return;
-    
+
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
     analyserRef.current.getByteFrequencyData(dataArray);
-    
+
     // Calculate average volume
     const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
     const normalizedLevel = Math.min(100, (average / 255) * 100);
-    
+
     setAudioLevel(normalizedLevel);
-    
+
     animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
   };
 
@@ -343,10 +346,10 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
       isVideoEnabled,
       isAudioEnabled
     };
-    
+
     console.log('[DeviceTest] Saving device settings:', deviceSettings);
     localStorage.setItem('interviewDeviceSettings', JSON.stringify(deviceSettings));
-    
+
     if (onComplete) {
       onComplete(deviceSettings);
     } else {
@@ -365,8 +368,8 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
     }
   };
 
-  const canJoinInterview = 
-    permissionStatus.camera === 'granted' && 
+  const canJoinInterview =
+    permissionStatus.camera === 'granted' &&
     permissionStatus.microphone === 'granted' &&
     browserCompatibility.isCompatible;
 
@@ -417,14 +420,14 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
               <div className="flex items-center gap-2">
                 {getPermissionIcon(permissionStatus.camera)}
                 <Badge variant={permissionStatus.camera === 'granted' ? 'default' : 'destructive'}>
-                  {permissionStatus.camera === 'granted' ? 'Đã cấp quyền' : 
-                   permissionStatus.camera === 'denied' ? 'Bị từ chối' : 'Đang kiểm tra'}
+                  {permissionStatus.camera === 'granted' ? 'Đã cấp quyền' :
+                    permissionStatus.camera === 'denied' ? 'Bị từ chối' : 'Đang kiểm tra'}
                 </Badge>
               </div>
             </div>
-            
+
             <Separator />
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Mic className="h-5 w-5 text-muted-foreground" />
@@ -433,8 +436,8 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
               <div className="flex items-center gap-2">
                 {getPermissionIcon(permissionStatus.microphone)}
                 <Badge variant={permissionStatus.microphone === 'granted' ? 'default' : 'destructive'}>
-                  {permissionStatus.microphone === 'granted' ? 'Đã cấp quyền' : 
-                   permissionStatus.microphone === 'denied' ? 'Bị từ chối' : 'Đang kiểm tra'}
+                  {permissionStatus.microphone === 'granted' ? 'Đã cấp quyền' :
+                    permissionStatus.microphone === 'denied' ? 'Bị từ chối' : 'Đang kiểm tra'}
                 </Badge>
               </div>
             </div>
@@ -542,8 +545,8 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
                   className={cn(
                     "h-full transition-all duration-100 rounded-full",
                     audioLevel > 70 ? "bg-green-500" :
-                    audioLevel > 30 ? "bg-yellow-500" :
-                    "bg-gray-400"
+                      audioLevel > 30 ? "bg-yellow-500" :
+                        "bg-gray-400"
                   )}
                   style={{ width: `${audioLevel}%` }}
                 />
@@ -612,6 +615,13 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
                 <li>Chọn "Cho phép" cho camera và microphone</li>
                 <li>Tải lại trang này</li>
               </ol>
+              <Button
+                variant="link"
+                className="p-0 h-auto text-destructive underline font-semibold mt-2"
+                onClick={() => setIsPermissionGuideOpen(true)}
+              >
+                Xem hướng dẫn khắc phục chi tiết
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -641,6 +651,12 @@ const DeviceTest = ({ interviewId: propInterviewId, onComplete }) => {
           </Button>
         </div>
       </div>
+
+      <DevicePermissionGuide
+        isOpen={isPermissionGuideOpen}
+        onClose={() => setIsPermissionGuideOpen(false)}
+        onRetry={() => window.location.reload()}
+      />
     </div>
   );
 };
