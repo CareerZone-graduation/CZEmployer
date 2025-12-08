@@ -216,6 +216,22 @@ const JobForm = ({ onSuccess, job }) => {
           </div>
         )}
 
+        {isEditMode && (
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-500 text-white text-sm font-semibold">
+                ⚠️
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-yellow-900">Lưu ý khi cập nhật</h4>
+                <p className="mt-1 text-sm text-yellow-800">
+                  Việc thay đổi bất kỳ thông tin nào sau đây sẽ khiến tin tuyển dụng phải <strong>chờ duyệt lại</strong>: Tiêu đề, Mô tả, Yêu cầu, Quyền lợi, Kỹ năng, Mức lương, Kinh nghiệm, Ngành nghề, Loại công việc, Hình thức làm việc, và Địa điểm.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <FormField
           control={form.control}
           name="title"

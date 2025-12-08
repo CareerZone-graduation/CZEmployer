@@ -106,14 +106,16 @@ const AppRouter = () => {
       >
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
         <Route index element={<Navigate to="login" replace />} />
       </Route>
-      <Route
-        path="/auth/forgot-password"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
-      />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/register-success" element={<RegistrationSuccess />} />
+
+      {/* Other Auth Routes wrapped in Layout to maintain styling but keep paths */}
+      <Route element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthLayout />}>
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/register-success" element={<RegistrationSuccess />} />
+      </Route>
+
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/verify-prompt" element={<VerifyEmailPrompt />} />
 

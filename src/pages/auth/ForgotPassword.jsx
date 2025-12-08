@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Mail, Loader2, CheckCircle, Shield } from 'lucide-react';
@@ -13,6 +14,8 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,9 +25,14 @@ const ForgotPassword = () => {
       return;
     }
 
+    if (!turnstileToken) {
+      toast.error("Vui lòng hoàn thành xác thực bạn không phải là robot.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await authService.forgotPassword({ email });
+      const response = await authService.forgotPassword({ email, turnstileToken });
 
       if (response.success) {
         setIsEmailSent(true);
@@ -34,6 +42,8 @@ const ForgotPassword = () => {
       console.error('Forgot password error:', error);
       const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.';
       toast.error(errorMessage);
+      setTurnstileToken("");
+      setTurnstileKey(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +57,7 @@ const ForgotPassword = () => {
           <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
             <CheckCircle className="w-8 h-8 text-emerald-600" />
           </div>
-          
+
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-gray-900">
               Kiểm tra email của bạn
@@ -81,7 +91,7 @@ const ForgotPassword = () => {
             >
               Gửi lại email
             </Button>
-            
+
             <Button asChild variant="outline" className="w-full h-12">
               <Link to="/auth/login">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -97,7 +107,7 @@ const ForgotPassword = () => {
             <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
               <Shield className="w-8 h-8 text-emerald-600" />
             </div>
-            
+
             <h2 className="text-3xl font-bold text-gray-900">
               Khôi phục mật khẩu
             </h2>
@@ -126,10 +136,23 @@ const ForgotPassword = () => {
               </div>
             </div>
 
+            {/* Turnstile Captcha */}
+            <div className="flex justify-center w-full my-4">
+              <Turnstile
+                key={turnstileKey}
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAAA1VN-QDsgdhQAiP"}
+                onSuccess={(token) => setTurnstileToken(token)}
+                options={{
+                  theme: 'auto',
+                  size: 'normal',
+                }}
+              />
+            </div>
+
             <Button
               type="submit"
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-              disabled={isLoading}
+              className={`w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 ${(isLoading || !turnstileToken) ? 'opacity-70 cursor-not-allowed' : ''}`}
+              disabled={isLoading || !turnstileToken}
             >
               {isLoading ? (
                 <>

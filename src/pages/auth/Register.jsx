@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UserPlus, Loader2, User, Mail, Lock } from 'lucide-react';
@@ -19,6 +20,9 @@ const Register = () => {
     role: 'recruiter', // Default role
   });
   const [isLoading, setIsLoading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,9 +40,14 @@ const Register = () => {
         return;
       }
 
+      if (!turnstileToken) {
+        toast.error("Vui lòng hoàn thành xác thực bạn không phải là robot.");
+        return;
+      }
+
       setIsLoading(true);
       try {
-        const response = await authService.register(formData);
+        const response = await authService.register({ ...formData, turnstileToken });
         console.log(response);
         const successMessage = response?.message || VIETNAMESE_CONTENT.messages.success.register;
         toast.success(successMessage);
@@ -48,11 +57,13 @@ const Register = () => {
         const errorMessage =
           err.response?.data?.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin và thử lại.';
         toast.error(errorMessage);
+        setTurnstileToken("");
+        setTurnstileKey(prev => prev + 1);
       } finally {
         setIsLoading(false);
       }
     },
-    [formData, navigate],
+    [formData, navigate, turnstileToken],
   );
 
   return (
@@ -73,15 +84,15 @@ const Register = () => {
           </Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input 
-              id="fullname" 
-              name="fullname" 
-              placeholder={VIETNAMESE_CONTENT.forms.placeholder.name} 
-              required 
-              value={formData.fullname} 
-              onChange={handleChange} 
-              disabled={isLoading} 
-              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" 
+            <Input
+              id="fullname"
+              name="fullname"
+              placeholder={VIETNAMESE_CONTENT.forms.placeholder.name}
+              required
+              value={formData.fullname}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -92,16 +103,16 @@ const Register = () => {
           </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder={VIETNAMESE_CONTENT.forms.placeholder.email} 
-              required 
-              value={formData.email} 
-              onChange={handleChange} 
-              disabled={isLoading} 
-              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" 
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder={VIETNAMESE_CONTENT.forms.placeholder.email}
+              required
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -112,28 +123,41 @@ const Register = () => {
           </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input 
-              id="password" 
-              name="password" 
-              type="password" 
-              placeholder="••••••••••" 
-              required 
-              value={formData.password} 
-              onChange={handleChange} 
-              disabled={isLoading} 
-              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" 
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••••"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="pl-11 h-12 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
             Mật khẩu phải có ít nhất 8 ký tự
           </p>
+
+          {/* Turnstile Captcha */}
+          <div className="flex justify-center w-full my-4">
+            <Turnstile
+              key={turnstileKey}
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAAA1VN-QDsgdhQAiP"}
+              onSuccess={(token) => setTurnstileToken(token)}
+              options={{
+                theme: 'auto',
+                size: 'normal',
+              }}
+            />
+          </div>
         </div>
 
         <div className="space-y-3 pt-2">
-          <Button 
-            type="submit" 
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200" 
-            disabled={isLoading}
+          <Button
+            type="submit"
+            className={`w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 ${(isLoading || !turnstileToken) ? 'bg-gray-400 cursor-not-allowed opacity-70' : ''}`}
+            disabled={isLoading || !turnstileToken}
           >
             {isLoading ? (
               <>
@@ -157,11 +181,11 @@ const Register = () => {
           {' '}và{' '}
           <a href="#" className="text-emerald-600 hover:underline">Chính sách bảo mật</a>
         </p>
-        
+
         <p className="text-gray-600">
           Đã có tài khoản?{' '}
-          <Link 
-            to="/auth/login" 
+          <Link
+            to="/auth/login"
             className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
           >
             Đăng nhập ngay
