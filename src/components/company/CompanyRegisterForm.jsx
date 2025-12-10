@@ -19,9 +19,12 @@ import { useLocationData } from '@/hooks/useLocationData';
 import GoongLocationPicker from '@/components/common/GoongLocationPicker';
 import { mapGoongLocationToStandard } from '@/utils/locationUtils';
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { fetchUser } from '@/redux/authSlice';
 
 const CompanyRegisterForm = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showMap, setShowMap] = useState(false);
   const form = useForm({
     resolver: zodResolver(createCompanySchema),
@@ -74,7 +77,9 @@ const CompanyRegisterForm = () => {
 
     try {
       await createCompany(formData);
+      // Wait a bit for the backend to process
       toast.success('Đăng ký công ty thành công! Vui lòng chờ duyệt.');
+      dispatch(fetchUser());
       navigate('/dashboard');
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Đã có lỗi xảy ra.';
@@ -88,7 +93,12 @@ const CompanyRegisterForm = () => {
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Đăng ký thông tin công ty</CardTitle>
+          <CardTitle className="text-2xl flex items-center">
+            Đăng ký thông tin công ty
+            <span className="ml-3 text-sm font-normal text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 animate-pulse">
+              🎁 Tặng 200 xu khi được duyệt
+            </span>
+          </CardTitle>
           <CardDescription>
             Hoàn thiện thông tin để bắt đầu tuyển dụng nhân tài.
           </CardDescription>

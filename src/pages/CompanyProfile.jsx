@@ -76,6 +76,13 @@ const CompanyProfile = () => {
               {company.status === 'approved' && <Badge className="bg-green-500 hover:bg-green-600 text-white">Đã xác thực</Badge>}
               {company.status === 'pending' && <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Đang chờ duyệt</Badge>}
               {company.status === 'rejected' && <Badge className="bg-red-500 hover:bg-red-600 text-white">Đã bị từ chối</Badge>}
+
+              {/* Bonus Notification Badge */}
+              {company.status !== 'approved' && (
+                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-600 bg-amber-50 animate-pulse">
+                  🎁 Tặng 200 xu khi được duyệt
+                </Badge>
+              )}
             </div>
             <CardDescription className="mt-2 text-lg">{company.industry}</CardDescription>
             {company.website && (

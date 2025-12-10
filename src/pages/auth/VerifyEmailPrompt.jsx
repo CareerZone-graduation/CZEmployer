@@ -90,9 +90,9 @@ const VerifyEmailPrompt = () => {
             </div>
             <div className="text-sm text-muted-foreground">
               Đã xác thực?{' '}
-              <Link to="/auth/login" className="font-semibold text-primary hover:underline">
-                Vui lòng Đăng nhập
-              </Link>
+              <a href="/" className="font-semibold text-primary hover:underline">
+                Vui lòng Reload lại trang
+              </a>
             </div>
             <Button variant="outline" className="w-full" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
