@@ -42,6 +42,7 @@ import {
 import { createJobSchema, updateJobSchema } from '@/utils/validation';
 import GoongLocationPicker from '@/components/common/GoongLocationPicker';
 import LocationPicker from '@/components/common/LocationPicker';
+import SearchableSelect from '@/components/ui/searchable-select';
 import {
   mapGoongLocationToStandard,
   getProvinces,
@@ -597,20 +598,16 @@ const JobForm = ({ onSuccess, job }) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Ngành nghề</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="w-full truncate">
-                      <SelectValue placeholder="Chọn ngành nghề" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {jobCategoryEnum.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {jobCategoryMap[cat]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={jobCategoryEnum.map((cat) => ({
+                    label: jobCategoryMap[cat],
+                    value: cat
+                  }))}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Chọn ngành nghề"
+                  searchPlaceholder="Tìm ngành nghề..."
+                />
                 <FormMessage />
               </FormItem>
             )}
