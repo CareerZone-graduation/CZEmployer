@@ -5,6 +5,7 @@ import * as applicationService from '@/services/applicationService';
 import * as talentPoolService from '@/services/talentPoolService';
 import { getAccessToken } from '@/utils/token';
 import * as utils from '@/utils';
+import apiClient from '@/services/apiClient';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +41,34 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
+
+  const handleDownloadTemplateCV = async () => {
+    // Không cần check cvId nữa vì chúng ta sẽ dùng application snapshot để generate PDF
+    if (!application?._id) {
+      toast.error("Không tìm thấy thông tin ứng tuyển.");
+      return;
+    }
+    const toastId = toast.loading("Đang tạo PDF từ hồ sơ lưu trữ...");
+    try {
+      // Gọi endpoint mới dành riêng cho Application PDF (sử dụng snapshot)
+      const response = await apiClient.get(`/applications/${application._id}/export-pdf`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ung-tuyen-${application.candidateName || 'candidate'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.dismiss(toastId);
+      toast.success("Tải xuống thành công!");
+    } catch (err) {
+      console.error(err);
+      toast.dismiss(toastId);
+    }
+  };
 
   // State for inline editing
   const [currentNotes, setCurrentNotes] = useState('');
@@ -437,24 +466,37 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   )}
                 </CardTitle>
                 {/* Chỉ hiển thị nút tải xuống cho CV uploaded (có path) */}
-                {application.submittedCV.path && (
+                {application.submittedCV.path ? (
                   <Button variant="ghost" size="sm" asChild>
                     <a href={application.submittedCV.path} target="_blank" rel="noopener noreferrer">
                       <Download className="h-4 w-4 mr-2" />
                       Tải xuống
                     </a>
                   </Button>
-                )}
+                ) : application.submittedCV.source === 'TEMPLATE' ? (
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplateCV}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Tải xuống PDF
+                  </Button>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent className="p-0 flex-1 min-h-[500px] bg-gray-100">
               {application.submittedCV.source === 'TEMPLATE' ? (
                 // CV Template: Render qua iframe trỏ về Candidate FE
-                <iframe
-                  src={`${import.meta.env.VITE_CANDIDATE_FE_URL || 'http://localhost:3000'}/render-application.html?applicationId=${application._id}&token=${getAccessToken()}`}
-                  title="CV Template Viewer"
-                  className="w-full h-full min-h-[600px] border-0"
-                />
+                <div className="relative w-full h-full min-h-[600px]">
+                  {isIframeLoading && (
+                    <div className="absolute inset-0 z-10 bg-white">
+                      <CVContentSkeleton />
+                    </div>
+                  )}
+                  <iframe
+                    src={`${import.meta.env.VITE_CANDIDATE_FE_URL || 'http://localhost:3000'}/render-application.html?applicationId=${application._id}&token=${getAccessToken()}`}
+                    title="CV Template Viewer"
+                    className="w-full h-full min-h-[600px] border-0"
+                    onLoad={() => setIsIframeLoading(false)}
+                  />
+                </div>
               ) : (
                 // CV Uploaded: Hiển thị PDF trực tiếp
                 <iframe
@@ -530,46 +572,50 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       />
 
       {/* Offer Details Section */}
-      {(application.offerLetter || application.offerFile) && (
-        <Card className="mb-6 border-purple-200 bg-purple-50/30">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-purple-600" />
-              <CardTitle className="text-lg text-purple-900">Thư mời đã gửi (Offer Letter)</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {application.offerLetter && (
-              <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-sm">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
-                  {application.offerLetter}
-                </p>
+      {
+        (application.offerLetter || application.offerFile) && (
+          <Card className="mb-6 border-purple-200 bg-purple-50/30">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-purple-600" />
+                <CardTitle className="text-lg text-purple-900">Thư mời đã gửi (Offer Letter)</CardTitle>
               </div>
-            )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {application.offerLetter && (
+                <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-sm">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
+                    {application.offerLetter}
+                  </p>
+                </div>
+              )}
 
-            {application.offerFile && (
-              <div className="flex items-center gap-3">
-                <Button variant="outline" className="border-purple-200 hover:bg-purple-50 text-purple-700" asChild>
-                  <a href={application.offerFile} target="_blank" rel="noopener noreferrer" download>
-                    <Download className="h-4 w-4 mr-2" />
-                    Tải xuống file đính kèm
-                  </a>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              {application.offerFile && (
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" className="border-purple-200 hover:bg-purple-50 text-purple-700" asChild>
+                    <a href={application.offerFile} target="_blank" rel="noopener noreferrer" download>
+                      <Download className="h-4 w-4 mr-2" />
+                      Tải xuống file đính kèm
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
 
-      {application && (
-        <AddToTalentPoolDialog
-          open={isAddToTalentPoolOpen}
-          onClose={() => setIsAddToTalentPoolOpen(false)}
-          applicationId={application._id}
-          candidateName={application.candidateName}
-          onSuccess={() => fetchApplication(false)}
-        />
-      )}
+      {
+        application && (
+          <AddToTalentPoolDialog
+            open={isAddToTalentPoolOpen}
+            onClose={() => setIsAddToTalentPoolOpen(false)}
+            applicationId={application._id}
+            candidateName={application.candidateName}
+            onSuccess={() => fetchApplication(false)}
+          />
+        )
+      }
     </div >
   );
 };
@@ -666,3 +712,64 @@ const ApplicationDetailSkeleton = () => (
 );
 
 export default ApplicationDetail;
+
+const CVContentSkeleton = () => (
+  <div className="bg-white p-8 h-full w-full overflow-hidden">
+    {/* Header Section */}
+    <div className="flex items-center space-x-6 border-b pb-8">
+      <Skeleton className="h-24 w-24 rounded-full" />
+      <div className="space-y-4 flex-1">
+        <Skeleton className="h-8 w-3/4" />
+        <Skeleton className="h-5 w-1/2" />
+        <div className="flex gap-4 pt-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </div>
+    </div>
+    <div className="grid grid-cols-12 gap-8 mt-8">
+      {/* Left Sidebar */}
+      <div className="col-span-4 space-y-8 border-r pr-6">
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-1/2" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-1/2" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-6 w-14 rounded-full" />
+            <Skeleton className="h-6 w-18 rounded-full" />
+          </div>
+        </div>
+      </div>
+      {/* Right Content */}
+      <div className="col-span-8 space-y-8">
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+        <div className="space-y-6">
+          <Skeleton className="h-6 w-1/3" />
+          {[1, 2].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="flex justify-between">
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
