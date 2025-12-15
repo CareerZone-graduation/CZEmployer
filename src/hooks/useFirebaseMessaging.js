@@ -86,9 +86,9 @@ const useFirebaseMessaging = () => {
       const unsubscribe = setupOnMessageListener((payload) => {
         setNotification(payload);
 
-        if (payload.notification) {
-          toast.info(payload.notification.title, {
-            description: payload.notification.body,
+        if (payload.data) {
+          toast.info(payload.data.title, {
+            description: payload.data.body,
             duration: 5000,
             // Thêm action để người dùng có thể click vào
             action: {
