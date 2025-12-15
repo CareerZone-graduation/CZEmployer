@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/utils/formatDate';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video } from 'lucide-react';
+import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video, CheckCircle2, StickyNote } from 'lucide-react';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
 import Modal from '@/components/common/Modal';
 import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
@@ -63,8 +63,45 @@ const HistoryItem = ({ item }) => {
             {item.reason && <p className="text-sm mt-1 pl-6"><strong>Lý do:</strong> {item.reason}</p>}
           </>
         );
+      case 'ENDED':
+        return (
+          <div className="flex items-center text-sm mt-1">
+            <Clock className="h-4 w-4 mr-2 text-gray-500" />
+            <span>Cuộc phỏng vấn đã kết thúc (quá thời lượng).</span>
+          </div>
+        );
+      case 'STARTED':
+        return (
+          <>
+            <div className="flex items-center text-sm mt-1">
+              <Video className="h-4 w-4 mr-2 text-blue-500" />
+              <span className="text-blue-500 font-medium">Cuộc phỏng vấn đã bắt đầu.</span>
+            </div>
+            {item.notes && <p className="text-sm mt-1 pl-6 text-gray-600 dark:text-gray-300 italic">"{item.notes}"</p>}
+          </>
+        );
+      case 'COMPLETED':
+        return (
+          <>
+            <div className="flex items-center text-sm mt-1">
+              <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+              <span className="text-green-500 font-medium">Cuộc phỏng vấn đã hoàn thành.</span>
+            </div>
+            {item.notes && <p className="text-sm mt-1 pl-6 text-gray-600 dark:text-gray-300 italic">"{item.notes}"</p>}
+          </>
+        );
+      case 'NOTE_ADDED':
+        return (
+          <>
+            <div className="flex items-center text-sm mt-1">
+              <StickyNote className="h-4 w-4 mr-2 text-yellow-500" />
+              <span className="font-medium">Ghi chú đã được thêm.</span>
+            </div>
+            {item.notes && <p className="text-sm mt-1 pl-6 text-gray-600 dark:text-gray-300 italic">"{item.notes}"</p>}
+          </>
+        );
       default:
-        return null;
+        return <p className="text-sm mt-1 text-gray-500">{item.action} - {item.notes}</p>;
     }
   };
 
@@ -113,6 +150,7 @@ const InterviewDetail = () => {
       case 'STARTED': return 'secondary';
       case 'COMPLETED': return 'success';
       case 'CANCELLED': return 'destructive';
+      case 'ENDED': return 'secondary';
       case 'RESCHEDULED': return 'warning';
       default: return 'outline';
     }
@@ -123,14 +161,17 @@ const InterviewDetail = () => {
 
     const scheduledTime = new Date(interview.scheduledTime);
     const now = new Date();
+    const duration = interview.duration || 60; // Default to 60 minutes if not specified
     const diffMinutes = Math.floor((scheduledTime - now) / 1000 / 60);
+    const endDiffMinutes = Math.floor((now - scheduledTime) / 1000 / 60);
 
     if (diffMinutes > 15) {
       return { canJoin: false, reason: 'Chưa đến giờ phỏng vấn. Vui lòng quay lại trước 15 phút.' };
     }
 
-    if (diffMinutes < -30) {
-      return { canJoin: false, reason: 'Đã quá thời gian tham gia phỏng vấn (30 phút sau khi bắt đầu).' };
+    // Allow joining until the interview duration ends
+    if (endDiffMinutes > duration) {
+      return { canJoin: false, reason: `Đã quá thời gian tham gia phỏng vấn (quá ${duration} phút).` };
     }
 
     return { canJoin: true, reason: 'Bạn có thể tham gia phỏng vấn ngay bây giờ' };
@@ -289,6 +330,45 @@ const InterviewDetail = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Chưa có lịch sử thay đổi.</p>
               )}
             </div>
+          </DetailItem>
+
+          <DetailItem label="Lịch sử trò chuyện" className="mb-6">
+            {interview.chatTranscript && interview.chatTranscript.length > 0 ? (
+              <div className="border rounded-md p-4 max-h-80 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+                {interview.chatTranscript.map((msg, index) => {
+                  const isRecruiter = msg.senderId === interview.recruiter?.id || msg.senderId === interview.recruiter?._id || msg.senderId === interview.recruiterId?._id || msg.senderId === interview.recruiterId;
+
+                  // Determine sender name safely
+                  let senderName = 'Người gửi';
+                  if (isRecruiter) {
+                    senderName = interview.recruiter?.fullName || interview.recruiterId?.fullName || 'Nhà tuyển dụng';
+                  } else {
+                    senderName = interview.candidate?.fullName || interview.candidateId?.fullName || 'Ứng viên';
+                  }
+
+                  return (
+                    <div key={index} className={`flex flex-col mb-3 ${isRecruiter ? 'items-end' : 'items-start'}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {senderName}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {formatDate(msg.timestamp)}
+                        </span>
+                      </div>
+                      <div className={`p-3 rounded-lg max-w-[80%] ${isRecruiter
+                        ? 'bg-blue-600 text-white rounded-tr-none'
+                        : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                        }`}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Chưa có nội dung trò chuyện.</p>
+            )}
           </DetailItem>
 
           <div className="flex items-center justify-end space-x-2 border-t border-gray-200 dark:border-gray-700 pt-6">

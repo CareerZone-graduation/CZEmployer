@@ -99,199 +99,15 @@ const InterviewRoom = () => {
   const isChatOpenRef = useRef(isChatOpen);
   const processedMessageIdsRef = useRef(new Set());
 
-  const loadInterviewData = async () => {
-    try {
-      setIsLoading(true);
-      // Mock data for now (or fetch from API if available)
-      setInterviewData({
-        id: interviewId,
-        candidateName: 'Nguyễn Văn A',
-        jobTitle: 'Senior Frontend Developer',
-        scheduledAt: new Date(),
-        duration: 60
-      });
-    } catch {
-      setError('Không thể tải thông tin phỏng vấn');
-      toast.error('Không thể tải thông tin phỏng vấn');
-      setIsLoading(false);
-    }
-  };
 
-  const setupInterview = async () => {
-    try {
-      await interviewSocketService.connect();
-      const userId = interviewSocketService.getCurrentUserId();
-      if (userId) setCurrentUserId(userId);
 
-      const stream = await setupLocalMedia();
-      setupEventHandlers(userId, stream);
 
-      const joinResponse = await interviewSocketService.joinInterview(interviewId, {
-        role: 'recruiter'
-      });
 
-      if (joinResponse.existingUsers && joinResponse.existingUsers.length > 0) {
-        const candidateExists = joinResponse.existingUsers.some(u => u.userRole === 'candidate');
-        if (candidateExists) {
-          setIsRemoteUserJoined(true);
-          initiateWebRTCConnection(stream);
-        }
-      }
 
-      setIsConnected(true);
-    } catch (err) {
-      console.error('[InterviewRoom] Main setup failed:', err);
-      setError('Không thể thiết lập phòng phỏng vấn: ' + err.message);
-      setIsLoading(false);
-    }
-  };
 
-  const setupLocalMedia = async () => {
-    try {
-      const savedSettings = localStorage.getItem('interviewDeviceSettings');
-      const deviceSettings = savedSettings ? JSON.parse(savedSettings) : {};
 
-      const constraints = {
-        video: deviceSettings.videoDeviceId
-          ? { deviceId: { exact: deviceSettings.videoDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: deviceSettings.audioDeviceId
-          ? { deviceId: { exact: deviceSettings.audioDeviceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-          : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      };
 
-      let stream;
-      try {
-        stream = await webrtcService.getUserMedia(constraints);
-      } catch {
-        console.warn('Exact device failed, trying fallback');
-        stream = await webrtcService.getUserMedia({ video: true, audio: true });
-      }
 
-      setLocalStream(stream);
-      return stream;
-    } catch (error) {
-      console.error('[InterviewRoom] Failed to setup local media:', error);
-      toast.error('Không thể truy cập camera/microphone.');
-      throw error;
-    }
-  };
-
-  const setupEventHandlers = (userId, stream) => {
-    webrtcService.eventHandlers.clear();
-    interviewSocketService.removeAllListeners();
-
-    interviewSocketService.on('onUserJoined', (data) => {
-      if (data.userRole === 'candidate') {
-        setIsRemoteUserJoined(true);
-        setRemotePeerState(prev => ({ ...prev, name: data.userName || 'Ứng viên' }));
-        toast.success(`${data.userName || 'Ứng viên'} đã tham gia.`);
-
-        const peerExists = webrtcService.peerConnection &&
-          webrtcService.peerConnection.connectionState !== 'closed' &&
-          webrtcService.peerConnection.connectionState !== 'failed';
-
-        if (!connectionInitiatedRef.current && !peerExists) {
-          initiateWebRTCConnection(stream);
-        }
-      }
-    });
-
-    interviewSocketService.on('onUserLeft', (data) => {
-      setIsRemoteUserJoined(false);
-      setRemoteStream(null);
-      toast.warning(`${data.userName || 'Ứng viên'} đã rời khỏi phỏng vấn.`);
-      connectionInitiatedRef.current = false;
-      if (webrtcService.peerConnection) webrtcService.closePeerConnection();
-    });
-
-    interviewSocketService.on('onPeerDisconnected', () => {
-      setIsRemoteUserJoined(false);
-      setRemoteStream(null);
-      connectionInitiatedRef.current = false;
-      if (webrtcService.peerConnection) webrtcService.closePeerConnection();
-    });
-
-    interviewSocketService.on('onSignal', (data) => {
-      const signalFrom = data.from || data.fromUserId;
-      if (signalFrom && signalFrom === userId) return;
-      webrtcService.handleSignal(data.signal);
-    });
-
-    interviewSocketService.on('onChatMessage', (data) => {
-      if (String(data.senderId) === String(userId)) return;
-
-      const messageId = data._id || data.messageId;
-      if (messageId && processedMessageIdsRef.current.has(messageId)) {
-        return;
-      }
-      if (messageId) processedMessageIdsRef.current.add(messageId);
-
-      const newMessage = {
-        id: messageId || Date.now(),
-        senderId: data.senderId,
-        senderName: 'Ứng viên',
-        message: data.message,
-        timestamp: new Date(data.timestamp)
-      };
-
-      setChatMessages(prev => {
-        if (prev.some(msg => msg.id === newMessage.id)) return prev;
-        return [...prev, newMessage];
-      });
-
-      if (!isChatOpenRef.current) toast('Tin nhắn mới', { description: `Ứng viên: ${data.message}` });
-    });
-
-    // Media State Updates
-    interviewSocketService.on('onMediaStateChanged', (data) => {
-      if (data.userId !== userId) {
-        setRemotePeerState(prev => ({
-          ...prev,
-          isMuted: data.isAudioEnabled !== undefined ? !data.isAudioEnabled : prev.isMuted,
-          isCameraOff: data.isVideoEnabled !== undefined ? !data.isVideoEnabled : prev.isCameraOff
-        }));
-      }
-    });
-
-    interviewSocketService.on('onEmoji', (data) => {
-      addFloatingEmoji(data.emoji);
-    });
-
-    webrtcService.on('onSignal', (signal) => {
-      interviewSocketService.sendSignal(interviewId, signal);
-    });
-
-    webrtcService.on('onRemoteStream', (stream) => {
-      setRemoteStream(stream);
-    });
-
-    webrtcService.on('onConnectionEstablished', () => {
-      toast.success('Đã kết nối với ứng viên');
-    });
-
-    webrtcService.on('onLocalStreamUpdate', (stream) => {
-      setLocalStream(stream);
-    });
-  };
-
-  const initiateWebRTCConnection = (stream) => {
-    try {
-      if (connectionInitiatedRef.current) return;
-      if (webrtcService.peerConnection && webrtcService.peerConnection.connectionState !== 'closed') {
-        connectionInitiatedRef.current = true;
-        return;
-      }
-      if (!stream) throw new Error("No local stream");
-
-      connectionInitiatedRef.current = true;
-      webrtcService.initializePeerConnection(stream);
-    } catch (error) {
-      console.error('Failed to initiate connection:', error);
-      connectionInitiatedRef.current = false;
-      toast.error('Không thể khởi tạo kết nối: ' + error.message);
-    }
-  };
 
 
 
@@ -470,6 +286,24 @@ const InterviewRoom = () => {
       webrtcService.on('onLocalStreamUpdate', (stream) => {
         setLocalStream(stream);
       });
+
+      // Interview started
+      interviewSocketService.on('onInterviewStarted', (data) => {
+        console.log('[InterviewRoom] Interview started:', data);
+        toast.success('Buổi phỏng vấn đã bắt đầu');
+        setInterviewData(prev => ({
+          ...prev,
+          status: 'STARTED',
+          startTime: data.startTime
+        }));
+      });
+
+      // Interview ended (remote trigger)
+      interviewSocketService.on('onInterviewEnded', () => {
+        toast.info('Phỏng vấn đã kết thúc');
+        // Navigate back to details
+        setTimeout(() => navigate(`/interviews/${interviewId}`), 2000);
+      });
     };
 
     const initiateWebRTCConnection = (stream) => {
@@ -507,7 +341,7 @@ const InterviewRoom = () => {
       recordingService.reset();
       connectionInitiatedRef.current = false;
     };
-  }, [interviewId]);
+  }, [interviewId, navigate]);
 
   const toggleAudio = async () => {
     const newEnabled = !isAudioEnabled;
