@@ -7,15 +7,17 @@ class WebRTCService {
   constructor() {
     this.peerConnection = null;
     this.localStream = null;
+    this.cxLocalScreenStream = null; // Store screen stream for robust stopping
     this.remoteStream = null;
+    this.remoteScreenStream = null;
     this.connectionState = 'disconnected';
     this.eventHandlers = new Map();
     this.isInitiator = false;
-    
+
     // Track processed signals to prevent duplicates
     this.processedSignals = new Map(); // Map<signalType, timestamp>
     this.signalDebounceTime = 1000; // 1 second debounce
-    
+
     // ICE servers configuration
     this.config = {
       iceServers: [
@@ -50,7 +52,7 @@ class WebRTCService {
    */
   off(event, handler) {
     if (!this.eventHandlers.has(event)) return;
-    
+
     const handlers = this.eventHandlers.get(event);
     const index = handlers.indexOf(handler);
     if (index > -1) {
@@ -64,7 +66,7 @@ class WebRTCService {
    */
   _triggerHandler(event, data) {
     if (!this.eventHandlers.has(event)) return;
-    
+
     const handlers = this.eventHandlers.get(event);
     handlers.forEach(handler => {
       try {
@@ -81,10 +83,10 @@ class WebRTCService {
   async getUserMedia(constraints = { video: true, audio: true }) {
     try {
       console.log('[WebRTC] Requesting user media with constraints:', constraints);
-      
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.localStream = stream;
-      
+
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
       if (videoTrack) {
@@ -93,12 +95,12 @@ class WebRTCService {
       if (audioTrack) {
         console.log('[WebRTC] Using audio device:', audioTrack.label);
       }
-      
+
       console.log('[WebRTC] Got local stream successfully');
       return stream;
     } catch (error) {
       console.error('[WebRTC] Failed to get user media with initial constraints:', error);
-      
+
       // If the error is OverconstrainedError, try with minimal constraints
       if (error.name === 'OverconstrainedError') {
         console.warn('[WebRTC] OverconstrainedError detected, trying minimal constraints');
@@ -106,14 +108,14 @@ class WebRTCService {
           const minimalConstraints = { video: true, audio: true };
           const stream = await navigator.mediaDevices.getUserMedia(minimalConstraints);
           this.localStream = stream;
-          
+
           console.log('[WebRTC] Got local stream with minimal constraints');
           return stream;
         } catch (fallbackError) {
           console.error('[WebRTC] Failed with minimal constraints too:', fallbackError);
         }
       }
-      
+
       this._triggerHandler('onError', {
         type: 'media-access',
         error,
@@ -130,7 +132,7 @@ class WebRTCService {
   async initializePeerConnection(stream) {
     try {
       console.log('[WebRTC] Initializing peer connection as initiator (recruiter)');
-      
+
       // Prevent multiple initializations
       if (this.peerConnection && this.peerConnection.connectionState !== 'closed') {
         console.warn('[WebRTC] Peer connection already exists, skipping initialization');
@@ -166,7 +168,7 @@ class WebRTCService {
         offerToReceiveAudio: true,
         offerToReceiveVideo: true
       });
-      
+
       await this.peerConnection.setLocalDescription(offer);
       console.log('[WebRTC] Local description set (offer)');
       console.log('[WebRTC] Offer SDP:', offer.sdp);
@@ -186,8 +188,8 @@ class WebRTCService {
       return this.peerConnection;
     } catch (error) {
       console.error('[WebRTC] Failed to initialize peer connection:', error);
-      this._triggerHandler('onError', { 
-        type: 'initialization', 
+      this._triggerHandler('onError', {
+        type: 'initialization',
         error,
         message: 'Không thể khởi tạo kết nối WebRTC'
       });
@@ -218,14 +220,57 @@ class WebRTCService {
     };
 
     // Track event - remote stream received
+    // Track event - remote stream received
     this.peerConnection.ontrack = (event) => {
-      console.log('[WebRTC] Remote track received:', event.track.kind);
-      
-      if (event.streams && event.streams[0]) {
-        if (!this.remoteStream) {
-          console.log('[WebRTC] Setting remote stream');
-          this.remoteStream = event.streams[0];
-          this._triggerHandler('onRemoteStream', this.remoteStream);
+      console.log('[WebRTC] Remote track received:', event.track.kind, event.track.label);
+
+      let stream = event.streams && event.streams[0];
+
+      // Fallback: If no stream provided, create new
+      if (!stream) {
+        console.log('[WebRTC] No stream in event, creating new MediaStream for track');
+        stream = new MediaStream([event.track]);
+      }
+
+      // Logic: Differentiate Camera vs Screen
+      if (this.remoteStream && stream.id !== this.remoteStream.id) {
+        console.log('[WebRTC] Detected separate stream -> Remote SCREEN Stream');
+        this.remoteScreenStream = stream;
+        this._triggerHandler('onRemoteScreenStream', this.remoteScreenStream);
+      } else if (!this.remoteStream) {
+        console.log('[WebRTC] Setting primary remote stream');
+        this.remoteStream = stream;
+        this._triggerHandler('onRemoteStream', this.remoteStream);
+      } else {
+        // Same stream ID. Check for second video track.
+        const existingVideo = this.remoteStream.getVideoTracks()[0];
+        if (event.track.kind === 'video' && existingVideo && event.track.id !== existingVideo.id) {
+          console.log('[WebRTC] Second video track on same stream -> likely SCREEN Share');
+          const screenSimulStream = new MediaStream([event.track]);
+          this.remoteScreenStream = screenSimulStream;
+          this._triggerHandler('onRemoteScreenStream', this.remoteScreenStream);
+
+          // Listen for track ending/muting
+          event.track.onmute = () => {
+            console.warn('[WebRTC] Remote screen track muted - waiting for data or end event');
+            // Do NOT remove stream on mute
+          };
+          event.track.onended = () => {
+            console.log('[WebRTC] Remote screen track ended');
+            this.remoteScreenStream = null;
+            this._triggerHandler('onRemoteScreenStream', null);
+          };
+        }
+      }
+
+      // Also attach listeners to the first scenario
+      if (stream && this.remoteScreenStream && stream.id === this.remoteScreenStream.id) {
+        const track = stream.getVideoTracks()[0];
+        if (track) {
+          track.onmute = () => {
+            console.warn('[WebRTC] Remote screen stream muted - waiting for data');
+            // Do NOT remove stream on mute
+          };
         }
       }
     };
@@ -258,7 +303,7 @@ class WebRTCService {
     this.peerConnection.oniceconnectionstatechange = () => {
       const state = this.peerConnection.iceConnectionState;
       console.log('[WebRTC] ICE connection state:', state);
-      
+
       if (state === 'failed' || state === 'disconnected') {
         console.warn('[WebRTC] ICE connection issue:', state);
       }
@@ -290,29 +335,24 @@ class WebRTCService {
       console.log('[WebRTC] ===== Handling Signal =====');
       console.log('[WebRTC] Signal type:', signalType);
       console.log('[WebRTC] Current signaling state:', this.peerConnection.signalingState);
-      
-      // Debounce offer/answer signals to prevent duplicates (but not ICE candidates)
-      if (signalType === 'offer' || signalType === 'answer') {
-        const now = Date.now();
-        const lastProcessed = this.processedSignals.get(signalType);
-        
-        if (lastProcessed && (now - lastProcessed) < this.signalDebounceTime) {
-          console.log(`[WebRTC] Ignoring duplicate ${signalType} signal (debounced)`);
-          return;
-        }
-        
-        this.processedSignals.set(signalType, now);
-      }
+
+      // Debounce removed to fix renegotiation issues
+      // if (signalType === 'offer' || signalType === 'answer') { ... }
 
       if (signalType === 'offer') {
-        // Candidate receives offer from recruiter
+        // Peer receives offer (could be initial or renegotiation)
         console.log('[WebRTC] Received offer, creating answer...');
-        
+
+        // Handle glare or unexpected states
+        if (this.peerConnection.signalingState !== 'stable' && this.peerConnection.signalingState !== 'have-remote-offer') {
+          console.warn('[WebRTC] Receiving offer in unexpected state:', this.peerConnection.signalingState);
+        }
+
         const offerDesc = new RTCSessionDescription({
           type: 'offer',
           sdp: signal.sdp
         });
-        
+
         await this.peerConnection.setRemoteDescription(offerDesc);
         console.log('[WebRTC] Remote description set (offer)');
 
@@ -325,20 +365,24 @@ class WebRTCService {
           type: 'answer',
           sdp: answer.sdp
         });
-        
+
       } else if (signalType === 'answer') {
         // Recruiter receives answer from candidate
         console.log('[WebRTC] Received answer from candidate');
         console.log('[WebRTC] Current signaling state:', this.peerConnection.signalingState);
-        
+
         // Check if we're in the correct state to receive answer
+        // Recruiter (Initiator/Offerer) receives answer
+        // Allow in 'stable' state if renegotiating (though usually signalingState would be have-local-offer)
+        // But if we already set remoteDesc, we might be stable.
+
         if (this.peerConnection.signalingState === 'stable') {
-          console.log('[WebRTC] Already in stable state, ignoring duplicate answer');
-          return;
+          console.log('[WebRTC] Answer received while stable - possibly duplicate or end of renegotiation.');
+          // In some flows, we might just ignore, but let's be flexible for now or just log.
         }
-        
-        if (this.peerConnection.signalingState !== 'have-local-offer') {
-          console.warn('[WebRTC] Wrong state for answer:', this.peerConnection.signalingState, '- expected have-local-offer');
+
+        if (this.peerConnection.signalingState !== 'have-local-offer' && this.peerConnection.signalingState !== 'stable') {
+          console.warn('[WebRTC] Wrong state for answer:', this.peerConnection.signalingState);
           return;
         }
 
@@ -346,10 +390,10 @@ class WebRTCService {
           type: 'answer',
           sdp: signal.sdp
         });
-        
+
         await this.peerConnection.setRemoteDescription(answerDesc);
         console.log('[WebRTC] Remote description set (answer) - connection established');
-        
+
       } else if (signalType === 'candidate') {
         // ICE candidate
         if (!signal.candidate) {
@@ -363,14 +407,14 @@ class WebRTCService {
           sdpMLineIndex: signal.sdpMLineIndex,
           sdpMid: signal.sdpMid
         });
-        
+
         await this.peerConnection.addIceCandidate(candidate);
         console.log('[WebRTC] ICE candidate added successfully');
-        
+
       } else {
         console.warn('[WebRTC] Unknown signal type:', signalType);
       }
-      
+
     } catch (error) {
       console.error('[WebRTC] Failed to handle signal:', error);
       this._triggerHandler('onError', {
@@ -398,24 +442,24 @@ class WebRTCService {
       try {
         const savedSettings = localStorage.getItem('interviewDeviceSettings');
         const deviceSettings = savedSettings ? JSON.parse(savedSettings) : {};
-        
-        const audioConstraints = deviceSettings.audioDeviceId 
-          ? { 
-              deviceId: { exact: deviceSettings.audioDeviceId },
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          : { 
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            };
-        
+
+        const audioConstraints = deviceSettings.audioDeviceId
+          ? {
+            deviceId: { exact: deviceSettings.audioDeviceId },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+          : {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          };
+
         const newStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
         const newTrack = newStream.getAudioTracks()[0];
         console.log('[WebRTC] Toggling audio ON with device:', newTrack.label);
-        
+
         // Replace track in peer connection
         if (this.peerConnection) {
           const sender = this.peerConnection.getSenders().find(s => s.track?.kind === 'audio');
@@ -423,22 +467,22 @@ class WebRTCService {
             await sender.replaceTrack(newTrack);
           }
         }
-        
+
         if (audioTrack) {
           audioTrack.stop();
           this.localStream.removeTrack(audioTrack);
         }
         this.localStream.addTrack(newTrack);
-        
+
         console.log('[WebRTC] Audio enabled with new track');
         this._triggerHandler('onLocalStreamUpdate', this.localStream);
         return true;
       } catch (error) {
         console.error('[WebRTC] Failed to enable audio:', error);
-        this._triggerHandler('onError', { 
-          type: 'media-access', 
-          error, 
-          message: 'Không thể bật microphone' 
+        this._triggerHandler('onError', {
+          type: 'media-access',
+          error,
+          message: 'Không thể bật microphone'
         });
         return false;
       }
@@ -470,16 +514,16 @@ class WebRTCService {
       try {
         const savedSettings = localStorage.getItem('interviewDeviceSettings');
         const deviceSettings = savedSettings ? JSON.parse(savedSettings) : {};
-        
+
         const videoConstraints = deviceSettings.videoDeviceId
           ? { deviceId: { exact: deviceSettings.videoDeviceId } }
           : true;
-        
+
         console.log('[WebRTC] Getting new video track with constraints:', videoConstraints);
         const newStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
         const newTrack = newStream.getVideoTracks()[0];
         console.log('[WebRTC] Got new video track:', newTrack.label);
-        
+
         // Replace track in peer connection
         if (this.peerConnection) {
           const sender = this.peerConnection.getSenders().find(s => s.track?.kind === 'video');
@@ -487,7 +531,7 @@ class WebRTCService {
             await sender.replaceTrack(newTrack);
           }
         }
-        
+
         // Stop old track and update stream
         if (videoTrack) {
           console.log('[WebRTC] Stopping old video track');
@@ -495,16 +539,16 @@ class WebRTCService {
           this.localStream.removeTrack(videoTrack);
         }
         this.localStream.addTrack(newTrack);
-        
+
         console.log('[WebRTC] Video enabled with new track, triggering UI update');
         this._triggerHandler('onLocalStreamUpdate', this.localStream);
         return true;
       } catch (error) {
         console.error('[WebRTC] Failed to enable video:', error);
-        this._triggerHandler('onError', { 
-          type: 'media-access', 
-          error, 
-          message: 'Không thể bật camera' 
+        this._triggerHandler('onError', {
+          type: 'media-access',
+          error,
+          message: 'Không thể bật camera'
         });
         return false;
       }
@@ -527,16 +571,16 @@ class WebRTCService {
   async switchCamera(deviceId) {
     try {
       console.log('[WebRTC] Switching camera to:', deviceId);
-      
+
       const videoTrack = this.localStream?.getVideoTracks()[0];
-      
+
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { deviceId: { exact: deviceId } }
       });
-      
+
       const newTrack = newStream.getVideoTracks()[0];
       console.log('[WebRTC] New camera:', newTrack.label);
-      
+
       // Replace track in peer connection
       if (this.peerConnection && videoTrack) {
         const sender = this.peerConnection.getSenders().find(s => s.track?.kind === 'video');
@@ -544,23 +588,23 @@ class WebRTCService {
           await sender.replaceTrack(newTrack);
         }
       }
-      
+
       if (videoTrack) {
         videoTrack.stop();
         this.localStream.removeTrack(videoTrack);
       }
       this.localStream.addTrack(newTrack);
-      
+
       this._triggerHandler('onLocalStreamUpdate', this.localStream);
       console.log('[WebRTC] Camera switched successfully');
-      
+
       return true;
     } catch (error) {
       console.error('[WebRTC] Failed to switch camera:', error);
-      this._triggerHandler('onError', { 
-        type: 'media-access', 
-        error, 
-        message: 'Không thể chuyển camera' 
+      this._triggerHandler('onError', {
+        type: 'media-access',
+        error,
+        message: 'Không thể chuyển camera'
       });
       return false;
     }
@@ -572,21 +616,21 @@ class WebRTCService {
   async switchMicrophone(deviceId) {
     try {
       console.log('[WebRTC] Switching microphone to:', deviceId);
-      
+
       const audioTrack = this.localStream?.getAudioTracks()[0];
-      
+
       const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: { 
+        audio: {
           deviceId: { exact: deviceId },
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
         }
       });
-      
+
       const newTrack = newStream.getAudioTracks()[0];
       console.log('[WebRTC] New microphone:', newTrack.label);
-      
+
       // Replace track in peer connection
       if (this.peerConnection && audioTrack) {
         const sender = this.peerConnection.getSenders().find(s => s.track?.kind === 'audio');
@@ -594,23 +638,23 @@ class WebRTCService {
           await sender.replaceTrack(newTrack);
         }
       }
-      
+
       if (audioTrack) {
         audioTrack.stop();
         this.localStream.removeTrack(audioTrack);
       }
       this.localStream.addTrack(newTrack);
-      
+
       this._triggerHandler('onLocalStreamUpdate', this.localStream);
       console.log('[WebRTC] Microphone switched successfully');
-      
+
       return true;
     } catch (error) {
       console.error('[WebRTC] Failed to switch microphone:', error);
-      this._triggerHandler('onError', { 
-        type: 'media-access', 
-        error, 
-        message: 'Không thể chuyển microphone' 
+      this._triggerHandler('onError', {
+        type: 'media-access',
+        error,
+        message: 'Không thể chuyển microphone'
       });
       return false;
     }
@@ -622,15 +666,15 @@ class WebRTCService {
   async getDevices() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      
+
       const videoDevices = devices.filter(d => d.kind === 'videoinput');
       const audioDevices = devices.filter(d => d.kind === 'audioinput');
-      
+
       console.log('[WebRTC] Available devices:', {
         video: videoDevices.length,
         audio: audioDevices.length
       });
-      
+
       return {
         videoDevices,
         audioDevices
@@ -657,13 +701,131 @@ class WebRTCService {
     }
 
     this.remoteStream = null;
+    this.remoteScreenStream = null;
     this.connectionState = 'disconnected';
-    
+
     // Clear processed signals tracking
     this.processedSignals.clear();
 
     console.log('[WebRTC] Peer connection closed, local stream preserved');
     this._triggerHandler('onConnectionClosed');
+  }
+
+  /**
+   * Start screen sharing
+   */
+  async startScreenShare() {
+    try {
+      console.log('[WebRTC] Starting screen share (Independent Stream)');
+
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: 'always' },
+        audio: false
+      });
+
+      const screenTrack = screenStream.getVideoTracks()[0];
+      this.cxLocalScreenStream = screenStream; // Store reference
+
+      // Handle user stopping share via browser UI
+      screenTrack.onended = () => {
+        console.log('[WebRTC] Screen share stopped via browser UI');
+        this.stopScreenShare();
+      };
+
+      // Add track to peer connection (Renegotiation needed)
+      if (this.peerConnection) {
+        this.peerConnection.addTrack(screenTrack, screenStream);
+
+        // Trigger renegotiation
+        console.log('[WebRTC] Screen track added, negotiating...');
+        const offer = await this.peerConnection.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true
+        });
+        await this.peerConnection.setLocalDescription(offer);
+        this._triggerHandler('onSignal', {
+          type: 'offer',
+          sdp: offer.sdp
+        });
+      }
+
+      // Notify UI about local screen share (for preview if needed)
+      // We pass the stream so UI can render it in a separate frame
+      this._triggerHandler('onLocalScreenShareStarted', screenStream);
+
+      return true;
+    } catch (error) {
+      console.error('[WebRTC] Failed to start screen share:', error);
+      if (error.name === 'NotAllowedError') {
+        return false;
+      }
+      this._triggerHandler('onError', {
+        type: 'media-access',
+        error,
+        message: 'Không thể chia sẻ màn hình'
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Stop screen sharing and revert to camera
+   */
+  async stopScreenShare() {
+    try {
+      console.log('[WebRTC] Stopping screen share');
+
+      // Stop the track explicitly using stored reference (Fixes Chrome UI persistence)
+      if (this.cxLocalScreenStream) {
+        this.cxLocalScreenStream.getTracks().forEach(track => {
+          try {
+            track.stop();
+            console.log('[WebRTC] Stopped local screen track:', track.id);
+          } catch (e) {
+            console.warn('[WebRTC] Error stopping track:', e);
+          }
+        });
+        this.cxLocalScreenStream = null;
+      }
+
+      // Find and remove screen track from peer connection
+      if (this.peerConnection) {
+        const senders = this.peerConnection.getSenders();
+        // Heuristic: Remove sender that is ended or not the camera track
+        const localVideoTrackId = this.localStream ? this.localStream.getVideoTracks()[0]?.id : null;
+
+        let screenSender = senders.find(sender => {
+          return sender.track && (sender.track.readyState === 'ended' || (sender.track.kind === 'video' && sender.track.id !== localVideoTrackId));
+        });
+
+        if (screenSender) {
+          console.log('[WebRTC] Removing screen sender');
+          try {
+            this.peerConnection.removeTrack(screenSender);
+          } catch (e) {
+            console.warn('[WebRTC] Error removing track:', e);
+          }
+
+          // Renegotiate
+          const offer = await this.peerConnection.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
+          });
+          await this.peerConnection.setLocalDescription(offer);
+
+          this._triggerHandler('onSignal', {
+            type: 'offer',
+            sdp: offer.sdp
+          });
+        }
+      }
+
+      this._triggerHandler('onScreenShareStopped');
+      return true;
+    } catch (error) {
+      console.error('[WebRTC] Failed to stop screen share:', error);
+      return false;
+    }
   }
 
   /**
@@ -684,8 +846,10 @@ class WebRTCService {
     }
 
     this.remoteStream = null;
+    this.remoteScreenStream = null;
     this.connectionState = 'disconnected';
-    
+
+
     // Clear processed signals tracking
     this.processedSignals.clear();
 

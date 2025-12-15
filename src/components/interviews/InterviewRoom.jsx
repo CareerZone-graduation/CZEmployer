@@ -15,7 +15,7 @@ import ConnectionQualityIndicator from './ConnectionQualityIndicator';
 import webrtcService from '@/services/webrtc.service';
 import recordingService from '@/services/recording.service';
 import interviewSocketService from '@/services/interviewSocket.service';
-import { uploadRecording } from '@/services/interviewService';
+import { uploadRecording, getInterviewById } from '@/services/interviewService';
 import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 import VideoFrame from './VideoFrame';
 import ControlBar from './ControlBar';
@@ -41,9 +41,10 @@ const InterviewRoom = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false); // Enable screen sharing state
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [connectionQuality] = useState('good');
-  const [qualityDetails] = useState(null);
+  const [connectionQuality, setConnectionQuality] = useState('good');
+  const [qualityDetails, setQualityDetails] = useState(null);
   const [_isConnected, setIsConnected] = useState(false);
   const [isRemoteUserJoined, setIsRemoteUserJoined] = useState(false);
   const [interviewData, setInterviewData] = useState(null);
@@ -57,8 +58,12 @@ const InterviewRoom = () => {
   const [remotePeerState, setRemotePeerState] = useState({
     isMuted: false,
     isCameraOff: false,
-    name: 'Ứng viên'
+    name: 'Ứng viên',
+    avatar: null
   });
+  const [remoteScreenStream, setRemoteScreenStream] = useState(null);
+  const [localScreenPreview, setLocalScreenPreview] = useState(null);
+
   const [confirmEndCallOpen, setConfirmEndCallOpen] = useState(false);
 
   // Helper to add floating emoji
@@ -115,15 +120,10 @@ const InterviewRoom = () => {
     const loadInterviewData = async () => {
       try {
         setIsLoading(true);
-        // Mock data for now (or fetch from API if available)
-        setInterviewData({
-          id: interviewId,
-          candidateName: 'Nguyễn Văn A',
-          jobTitle: 'Senior Frontend Developer',
-          scheduledAt: new Date(),
-          duration: 60
-        });
-      } catch {
+        const data = await getInterviewById(interviewId);
+        setInterviewData(data);
+      } catch (err) {
+        console.error('Failed to load interview:', err);
         setError('Không thể tải thông tin phỏng vấn');
         toast.error('Không thể tải thông tin phỏng vấn');
         setIsLoading(false);
@@ -143,10 +143,23 @@ const InterviewRoom = () => {
           role: 'recruiter'
         });
 
+        // Update interview data from join response (contains correct avatar/company logo)
+        if (joinResponse.interview) {
+          setInterviewData(joinResponse.interview);
+        }
+
         if (joinResponse.existingUsers && joinResponse.existingUsers.length > 0) {
           const candidateExists = joinResponse.existingUsers.some(u => u.userRole === 'candidate');
           if (candidateExists) {
             setIsRemoteUserJoined(true);
+            const candidate = joinResponse.existingUsers.find(u => u.userRole === 'candidate');
+            if (candidate) {
+              setRemotePeerState(prev => ({
+                ...prev,
+                name: candidate.userName || 'Ứng viên',
+                avatar: candidate.userAvatar || null
+              }));
+            }
             initiateWebRTCConnection(stream);
           }
         }
@@ -197,8 +210,11 @@ const InterviewRoom = () => {
       interviewSocketService.on('onUserJoined', (data) => {
         if (data.userRole === 'candidate') {
           setIsRemoteUserJoined(true);
-          setRemotePeerState(prev => ({ ...prev, name: data.userName || 'Ứng viên' }));
-          toast.success(`${data.userName || 'Ứng viên'} đã tham gia.`);
+          setRemotePeerState(prev => ({
+            ...prev,
+            name: data.userName || 'Ứng viên',
+            avatar: data.userAvatar || null
+          }));
 
           const peerExists = webrtcService.peerConnection &&
             webrtcService.peerConnection.connectionState !== 'closed' &&
@@ -213,6 +229,7 @@ const InterviewRoom = () => {
       interviewSocketService.on('onUserLeft', (data) => {
         setIsRemoteUserJoined(false);
         setRemoteStream(null);
+        setRemoteScreenStream(null); // Clear remote screen stream on user left
         toast.warning(`${data.userName || 'Ứng viên'} đã rời khỏi phỏng vấn.`);
         connectionInitiatedRef.current = false;
         if (webrtcService.peerConnection) webrtcService.closePeerConnection();
@@ -221,6 +238,7 @@ const InterviewRoom = () => {
       interviewSocketService.on('onPeerDisconnected', () => {
         setIsRemoteUserJoined(false);
         setRemoteStream(null);
+        setRemoteScreenStream(null); // Clear remote screen stream on peer disconnect
         connectionInitiatedRef.current = false;
         if (webrtcService.peerConnection) webrtcService.closePeerConnection();
       });
@@ -267,6 +285,12 @@ const InterviewRoom = () => {
         }
       });
 
+      // Remote screen share stopped
+      interviewSocketService.on('onRemoteScreenShareStopped', () => {
+        setRemoteScreenStream(null);
+        toast.info('Ứng viên đã dừng chia sẻ màn hình');
+      });
+
       interviewSocketService.on('onEmoji', (data) => {
         addFloatingEmoji(data.emoji, false); // Remote
       });
@@ -276,15 +300,33 @@ const InterviewRoom = () => {
       });
 
       webrtcService.on('onRemoteStream', (stream) => {
+        console.log('[InterviewRoom] Remote stream received');
         setRemoteStream(stream);
       });
 
-      webrtcService.on('onConnectionEstablished', () => {
-        toast.success('Đã kết nối với ứng viên');
+      webrtcService.on('onRemoteScreenStream', (stream) => {
+        console.log('[InterviewRoom] Remote SCREEN stream received');
+        setRemoteScreenStream(stream);
+      });
+
+      webrtcService.on('onLocalScreenShareStarted', (stream) => {
+        setLocalScreenPreview(stream);
+      });
+
+      webrtcService.on('onQualityUpdate', ({ metrics }) => {
+        setConnectionQuality(metrics.quality);
+        setQualityDetails(metrics.details);
       });
 
       webrtcService.on('onLocalStreamUpdate', (stream) => {
         setLocalStream(stream);
+      });
+
+      webrtcService.on('onScreenShareStopped', () => {
+        setIsScreenSharing(false);
+        setLocalScreenPreview(null);
+        toast.info('Đã dừng chia sẻ màn hình');
+        interviewSocketService.notifyScreenShareStopped(interviewId);
       });
 
       // Interview started
@@ -360,6 +402,26 @@ const InterviewRoom = () => {
       const updatedStream = webrtcService.getLocalStream();
       if (updatedStream) setLocalStream(updatedStream);
       interviewSocketService.notifyMediaStateChanged(interviewId, isAudioEnabled, newEnabled);
+    }
+  };
+
+  const handleToggleScreenShare = async () => {
+    if (remoteScreenStream) {
+      toast.warning('Người khác đang chia sẻ màn hình. Vui lòng đợi họ kết thúc.');
+      return;
+    }
+    if (isScreenSharing) {
+      const success = await webrtcService.stopScreenShare();
+      if (success) {
+        setIsScreenSharing(false);
+        setLocalScreenPreview(null);
+      }
+    } else {
+      const success = await webrtcService.startScreenShare();
+      if (success) {
+        setIsScreenSharing(true);
+        toast.success('Đang chia sẻ màn hình');
+      }
     }
   };
 
@@ -442,19 +504,21 @@ const InterviewRoom = () => {
   const participants = [
     {
       id: 'local',
-      name: 'Bạn (Nhà tuyển dụng)',
+      name: interviewData?.recruiterId?.fullName || 'Bạn (Nhà tuyển dụng)',
       isLocal: true,
       isMuted: !isAudioEnabled,
       isCameraOff: !isVideoEnabled,
-      isActiveSpeaker: false
+      isActiveSpeaker: false,
+      avatar: interviewData?.recruiterId?.avatar || null
     },
     ...(isRemoteUserJoined ? [{
       id: 'remote',
       name: remotePeerState.name,
       isLocal: false,
       isMuted: remotePeerState.isMuted,
-      isCameraOff: remotePeerState.isCameraOff,
-      isActiveSpeaker: false
+      isCameraOff: remotePeerState.isCameraOff || !remoteStream,
+      isActiveSpeaker: false,
+      avatar: remotePeerState.avatar
     }] : [])
   ];
 
@@ -536,50 +600,82 @@ const InterviewRoom = () => {
 
         {/* Video Grid */}
         <div className={cn(
-          "flex-1 transition-all duration-300 ease-in-out flex items-center justify-center",
+          "flex-1 transition-all duration-300 ease-in-out flex items-center justify-center overflow-auto",
           (isChatOpen || isParticipantsOpen) ? "p-2" : "p-4"
         )}>
 
           <div className={cn(
             "w-full h-full transition-all duration-500",
-            isRemoteUserJoined
-              ? "grid grid-cols-1 md:grid-cols-2 gap-4 items-center content-center"
-              : "flex justify-center items-center",
-            (isRemoteUserJoined && !isChatOpen && !isParticipantsOpen) && "max-w-6xl mx-auto"
+            (remoteScreenStream || localScreenPreview)
+              ? "flex flex-col md:flex-row gap-4 h-full"
+              : isRemoteUserJoined
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4 items-center content-center"
+                : "flex justify-center items-center",
+            (isRemoteUserJoined && !isChatOpen && !isParticipantsOpen && !remoteScreenStream && !localScreenPreview) && "max-w-6xl mx-auto"
           )}>
 
-            {/* Remote Video */}
-            {isRemoteUserJoined && (
-              <VideoFrame
-                stream={remoteStream}
-                isMuted={remotePeerState.isMuted}
-                isCameraOff={remotePeerState.isCameraOff}
-                userName={remotePeerState.name}
-                isLocal={false}
-                connectionQuality={connectionQuality}
-                className="w-full h-full max-h-[calc(100vh-100px)] object-cover rounded-xl border border-white/10"
-              />
+            {/* Screen Share View (Dominant if active) */}
+            {(remoteScreenStream || localScreenPreview) && (
+              <div className="flex-1 min-h-0 bg-black rounded-xl overflow-hidden shadow-xl border border-white/10 relative order-first md:order-none">
+                <VideoFrame
+                  stream={remoteScreenStream || localScreenPreview}
+                  isMuted={true}
+                  isCameraOff={false}
+                  userName={remoteScreenStream ? remotePeerState.name + " (Màn hình)" : "Bạn (Màn hình)"}
+                  isLocal={!!localScreenPreview}
+                  connectionQuality="good"
+                  className="w-full h-full object-contain"
+                  isScreenShare={true}
+                />
+              </div>
             )}
 
-            {/* Local Video */}
-            <VideoFrame
-              stream={localStream}
-              isMuted={!isAudioEnabled}
-              isCameraOff={!isVideoEnabled}
-              userName="Bạn (Nhà tuyển dụng)"
-              isLocal={true}
-              className={cn(
-                "transition-all duration-500 rounded-xl overflow-hidden bg-[#3c4043] border border-white/10",
-                !isRemoteUserJoined
-                  ? cn(
-                    "aspect-video shadow-2xl",
-                    (isChatOpen || isParticipantsOpen)
-                      ? "w-full max-h-[calc(100vh-100px)]"
-                      : "w-full max-w-4xl max-h-[calc(100vh-100px)]"
-                  )
-                  : "w-full h-full max-h-[calc(100vh-100px)] object-cover"
+            {/* Camera Grid (Sidebar or Bottom bar when screen sharing) */}
+            <div className={cn(
+              "flex gap-4 transition-all",
+              (remoteScreenStream || localScreenPreview)
+                ? "flex-row md:flex-col w-full md:w-64 h-32 md:h-full justify-center"
+                : "w-full h-full contents"
+            )}>
+
+              {/* Remote Video */}
+              {isRemoteUserJoined && (
+                <VideoFrame
+                  stream={remoteStream}
+                  isMuted={remotePeerState.isMuted}
+                  isCameraOff={remotePeerState.isCameraOff}
+                  userName={remotePeerState.name}
+                  isLocal={false}
+                  connectionQuality={connectionQuality}
+                  className={cn(
+                    "rounded-xl video-frame",
+                    (remoteScreenStream || localScreenPreview) ? "w-full h-full object-cover" : "w-full h-full max-h-[calc(100vh-100px)] object-cover"
+                  )}
+                />
               )}
-            />
+
+              {/* Local Video */}
+              <VideoFrame
+                stream={localStream}
+                isMuted={!isAudioEnabled}
+                isCameraOff={!isVideoEnabled}
+                userName="Bạn"
+                isLocal={true}
+                className={cn(
+                  "transition-all duration-500 rounded-xl overflow-hidden bg-[#3c4043]",
+                  !isRemoteUserJoined && !(remoteScreenStream || localScreenPreview)
+                    ? cn(
+                      "aspect-video shadow-lg",
+                      (isChatOpen || isParticipantsOpen)
+                        ? "w-full max-h-[calc(100vh-100px)]"
+                        : "w-full max-w-4xl max-h-[calc(100vh-100px)]"
+                    )
+                    : (remoteScreenStream || localScreenPreview)
+                      ? "w-full h-full object-cover"
+                      : "w-full h-full max-h-[calc(100vh-100px)] object-cover"
+                )}
+              />
+            </div>
 
             {/* Waiting State Overlay */}
             {!isRemoteUserJoined && (
@@ -617,12 +713,12 @@ const InterviewRoom = () => {
         <ControlBar
           isAudioEnabled={isAudioEnabled}
           isVideoEnabled={isVideoEnabled}
-          isScreenSharing={false}
+          isScreenSharing={isScreenSharing}
           isChatOpen={isChatOpen}
           isParticipantsOpen={isParticipantsOpen}
           onToggleAudio={toggleAudio}
           onToggleVideo={toggleVideo}
-          onToggleScreenShare={() => toast.info('Tính năng chia sẻ màn hình đang phát triển')}
+          onToggleScreenShare={handleToggleScreenShare}
           onToggleChat={() => {
             setIsChatOpen(!isChatOpen);
             if (isParticipantsOpen) setIsParticipantsOpen(false);
@@ -635,6 +731,7 @@ const InterviewRoom = () => {
           interviewId={interviewId}
           interviewTitle={interviewData?.jobTitle}
           onSendEmoji={handleSendEmoji}
+          disableScreenShare={!!remoteScreenStream}
         >
           {/* Recording Controls injected here */}
           <RecordingControls

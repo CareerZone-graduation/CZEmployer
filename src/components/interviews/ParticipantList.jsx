@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
-const ParticipantItem = ({ name, isLocal, isMuted, isCameraOff, isActiveSpeaker }) => {
+const ParticipantItem = ({ name, isLocal, isMuted, isCameraOff, isActiveSpeaker, avatar }) => {
     const getInitials = (name) => {
         if (!name) return 'U';
         return name
@@ -23,7 +23,7 @@ const ParticipantItem = ({ name, isLocal, isMuted, isCameraOff, isActiveSpeaker 
                     isActiveSpeaker ? "bg-green-500" : "bg-transparent"
                 )}>
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src="" /> {/* Add avatar URL support later */}
+                        <AvatarImage src={avatar} />
                         <AvatarFallback className="bg-gray-700 text-xs text-gray-300">
                             {getInitials(name)}
                         </AvatarFallback>
@@ -74,6 +74,7 @@ const ParticipantList = ({ participants, onClose }) => {
                             isMuted={p.isMuted}
                             isCameraOff={p.isCameraOff}
                             isActiveSpeaker={p.isActiveSpeaker}
+                            avatar={p.avatar}
                         />
                     ))}
                 </div>

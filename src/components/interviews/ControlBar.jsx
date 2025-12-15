@@ -98,7 +98,8 @@ const ControlBar = ({
     className,
     children,
     interviewTitle,
-    interviewId
+    interviewId,
+    disableScreenShare = false
 }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const emojis = ['👍', '👏', '❤️', '😂', '😮', '😢', '🎉'];
@@ -178,6 +179,7 @@ const ControlBar = ({
                     isActive={!isScreenSharing}
                     variant="secondary"
                     onClick={onToggleScreenShare}
+                    disabled={disableScreenShare}
                     className={cn(isScreenSharing && "bg-blue-500/20 text-blue-300")}
                 />
 
