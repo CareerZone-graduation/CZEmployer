@@ -215,7 +215,7 @@ const Dashboard = () => {
               bg="bg-orange-50"
             />
             <StatsCard
-              title="Phỏng vấn sắp tới"
+              title="Phỏng vấn đã diễn ra"
               value={stats?.summary?.interviews?.value || 0}
               change={stats?.summary?.interviews?.change}
               icon={CalendarIcon}
