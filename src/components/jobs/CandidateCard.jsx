@@ -3,9 +3,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { User, Briefcase, Clock } from 'lucide-react';
-import MessageButton from '@/components/candidates/MessageButton';
 
-const CandidateCard = ({ candidate, onMessageClick }) => {
+const CandidateCard = ({ candidate }) => {
   const navigate = useNavigate();
 
   const handleClick = (e) => {
@@ -16,12 +15,6 @@ const CandidateCard = ({ candidate, onMessageClick }) => {
     navigate(`/candidates/${candidate.userId}`);
   };
 
-  const handleMessageClick = () => {
-    if (onMessageClick) {
-      onMessageClick(candidate);
-    }
-  };
-
   const getInitials = (name) => {
     if (!name) return 'UV';
     const parts = name.trim().split(' ');
@@ -30,7 +23,7 @@ const CandidateCard = ({ candidate, onMessageClick }) => {
   };
 
   return (
-    <Card 
+    <Card
       className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border border-gray-200"
       onClick={handleClick}
     >
@@ -51,7 +44,7 @@ const CandidateCard = ({ candidate, onMessageClick }) => {
               <h3 className="font-semibold text-lg text-gray-900 truncate">
                 {candidate.fullname}
               </h3>
-              <Badge 
+              <Badge
                 className="bg-green-100 text-green-700 font-bold text-lg px-3 py-1 shrink-0"
               >
                 {candidate.similarityPercentage}%
@@ -78,8 +71,8 @@ const CandidateCard = ({ candidate, onMessageClick }) => {
             {candidate.matchedSkills && candidate.matchedSkills.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {candidate.matchedSkills.slice(0, 5).map((skill, index) => (
-                  <Badge 
-                    key={index} 
+                  <Badge
+                    key={index}
                     variant="secondary"
                     className="bg-blue-50 text-blue-700 hover:bg-blue-100"
                   >
@@ -89,14 +82,7 @@ const CandidateCard = ({ candidate, onMessageClick }) => {
               </div>
             )}
 
-            {/* Message Button */}
-            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-              <MessageButton
-                candidateId={candidate.userId}
-                candidateName={candidate.fullname}
-                onMessageClick={handleMessageClick}
-              />
-            </div>
+
           </div>
         </div>
       </CardContent>

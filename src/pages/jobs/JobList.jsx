@@ -21,7 +21,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2, Search, Power } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Calendar, DollarSign, Clock, Building, Users, Edit, Trash2, Search, Power, TrendingUp, AlertTriangle, FileText } from 'lucide-react';
 
 import JobForm from '@/components/jobs/JobForm';
 import JobListSkeleton from '@/components/common/JobListSkeleton';
@@ -45,6 +45,29 @@ const JobList = () => {
   const [meta, setMeta] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Mini dashboard state
+  const [dashboardStats, setDashboardStats] = useState({
+    todayApplications: 0,
+    expiringJobs: [],
+    totalPendingApplications: 0
+  });
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+
+  // Fetch mini dashboard stats
+  const fetchDashboardStats = useCallback(async () => {
+    setIsDashboardLoading(true);
+    try {
+      const response = await jobService.getJobsMiniDashboard();
+      if (response && response.data) {
+        setDashboardStats(response.data);
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard stats:", err);
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  }, []);
 
   const fetchJobs = useCallback(async () => {
     setIsLoading(true);
@@ -98,6 +121,10 @@ const JobList = () => {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
 
 
   const handleFilterChange = useCallback((key, value) => {
@@ -184,6 +211,75 @@ const JobList = () => {
 
   return (
     <div>
+      {/* Mini Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Today's Applications */}
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Hôm nay</p>
+                <p className="text-2xl font-bold text-blue-800">
+                  {isDashboardLoading ? '...' : dashboardStats.todayApplications}
+                </p>
+                <p className="text-sm text-blue-600">đơn ứng tuyển mới</p>
+              </div>
+              <div className="p-3 bg-blue-200 rounded-full">
+                <TrendingUp className="h-6 w-6 text-blue-700" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Pending Applications */}
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600">Chờ xử lý</p>
+                <p className="text-2xl font-bold text-orange-800">
+                  {isDashboardLoading ? '...' : dashboardStats.totalPendingApplications}
+                </p>
+                <p className="text-sm text-orange-600">ứng viên cần duyệt</p>
+              </div>
+              <div className="p-3 bg-orange-200 rounded-full">
+                <FileText className="h-6 w-6 text-orange-700" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Expiring Jobs */}
+        <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-600">Sắp hết hạn</p>
+                <p className="text-2xl font-bold text-red-800">
+                  {isDashboardLoading ? '...' : dashboardStats.expiringJobs?.length || 0}
+                </p>
+                <p className="text-sm text-red-600">tin trong 3 ngày tới</p>
+              </div>
+              <div className="p-3 bg-red-200 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-red-700" />
+              </div>
+            </div>
+            {/* List expiring jobs */}
+            {!isDashboardLoading && dashboardStats.expiringJobs?.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-red-200">
+                <ul className="text-xs text-red-700 space-y-1">
+                  {dashboardStats.expiringJobs.slice(0, 3).map(job => (
+                    <li key={job._id} className="truncate">
+                      • {job.title} ({job.daysLeft} ngày)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
@@ -273,6 +369,12 @@ const JobList = () => {
                               <div className="flex items-center gap-1.5 text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full">
                                 <Users className="h-4 w-4" />
                                 <span>{job.totalApply || 0} ứng viên</span>
+                                {/* Hiển thị số lượng ứng viên đang chờ - gộp chung */}
+                                {job.pendingApply > 0 && (
+                                  <span className="text-orange-600 font-semibold">
+                                    ({job.pendingApply} mới)
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

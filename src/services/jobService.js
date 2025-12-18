@@ -10,6 +10,11 @@ export const getMyJobs = async (params = {}) => {
   return await apiClient.get('/jobs/my-jobs', { params })
 }
 
+// Lấy thống kê mini dashboard cho trang quản lý tin
+export const getJobsMiniDashboard = async () => {
+  return await apiClient.get('/jobs/my-jobs/mini-dashboard')
+}
+
 // Lấy danh sách jobs (public)
 export const getJobs = async (params = {}) => {
   return await apiClient.get('/jobs', { params })

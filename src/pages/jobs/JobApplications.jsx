@@ -277,7 +277,7 @@ const JobApplications = ({ isEmbedded = false }) => {
         <>
           {/* Stats Summary Bar */}
           {isJobLoading ? <StatsSkeleton /> : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6 max-w-7xl mx-auto w-full">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6 max-w-7xl mx-auto w-full">
               <Card className="bg-blue-50 border-blue-100">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                   <span className="text-2xl font-bold text-blue-700">{job?.stats?.totalApplications || 0}</span>
@@ -298,8 +298,14 @@ const JobApplications = ({ isEmbedded = false }) => {
               </Card>
               <Card className="bg-purple-50 border-purple-100">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-bold text-purple-700">{(job?.stats?.byStatus?.scheduledInterview || 0) + (job?.stats?.byStatus?.offerSent || 0)}</span>
-                  <span className="text-xs text-purple-600 font-medium mt-1">Phỏng vấn & Offer</span>
+                  <span className="text-2xl font-bold text-purple-700">{job?.stats?.byStatus?.scheduledInterview || 0}</span>
+                  <span className="text-xs text-purple-600 font-medium mt-1">Phỏng vấn</span>
+                </CardContent>
+              </Card>
+              <Card className="bg-orange-50 border-orange-100">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-bold text-orange-700">{job?.stats?.byStatus?.offerSent || 0}</span>
+                  <span className="text-xs text-orange-600 font-medium mt-1">Đã gửi Offer</span>
                 </CardContent>
               </Card>
               <Card className="bg-green-50 border-green-100">
