@@ -57,20 +57,33 @@ const InterviewList = () => {
     queryKey: ['interviews', statusFilter, debouncedSearch, dateRange],
     queryFn: async () => {
       const params = { page: 1, limit: 100 };
-      // Only send status to API if it's a valid backend enum value
-      // 'upcoming' and 'past' are client-side filters
-      if (statusFilter !== 'all' && statusFilter !== 'upcoming' && statusFilter !== 'past') {
+      // map special filters to backend params
+      if (statusFilter === 'upcoming') {
+        params.status = ['SCHEDULED', 'RESCHEDULED', 'STARTED'];
+        params.startDate = new Date().toISOString();
+      } else if (statusFilter === 'past') {
+        params.status = ['COMPLETED', 'CANCELLED', 'ENDED'];
+      } else if (statusFilter !== 'all') {
         params.status = statusFilter;
       }
+
       if (debouncedSearch) {
         params.search = debouncedSearch;
       }
+
+      // Only apply date range picker if not already using 'upcoming' filter (which sets startDate)
+      // Or allow it to override/refine? 
+      // User might want "Upcoming next week". 
+      // If status is upcoming, startDate is NOW. If user picks a range, we should respect that range IF it's in the future?
+      // Simpler: If user picks a range, use it. If not, and filter is upcoming, use NOW.
+
       if (dateRange?.from) {
         params.startDate = dateRange.from.toISOString();
       }
       if (dateRange?.to) {
         params.endDate = dateRange.to.toISOString();
       }
+
       const response = await interviewService.getMyInterviews(params);
       return response.data || [];
     },
@@ -142,6 +155,12 @@ const InterviewList = () => {
           className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200',
           label: 'Đã dời lịch',
         };
+      case 'ENDED':
+        return {
+          variant: 'default',
+          className: 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200',
+          label: 'Đã kết thúc',
+        };
       default:
         return { variant: 'outline', label: status };
     }
@@ -185,15 +204,22 @@ const InterviewList = () => {
     });
   };
 
-  // Filter interviews by status
+  // Filter interviews by status (client-side refinement / fallback)
   const filteredInterviews = interviews.filter((interview) => {
     if (statusFilter === 'all') return true;
+
+    // For upcoming/past, we rely mostly on backend, but can double check
     if (statusFilter === 'upcoming') {
-      return interview.status === 'SCHEDULED' && new Date(interview.scheduledTime) > new Date();
+      // Backend sent us future interviews with correct statuses.
+      // Just ensure we don't show old ones if the cache was stale or something?
+      // But queryKey includes statusFilter so it refetches.
+      return true;
     }
     if (statusFilter === 'past') {
-      return interview.status === 'COMPLETED' || interview.status === 'CANCELLED';
+      return true;
     }
+
+    // For specific status selections
     return interview.status === statusFilter;
   });
 
