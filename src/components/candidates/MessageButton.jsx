@@ -14,7 +14,7 @@ import ProfileUnlockModal from './ProfileUnlockModal';
  * @param {string} props.candidateName - Candidate full name
  * @param {Function} props.onMessageClick - Callback when message button is clicked (with access)
  */
-const MessageButton = ({ candidateId, candidateName, onMessageClick }) => {
+const MessageButton = ({ candidateId, candidateName, onMessageClick, disabledIfLocked = false }) => {
   const [accessStatus, setAccessStatus] = useState(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
@@ -59,7 +59,7 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick }) => {
     setAccessStatus({ canMessage: true, reason: 'PROFILE_UNLOCKED' });
     setShowUnlockModal(false);
     toast.success('Đã mở khóa hồ sơ thành công!');
-    
+
     // Open chat interface after unlock
     if (onMessageClick) {
       onMessageClick();
@@ -77,6 +77,7 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick }) => {
   }
 
   const canMessage = accessStatus?.canMessage || false;
+  const isButtonDisabled = !accessStatus || (disabledIfLocked && !canMessage);
 
   return (
     <>
@@ -84,7 +85,7 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick }) => {
         variant={canMessage ? "default" : "outline"}
         size="sm"
         onClick={handleButtonClick}
-        disabled={!accessStatus}
+        disabled={isButtonDisabled}
         className={!canMessage ? "opacity-60" : ""}
       >
         {canMessage ? (
@@ -95,19 +96,21 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick }) => {
         ) : (
           <>
             <Lock className="h-4 w-4 mr-2" />
-            Mở khóa để nhắn tin
+            {isButtonDisabled ? 'Chưa mở khóa' : 'Mở khóa để nhắn tin'}
           </>
         )}
       </Button>
 
       {/* Profile Unlock Modal */}
-      <ProfileUnlockModal
-        isOpen={showUnlockModal}
-        onClose={() => setShowUnlockModal(false)}
-        candidateId={candidateId}
-        candidateName={candidateName}
-        onUnlockSuccess={handleUnlockSuccess}
-      />
+      {!disabledIfLocked && (
+        <ProfileUnlockModal
+          isOpen={showUnlockModal}
+          onClose={() => setShowUnlockModal(false)}
+          candidateId={candidateId}
+          candidateName={candidateName}
+          onUnlockSuccess={handleUnlockSuccess}
+        />
+      )}
     </>
   );
 };

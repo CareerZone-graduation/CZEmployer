@@ -2,9 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Briefcase, Clock } from 'lucide-react';
+import { Briefcase, Clock } from 'lucide-react';
+import MessageButton from '../candidates/MessageButton';
 
-const CandidateCard = ({ candidate }) => {
+const CandidateCard = ({ candidate, onMessageClick }) => {
   const navigate = useNavigate();
 
   const handleClick = (e) => {
@@ -82,7 +83,15 @@ const CandidateCard = ({ candidate }) => {
               </div>
             )}
 
-
+            {/* Message/Unlock Button */}
+            <div className="flex justify-end mt-4">
+              <MessageButton
+                candidateId={candidate.userId}
+                candidateName={candidate.fullname}
+                onMessageClick={() => onMessageClick(candidate)}
+                disabledIfLocked={true}
+              />
+            </div>
           </div>
         </div>
       </CardContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ const CandidateProfile = () => {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [activeCvIndex, setActiveCvIndex] = useState(0);
 
   console.log('CandidateProfile component mounted, userId:', userId);
 
@@ -66,28 +67,48 @@ const CandidateProfile = () => {
     }
   }, [userId, fetchCandidateProfile]);
 
-  // Load PDF when profile is loaded
+  // Use ref to track pdfUrl for cleanup
+  const pdfUrlRef = useRef(null);
+
+  // Load PDF when profile is loaded or active CV changes
   useEffect(() => {
     const loadPdf = async () => {
-      if (!profile || !profile.cvs || profile.cvs.length === 0 || pdfUrl) return;
+      if (!profile || !profile.cvs || profile.cvs.length === 0) {
+        setPdfUrl(null);
+        return;
+      }
 
-      const cv = profile.cvs[0]; // Get the selected CV
+      const cv = profile.cvs[activeCvIndex];
+      if (!cv) return;
+
       setIsLoadingPdf(true);
+      setPdfUrl(null); // Reset URL while loading new one
+
       try {
         const response = await candidateService.getCandidateCv(userId, cv._id);
         const blob = new Blob([response], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
+        pdfUrlRef.current = url;
         setPdfUrl(url);
       } catch (err) {
         console.error('Error loading CV:', err);
-        toast.error('Không thể tải CV');
+        // Only show error if it's not a "not found" which might happen during switching
+        toast.error('Không thể tải file CV');
       } finally {
         setIsLoadingPdf(false);
       }
     };
 
     loadPdf();
-  }, [profile, userId, pdfUrl]);
+
+    // Cleanup function
+    return () => {
+      if (pdfUrlRef.current) {
+        window.URL.revokeObjectURL(pdfUrlRef.current);
+        pdfUrlRef.current = null;
+      }
+    };
+  }, [profile, userId, activeCvIndex]);
 
   const handleUnlockProfile = async () => {
     setIsUnlocking(true);
@@ -168,14 +189,15 @@ const CandidateProfile = () => {
   }
 
   const isLocked = !profile.isUnlocked;
-  const cv = profile.cvs && profile.cvs.length > 0 ? profile.cvs[0] : null;
+  const cvs = profile.cvs || [];
+  const currentCv = cvs[activeCvIndex];
 
   const handleDownloadCv = () => {
-    if (!pdfUrl || !cv) return;
-    
+    if (!pdfUrl || !currentCv) return;
+
     const link = document.createElement('a');
     link.href = pdfUrl;
-    link.download = cv.name || 'CV.pdf';
+    link.download = currentCv.name || 'CV.pdf';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -197,6 +219,7 @@ const CandidateProfile = () => {
             candidateId={userId}
             candidateName={profile?.fullname || 'Ứng viên'}
             onMessageClick={handleMessageClick}
+            disabledIfLocked={true}
           />
 
           {/* Unlock Button - Only when locked */}
@@ -230,9 +253,12 @@ const CandidateProfile = () => {
                   50 coins để mở
                 </Badge>
               </h3>
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Email, số điện thoại và CV đã được che thông tin. Mở khóa để xem đầy đủ và liên hệ trực tiếp với ứng viên.
-              </p>
+              <div className="text-xs text-amber-800 leading-relaxed space-y-1">
+                <p>Email, số điện thoại và CV đã được che thông tin. Mở khóa để xem đầy đủ và liên hệ trực tiếp với ứng viên.</p>
+                <p className="font-medium opacity-90">
+                  * Bạn chỉ có thể nhắn tin đến ứng viên khi đã mở khóa hồ sơ hoặc có ít nhất 1 đơn ứng tuyển từ ứng viên.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -266,45 +292,66 @@ const CandidateProfile = () => {
         {/* Left Column - CV Viewer (3 columns) */}
         <div className="xl:col-span-3 space-y-6">
           {/* CV Viewer Card */}
-          {cv && (
+          {cvs.length > 0 && currentCv && (
             <Card className="overflow-hidden shadow-md">
               <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b-2 border-primary/20">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl shadow-sm">
-                      <FileText className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <CardTitle className="text-lg">CV Tìm Việc</CardTitle>
-                        {isLocked && (
-                          <Badge className="text-xs gap-1 bg-amber-500 hover:bg-amber-600 text-white border-0">
-                            <Lock className="h-3 w-3" />
-                            Đã che
-                          </Badge>
-                        )}
-                        {!isLocked && (
-                          <Badge className="text-xs gap-1 bg-green-500 hover:bg-green-600 text-white border-0">
-                            <Unlock className="h-3 w-3" />
-                            Đã mở
-                          </Badge>
-                        )}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl shadow-sm">
+                        <FileText className="h-6 w-6 text-primary" />
                       </div>
-                      <CardDescription className="text-xs font-medium">
-                        {cv.name}
-                      </CardDescription>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <CardTitle className="text-lg">CV Tìm Việc</CardTitle>
+                          {isLocked && (
+                            <Badge className="text-xs gap-1 bg-amber-500 hover:bg-amber-600 text-white border-0">
+                              <Lock className="h-3 w-3" />
+                              Đã che
+                            </Badge>
+                          )}
+                          {!isLocked && (
+                            <Badge className="text-xs gap-1 bg-green-500 hover:bg-green-600 text-white border-0">
+                              <Unlock className="h-3 w-3" />
+                              Đã mở
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="text-xs font-medium">
+                          {currentCv.name}
+                        </CardDescription>
+                      </div>
                     </div>
+                    {!isLocked && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadCv}
+                        disabled={!pdfUrl}
+                        className="shadow-sm"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Tải xuống
+                      </Button>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadCv}
-                    disabled={!pdfUrl}
-                    className="shadow-sm"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Tải xuống
-                  </Button>
+
+                  {/* Multiple CV Tabs */}
+                  {cvs.length > 1 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {cvs.map((c, index) => (
+                        <Button
+                          key={c._id}
+                          variant={activeCvIndex === index ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setActiveCvIndex(index)}
+                          className={activeCvIndex === index ? "bg-primary text-primary-foreground" : "text-muted-foreground"}
+                        >
+                          {c.name}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardHeader>
 
@@ -321,11 +368,14 @@ const CandidateProfile = () => {
                   )}
 
                   {pdfUrl && !isLoadingPdf && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div
+                      className={`bg-white rounded-lg shadow-sm relative ${isLocked ? 'overflow-y-auto h-[800px]' : 'overflow-hidden'}`}
+                      onContextMenu={(e) => isLocked && e.preventDefault()}
+                    >
                       <iframe
-                        src={`${pdfUrl}#view=FitH`}
-                        className="w-full h-[800px]"
-                        title={cv.name}
+                        src={`${pdfUrl}#view=FitH${isLocked ? '&toolbar=0&navpanes=0&scrollbar=0' : ''}`}
+                        className={`w-full ${isLocked ? 'h-[3500px] pointer-events-none select-none' : 'h-[800px]'}`}
+                        title={currentCv.name}
                         style={{ border: 'none' }}
                       />
                     </div>
