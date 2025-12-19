@@ -17,8 +17,8 @@ import { VIETNAMESE_CONTENT } from '@/constants/vietnamese';
 
 const LoginForm = () => {
   const dispatch = useDispatch();
-  const [email, setEmail] = useState('r1@gmail.com');
-  const [password, setPassword] = useState('a');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (email) => {
