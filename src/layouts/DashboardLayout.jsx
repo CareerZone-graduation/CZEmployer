@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { cn } from '@/lib/utils';
@@ -52,8 +52,7 @@ const DashboardLayout = () => {
     }
   }, [isAuthenticated, dispatch]);
 
-  const location = useLocation();
-  const isMessagingPage = location.pathname === '/messaging';
+
 
   return (
     <div className="min-h-screen w-full bg-gray-50">
@@ -68,8 +67,8 @@ const DashboardLayout = () => {
         </main>
       </div>
 
-      {/* AI Chatbot */}
-      {!isMessagingPage && <AIChatbot />}
+      {/* AI Chatbot - Disabled as per request */}
+      {/* {!isMessagingPage && <AIChatbot />} */}
 
       {/* Conditional overlay for company registration */}
       {/* Conditional overlay for company registration is disabled as requested */}
