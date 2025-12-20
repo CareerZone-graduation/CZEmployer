@@ -320,7 +320,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('REJECTED')}
                     className="text-red-600 focus:text-red-600"
-                    disabled={application.status !== 'PENDING'}
+                    disabled={!['PENDING', 'SUITABLE'].includes(application.status)}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Từ chối ứng viên
