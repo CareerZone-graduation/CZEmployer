@@ -15,20 +15,19 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { formatDate } from '@/utils/formatDate';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const RescheduleInterviewModal = ({ isOpen, onClose, onSubmit, loading }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [hour, setHour] = useState(new Date().getHours());
-  const [minute, setMinute] = useState(new Date().getMinutes());
+  const [time, setTime] = useState(format(new Date(), 'HH:mm'));
   const [reason, setReason] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       const now = new Date();
       setSelectedDate(now);
-      setHour(now.getHours());
-      setMinute(now.getMinutes());
+      setTime(format(now, 'HH:mm'));
       setReason('');
     }
   }, [isOpen]);
@@ -39,6 +38,7 @@ const RescheduleInterviewModal = ({ isOpen, onClose, onSubmit, loading }) => {
       return;
     }
 
+    const [hour, minute] = time.split(':').map(num => parseInt(num, 10));
     const newScheduledTime = new Date(selectedDate);
     newScheduledTime.setHours(hour, minute, 0, 0);
 
@@ -91,27 +91,12 @@ const RescheduleInterviewModal = ({ isOpen, onClose, onSubmit, loading }) => {
           </div>
           <div className="space-y-2">
             <Label>Giờ phỏng vấn</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min="0"
-                max="23"
-                value={hour}
-                onChange={(e) => setHour(parseInt(e.target.value, 10))}
-                className="w-full"
-                placeholder="Giờ"
-              />
-              <span>:</span>
-              <Input
-                type="number"
-                min="0"
-                max="59"
-                value={minute}
-                onChange={(e) => setMinute(parseInt(e.target.value, 10))}
-                className="w-full"
-                placeholder="Phút"
-              />
-            </div>
+            <Input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="reason">Lý do dời lịch</Label>

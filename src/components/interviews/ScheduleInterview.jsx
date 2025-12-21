@@ -57,11 +57,6 @@ const DURATION_OPTIONS = [
   { value: '120', label: '2 giờ' },
 ];
 
-const TIME_SLOTS = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-  '11:00', '11:30', '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-];
 
 const ScheduleInterview = ({
   open,
@@ -318,29 +313,18 @@ const ScheduleInterview = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Giờ phỏng vấn</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn giờ">
-                          {field.value && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              {field.value}
-                            </div>
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TIME_SLOTS.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        {...field}
+                        className="pl-10"
+                      />
+                    </div>
+                  </FormControl>
                   <FormDescription>
-                    Chọn giờ bắt đầu phỏng vấn (Giờ Việt Nam)
+                    Nhập hoặc chọn giờ bắt đầu phỏng vấn (Giờ Việt Nam)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

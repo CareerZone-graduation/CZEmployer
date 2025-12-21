@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as interviewService from '@/services/interviewService';
+import { isValid } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -70,12 +71,6 @@ const InterviewList = () => {
       if (debouncedSearch) {
         params.search = debouncedSearch;
       }
-
-      // Only apply date range picker if not already using 'upcoming' filter (which sets startDate)
-      // Or allow it to override/refine? 
-      // User might want "Upcoming next week". 
-      // If status is upcoming, startDate is NOW. If user picks a range, we should respect that range IF it's in the future?
-      // Simpler: If user picks a range, use it. If not, and filter is upcoming, use NOW.
 
       if (dateRange?.from) {
         params.startDate = dateRange.from.toISOString();
@@ -210,9 +205,6 @@ const InterviewList = () => {
 
     // For upcoming/past, we rely mostly on backend, but can double check
     if (statusFilter === 'upcoming') {
-      // Backend sent us future interviews with correct statuses.
-      // Just ensure we don't show old ones if the cache was stale or something?
-      // But queryKey includes statusFilter so it refetches.
       return true;
     }
     if (statusFilter === 'past') {
@@ -221,6 +213,12 @@ const InterviewList = () => {
 
     // For specific status selections
     return interview.status === statusFilter;
+  }).sort((a, b) => {
+    const timeA = new Date(a.scheduledTime);
+    const timeB = new Date(b.scheduledTime);
+    if (!isValid(timeA)) return 1;
+    if (!isValid(timeB)) return -1;
+    return timeB - timeA;
   });
 
   return (
@@ -236,6 +234,7 @@ const InterviewList = () => {
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
           <TabsList>
             <TabsTrigger value="all">Tất cả</TabsTrigger>
+            <TabsTrigger value="STARTED">Đang diễn ra</TabsTrigger>
             <TabsTrigger value="upcoming">Sắp tới</TabsTrigger>
             <TabsTrigger value="SCHEDULED">Đã lên lịch</TabsTrigger>
             <TabsTrigger value="RESCHEDULED">Đã dời lịch</TabsTrigger>

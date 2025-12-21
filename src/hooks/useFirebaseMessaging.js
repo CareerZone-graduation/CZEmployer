@@ -14,6 +14,7 @@ const useFirebaseMessaging = () => {
   const { pagination = { page: 1, limit: 10 }, initialized } = useSelector((state) => state.notifications || {});
 
   const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Check initial status
   useEffect(() => {
@@ -54,6 +55,7 @@ const useFirebaseMessaging = () => {
    * Manually requests notification permission and retrieves the FCM token.
    */
   const requestPermission = async () => {
+    setIsLoading(true);
     try {
       const token = await requestForToken();
       if (token) {
@@ -68,6 +70,8 @@ const useFirebaseMessaging = () => {
       console.error('Error requesting notification permission:', error);
       toast.error('Đã xảy ra lỗi khi bật thông báo.');
       checkPermission();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -159,6 +163,7 @@ const useFirebaseMessaging = () => {
    * Manually disables push notifications for this device.
    */
   const disableNotifications = async () => {
+    setIsLoading(true);
     try {
       const { getFCMMessaging, unregisterDeviceToken } = await import('@/services/firebase');
       const { getToken, deleteToken } = await import('firebase/messaging');
@@ -182,6 +187,8 @@ const useFirebaseMessaging = () => {
       console.error('Error disabling notifications:', error);
       toast.error('Không thể tắt thông báo.');
       checkPermission();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -189,7 +196,8 @@ const useFirebaseMessaging = () => {
     notification,
     requestPermission,
     disableNotifications,
-    isPushEnabled
+    isPushEnabled,
+    isLoading
   };
 };
 

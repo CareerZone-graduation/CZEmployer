@@ -124,7 +124,7 @@ const EmptyState = ({ message }) => (
 const Notifications = () => {
   const dispatch = useDispatch();
   const { notifications, pagination, loading, error } = useSelector((state) => state.notifications);
-  const { requestPermission, isPushEnabled, disableNotifications } = useFirebaseMessaging();
+  const { requestPermission, isPushEnabled, disableNotifications, isLoading } = useFirebaseMessaging();
 
   // Load notifications lần đầu
   useEffect(() => {
@@ -247,8 +247,13 @@ const Notifications = () => {
                 size="sm"
                 onClick={disableNotifications}
                 className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+                disabled={isLoading}
               >
-                <BellOff className="mr-2 h-4 w-4" />
+                {isLoading ? (
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                ) : (
+                  <BellOff className="mr-2 h-4 w-4" />
+                )}
                 Tắt thông báo đẩy
               </Button>
             ) : (
@@ -256,8 +261,13 @@ const Notifications = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleEnableNotifications} // Reusing handler
+                disabled={isLoading}
               >
-                <BellPlus className="mr-2 h-4 w-4" />
+                {isLoading ? (
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <BellPlus className="mr-2 h-4 w-4" />
+                )}
                 Bật thông báo đẩy
               </Button>
             )}
