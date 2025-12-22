@@ -30,19 +30,26 @@ const Modal = ({ isOpen, onClose, title, description, children, size = 'large' }
     medium: 'max-w-2xl',
     large: 'max-w-5xl',
     xlarge: 'max-w-7xl',
-    full: 'max-w-[95vw]'
+    full: 'max-w-[95vw]',
+    // Aliases
+    sm: 'max-w-sm',
+    md: 'max-w-lg', // 32rem ~ 512px
+    lg: 'max-w-2xl', // Alias for medium
+    xl: 'max-w-5xl'  // Alias for large
   };
+
+  const containerClass = sizeClasses[size] || sizeClasses.medium;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
-      <div className={`relative bg-white rounded-lg shadow-xl ${sizeClasses[size]} w-full mx-4 max-h-[90vh] flex flex-col`}>
+      <div className={`relative bg-white rounded-lg shadow-xl ${containerClass} w-full mx-4 max-h-[90vh] flex flex-col`}>
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b">
           <div>
@@ -58,7 +65,7 @@ const Modal = ({ isOpen, onClose, title, description, children, size = 'large' }
             <X className="h-6 w-6" />
           </button>
         </div>
-        
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {children}

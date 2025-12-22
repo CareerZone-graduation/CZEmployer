@@ -77,6 +77,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   // State for modals
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [isAddToTalentPoolOpen, setIsAddToTalentPoolOpen] = useState(false);
+  const [isInterviewFailedModalOpen, setIsInterviewFailedModalOpen] = useState(false);
+  const [interviewFeedback, setInterviewFeedback] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
 
@@ -112,12 +114,18 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         if (data.offerFile) formData.append('offerFile', data.offerFile);
 
         response = await applicationService.updateApplicationStatus(applicationId, formData);
+      } else if (status === 'INTERVIEW_FAILED') {
+        response = await applicationService.updateApplicationStatus(applicationId, {
+          status: 'INTERVIEW_FAILED',
+          feedback: data.feedback
+        });
       } else {
         response = await applicationService.updateApplicationStatus(applicationId, status);
       }
 
       setApplication(response.data);
       toast.success('Cập nhật trạng thái thành công');
+      setIsInterviewFailedModalOpen(false); // Close modal if open
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
     } finally {
@@ -130,12 +138,22 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const handleStatusUpdate = async (newStatus) => {
     if (newStatus === application.status) return;
 
+    if (newStatus === 'INTERVIEW_FAILED') {
+      setInterviewFeedback('');
+      setIsInterviewFailedModalOpen(true);
+      return;
+    }
+
     if (['REJECTED', 'OFFER_SENT'].includes(newStatus)) {
       setPendingStatus(newStatus);
       setConfirmOpen(true);
     } else {
       updateStatus(newStatus);
     }
+  };
+
+  const handleConfirmInterviewFailed = () => {
+    updateStatus('INTERVIEW_FAILED', { feedback: interviewFeedback });
   };
 
   // ... (fetchApplication and other methods remain same)
@@ -191,7 +209,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
 
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, interview = null) => {
     const statusConfig = {
       PENDING: { label: 'Chờ xem xét', className: 'bg-yellow-100 text-yellow-800' },
       SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
@@ -200,11 +218,34 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
       OFFER_DECLINED: { label: 'Đã từ chối Offer', className: 'bg-red-100 text-red-800' },
+      INTERVIEW_FAILED: { label: 'Phỏng vấn không đạt', className: 'bg-gray-600 text-white' },
     };
 
 
     const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
-    return <Badge className={config.className}>{config.label}</Badge>;
+
+    const badge = <Badge className={config.className}>{config.label}</Badge>;
+
+    if (interview && (status === 'SCHEDULED_INTERVIEW' || status === 'INTERVIEW_FAILED' || interview.status === 'COMPLETED' || interview.status === 'ENDED')) {
+      return (
+        <div className="flex flex-col items-start md:items-end gap-1">
+          {badge}
+          <Link
+            to={`/interviews/${interview.interviewId || interview._id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+            title="Xem lịch phỏng vấn"
+          >
+            <CalendarIcon className="h-3 w-3" />
+            Xem lịch
+          </Link>
+        </div>
+      );
+    }
+
+    return badge;
   };
 
 
@@ -262,7 +303,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 </div>
                 {/* Mobile Status Badge */}
                 <div className="md:hidden">
-                  {getStatusBadge(application.status)}
+                  {getStatusBadge(application.status, application.interviewInfo)}
                 </div>
               </div>
 
@@ -287,7 +328,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
           <div className="flex flex-col items-end gap-3 min-w-max w-full md:w-auto">
             <div className="hidden md:block">
-              {getStatusBadge(application.status)}
+              {getStatusBadge(application.status, application.interviewInfo)}
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <DropdownMenu>
@@ -310,6 +351,23 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                     Đánh giá phù hợp
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    onClick={() => handleStatusUpdate('INTERVIEW_FAILED')}
+                    disabled={
+                      application.status !== 'SCHEDULED_INTERVIEW' ||
+                      !application.interviewInfo ||
+                      !['COMPLETED', 'ENDED'].includes(application.interviewInfo.status)
+                    }
+                    className={
+                      (application.status !== 'SCHEDULED_INTERVIEW' || !application.interviewInfo || !['COMPLETED', 'ENDED'].includes(application.interviewInfo.status))
+                        ? "opacity-50 cursor-not-allowed"
+                        : "text-orange-700 focus:text-orange-800"
+                    }
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Phỏng vấn không đạt
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
                     onClick={() => handleStatusUpdate('OFFER_SENT')}
                     disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status)}
                     className={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
@@ -320,7 +378,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('REJECTED')}
                     className="text-red-600 focus:text-red-600"
-                    disabled={!['PENDING', 'SUITABLE'].includes(application.status)}
+                    disabled={application.status !== 'PENDING'}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Từ chối ứng viên
@@ -616,6 +674,39 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
           />
         )
       }
+
+      <Modal
+        isOpen={isInterviewFailedModalOpen}
+        onClose={() => setIsInterviewFailedModalOpen(false)}
+        title="Đánh giá phỏng vấn không đạt"
+        size="md"
+      >
+        <div className="space-y-4 p-1">
+          <p className="text-sm text-gray-600">
+            Hãy nhập lý do hoặc phản hồi cho ứng viên (tùy chọn). Đánh giá này sẽ được lưu vào lịch sử và gửi thông báo cho ứng viên.
+          </p>
+          <div>
+            <Label htmlFor="interview-feedback" className="mb-2 block">Phản hồi / Lý do</Label>
+            <Textarea
+              id="interview-feedback"
+              value={interviewFeedback}
+              onChange={(e) => setInterviewFeedback(e.target.value)}
+              placeholder="Nhập phản hồi..."
+              maxLength={1000}
+              rows={5}
+            />
+            <div className="text-xs text-gray-500 text-right mt-1">
+              {interviewFeedback.length}/1000
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsInterviewFailedModalOpen(false)} disabled={isSubmitting}>Hủy</Button>
+            <Button variant="destructive" onClick={handleConfirmInterviewFailed} disabled={isSubmitting}>
+              {isSubmitting ? 'Đang xử lý...' : 'Xác nhận không đạt'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div >
   );
 };

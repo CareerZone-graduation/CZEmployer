@@ -16,11 +16,12 @@ const COLUMNS = [
 const VALID_TRANSITIONS = {
     'PENDING': ['SUITABLE', 'REJECTED'],
     'SUITABLE': ['SCHEDULED_INTERVIEW', 'OFFER_SENT'],
-    'SCHEDULED_INTERVIEW': ['OFFER_SENT'],
+    'SCHEDULED_INTERVIEW': ['OFFER_SENT', 'INTERVIEW_FAILED'],
     'OFFER_SENT': [],
     'ACCEPTED': [],
     'REJECTED': [],
-    'OFFER_DECLINED': []
+    'OFFER_DECLINED': [],
+    'INTERVIEW_FAILED': [] // Terminal state
 };
 
 const KanbanBoard = ({
@@ -45,6 +46,8 @@ const KanbanBoard = ({
         const grouped = COLUMNS.reduce((acc, col) => {
             if (col.id === 'OFFER_SENT') {
                 acc[col.id] = applications.filter(app => app.status === 'OFFER_SENT' || app.status === 'OFFER_DECLINED');
+            } else if (col.id === 'SCHEDULED_INTERVIEW') {
+                acc[col.id] = applications.filter(app => app.status === 'SCHEDULED_INTERVIEW' || app.status === 'INTERVIEW_FAILED');
             } else {
                 acc[col.id] = applications.filter(app => app.status === col.id);
             }

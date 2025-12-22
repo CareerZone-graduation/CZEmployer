@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 // Actually, the plan said "HTML5 Drag and Drop API ... to avoid adding new dependencies".
 // So I will use native onDragStart, etc.
@@ -90,6 +91,13 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                         <div className="mt-2">
                             <Badge variant="outline" className="w-full justify-center bg-orange-50 text-orange-700 border-orange-200 shadow-none">
                                 Chưa phản hồi Offer
+                            </Badge>
+                        </div>
+                    )}
+                    {application.status === 'INTERVIEW_FAILED' && (
+                        <div className="mt-2">
+                            <Badge variant="destructive" className="w-full justify-center bg-gray-600 text-white hover:bg-gray-700 border-gray-600 shadow-none">
+                                Phỏng vấn không đạt
                             </Badge>
                         </div>
                     )}

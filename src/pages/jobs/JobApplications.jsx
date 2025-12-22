@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 
@@ -230,6 +230,7 @@ const JobApplications = ({ isEmbedded = false }) => {
       OFFER_DECLINED: { label: 'Đã từ chối đề nghị', className: 'bg-red-100 text-red-800' },
       ACCEPTED: { label: 'Đã chấp nhận', className: 'bg-green-100 text-green-800' },
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
+      INTERVIEW_FAILED: { label: 'PV không đạt', className: 'bg-gray-600 text-white' },
     };
     const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
     return <Badge className={config.className}>{config.label}</Badge>;
@@ -368,6 +369,10 @@ const JobApplications = ({ isEmbedded = false }) => {
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="SCHEDULED_INTERVIEW" id="status-scheduled" />
                         <Label htmlFor="status-scheduled" className="cursor-pointer font-normal">Đã lên lịch PV</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="INTERVIEW_FAILED" id="status-interview-failed" />
+                        <Label htmlFor="status-interview-failed" className="cursor-pointer font-normal">PV không đạt</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="OFFER_SENT" id="status-offer" />

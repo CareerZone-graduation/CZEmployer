@@ -25,15 +25,20 @@ export const getApplicationById = async (applicationId) => {
  * @param {string} status - Trạng thái mới.
  * @returns {Promise<object>}
  */
-export const updateApplicationStatus = async (applicationId, statusOrFormData) => {
-  if (statusOrFormData instanceof FormData) {
-    return await apiClient.patch(`/applications/${applicationId}/status`, statusOrFormData, {
+export const updateApplicationStatus = async (applicationId, data) => {
+  if (data instanceof FormData) {
+    return await apiClient.patch(`/applications/${applicationId}/status`, data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   }
-  return await apiClient.patch(`/applications/${applicationId}/status`, { status: statusOrFormData });
+  // If data is string, treat as status
+  if (typeof data === 'string') {
+    return await apiClient.patch(`/applications/${applicationId}/status`, { status: data });
+  }
+  // If data is object, send as is (it should contain status)
+  return await apiClient.patch(`/applications/${applicationId}/status`, data);
 };
 
 
