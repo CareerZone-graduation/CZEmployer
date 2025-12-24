@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/utils/formatDate';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video, CheckCircle2, StickyNote } from 'lucide-react';
+import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video, CheckCircle2, StickyNote, ExternalLink } from 'lucide-react';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
 import Modal from '@/components/common/Modal';
 import ApplicationDetail from '@/pages/jobs/ApplicationDetail';
@@ -248,15 +248,26 @@ const InterviewDetail = () => {
                   Ứng viên: <span className="font-semibold text-gray-900 dark:text-white">{interview.candidate?.fullName}</span>
                 </p>
                 {interview.application?.id && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20"
-                    onClick={() => setViewingApplicationId(interview.application.id)}
-                  >
-                    <FilePlus className="mr-2 h-4 w-4" />
-                    Xem hồ sơ ứng tuyển
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                      onClick={() => setViewingApplicationId(interview.application.id)}
+                    >
+                      <FilePlus className="mr-2 h-4 w-4" />
+                      Xem hồ sơ ứng tuyển
+                    </Button>
+                    <a
+                      href={`/applications/${interview.application.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-blue-500 text-blue-600 hover:bg-blue-50 h-9 px-3 transition-colors"
+                      title="Mở trong tab mới"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
                 )}
               </div>
             </div>

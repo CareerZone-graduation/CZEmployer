@@ -521,6 +521,16 @@ const JobApplications = ({ isEmbedded = false }) => {
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{app.candidateName}</span>
+                                    <a
+                                      href={`/applications/${app._id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Mở trong tab mới"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </a>
                                     {app.isReapplied && (
                                       <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs">
                                         <RefreshCcw className="h-3 w-3 mr-1" />
@@ -529,16 +539,18 @@ const JobApplications = ({ isEmbedded = false }) => {
                                     )}
                                   </div>
                                   {app.isReapplied && app.previousApplicationId && (
-                                    <button
+                                    <a
+                                      href={`/applications/${app.previousApplicationId}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setViewingApplicationId(app.previousApplicationId);
                                       }}
                                       className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 hover:underline mt-1"
                                     >
                                       <History className="h-3 w-3" />
-                                      Xem đơn trước
-                                    </button>
+                                      Xem đơn trước (Tab mới)
+                                    </a>
                                   )}
                                 </TableCell>
                                 <TableCell

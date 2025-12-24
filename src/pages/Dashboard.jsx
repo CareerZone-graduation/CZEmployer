@@ -13,10 +13,15 @@ import { cn } from "@/lib/utils"
 import {
   Briefcase, Users, Eye, TrendingUp, Plus, Calendar as CalendarIcon, MapPin,
   Building2, AlertCircle, Clock, CheckCircle2, XCircle,
-  ArrowUpRight, ArrowDownRight, CreditCard, Wallet
+  ArrowUpRight, ArrowDownRight, CreditCard, Wallet, Info
 } from "lucide-react"
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts'
 import recruiterService from "@/services/recruiterService"
@@ -256,7 +261,7 @@ const Dashboard = () => {
                           tickLine={false}
                           tick={{ fill: '#6b7280', fontSize: 12 }}
                         />
-                        <Tooltip
+                        <ChartTooltip
                           contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                           labelFormatter={(label) => format(new Date(label), 'dd/MM/yyyy')}
                         />
@@ -282,17 +287,26 @@ const Dashboard = () => {
                   <CardDescription>Hiệu quả quy trình tuyển dụng của bạn</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <FunnelStep label="Tổng đơn" value={stats?.funnel?.total || 0} color="bg-blue-100 text-blue-700" />
-                    <FunnelStep label="Đang xem xét" value={stats?.funnel?.underReview || 0} color="bg-indigo-100 text-indigo-700" />
+                    <FunnelStep
+                      label="Đang xem xét"
+                      value={stats?.funnel?.underReview || 0}
+                      color="bg-indigo-100 text-indigo-700"
+                      description="Bao gồm cả ứng viên đã đánh dấu phù hợp và chưa xem hồ sơ"
+                    />
                     <FunnelStep label="Phỏng vấn" value={stats?.funnel?.interview || 0} color="bg-purple-100 text-purple-700" />
+                    <FunnelStep label="Mời nhận việc" value={stats?.funnel?.offer || 0} color="bg-orange-100 text-orange-700" />
                     <FunnelStep label="Đã tuyển" value={stats?.funnel?.hired || 0} color="bg-emerald-100 text-emerald-700" />
+                    <FunnelStep label="Bị từ chối" value={stats?.funnel?.rejected || 0} color="bg-red-100 text-red-700" />
                   </div>
                   {/* Visual Bar Representation */}
                   <div className="mt-6 space-y-2">
                     <FunnelBar label="Đang xem xét" total={stats?.funnel?.total} value={stats?.funnel?.underReview} color="bg-indigo-500" />
                     <FunnelBar label="Phỏng vấn" total={stats?.funnel?.total} value={stats?.funnel?.interview} color="bg-purple-500" />
+                    <FunnelBar label="Mời nhận việc" total={stats?.funnel?.total} value={stats?.funnel?.offer} color="bg-orange-500" />
                     <FunnelBar label="Đã tuyển" total={stats?.funnel?.total} value={stats?.funnel?.hired} color="bg-emerald-500" />
+                    <FunnelBar label="Bị từ chối" total={stats?.funnel?.total} value={stats?.funnel?.rejected} color="bg-red-500" />
                   </div>
                 </CardContent>
               </Card>
@@ -394,10 +408,22 @@ const StatsCard = ({ title, value, change, icon: Icon, color, bg }) => (
   </Card>
 )
 
-const FunnelStep = ({ label, value, color }) => (
+const FunnelStep = ({ label, value, color, description }) => (
   <div className={`rounded-lg p-3 text-center ${color}`}>
     <p className="text-xl font-bold">{value}</p>
-    <p className="text-xs opacity-80 mt-1">{label}</p>
+    <div className="flex items-center justify-center gap-1 mt-1">
+      <p className="text-xs opacity-80">{label}</p>
+      {description && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-3 w-3 opacity-60 cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">{description}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
   </div>
 )
 

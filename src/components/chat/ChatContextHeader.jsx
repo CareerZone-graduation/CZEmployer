@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, Unlock, ChevronDown } from 'lucide-react';
+import { Briefcase, Unlock, ChevronDown, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
     HoverCard,
@@ -41,45 +41,72 @@ const ChatContextHeader = ({ context }) => {
                     <div className="flex items-center gap-3 text-sm">
                         <Briefcase className="h-4 w-4 text-muted-foreground" />
                         <div className="flex-1 flex items-center gap-2">
-                            <span className="text-muted-foreground">Ứng viên ứng tuyển:</span>
+                            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Ứng viên ứng tuyển:</span>
 
-                            <HoverCard>
-                                <HoverCardTrigger asChild>
-                                    <button className="font-medium hover:underline flex items-center gap-1 cursor-pointer">
-                                        {primaryApp.jobTitle}
-                                        {otherAppsCount > 0 && (
-                                            <span className="text-muted-foreground font-normal text-xs ml-1">
-                                                (+{otherAppsCount} vị trí khác)
+                            <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
+                                <HoverCard openDelay={200}>
+                                    <HoverCardTrigger asChild>
+                                        <button className="font-semibold hover:text-primary transition-colors flex items-center gap-1 cursor-pointer truncate max-w-[200px] md:max-w-xs">
+                                            {primaryApp.jobTitle}
+                                            {otherAppsCount > 0 && (
+                                                <span className="text-muted-foreground font-normal text-xs ml-1 flex-shrink-0">
+                                                    (+{otherAppsCount})
+                                                </span>
+                                            )}
+                                            <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+                                        </button>
+                                    </HoverCardTrigger>
+                                    <HoverCardContent className="w-80 p-0 overflow-hidden" align="start">
+                                        <div className="bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground border-b flex justify-between items-center">
+                                            <span>CÁC VỊ TRÍ ĐÃ ỨNG TUYỂN</span>
+                                            <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">
+                                                {applications.length}
                                             </span>
-                                        )}
-                                        <ChevronDown className="h-3 w-3 opacity-50" />
-                                    </button>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80 p-0 overflow-hidden" align="start">
-                                    <div className="bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground border-b">
-                                        Các vị trí đã ứng tuyển
-                                    </div>
-                                    <div className="max-h-[300px] overflow-y-auto">
-                                        {applications.map((app) => (
-                                            <div key={app.applicationId} className="p-3 border-b last:border-0 hover:bg-muted/20 transition-colors">
-                                                <div className="font-medium text-sm mb-1">{app.jobTitle}</div>
-                                                <div className="flex items-center justify-between text-xs">
-                                                    <span className="text-muted-foreground">
-                                                        {new Date(app.appliedAt).toLocaleDateString('vi-VN')}
-                                                    </span>
-                                                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 ${statusColors[app.status] || ''}`}>
-                                                        {statusLabels[app.status] || app.status}
-                                                    </Badge>
+                                        </div>
+                                        <div className="max-h-[300px] overflow-y-auto">
+                                            {applications.map((app) => (
+                                                <div key={app.applicationId} className="p-3 border-b last:border-0 hover:bg-muted/30 transition-colors group relative">
+                                                    <div className="font-medium text-sm mb-1 pr-6 flex items-start justify-between">
+                                                        <span className="truncate mr-2">{app.jobTitle}</span>
+                                                        <a
+                                                            href={`/applications/${app.applicationId}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-muted-foreground hover:text-primary transition-colors p-1"
+                                                            title="Xem chi tiết ứng tuyển"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <ExternalLink className="h-3.5 w-3.5" />
+                                                        </a>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-muted-foreground">
+                                                            Ngày: {new Date(app.appliedAt).toLocaleDateString('vi-VN')}
+                                                        </span>
+                                                        <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 h-5 font-normal ${statusColors[app.status] || ''}`}>
+                                                            {statusLabels[app.status] || app.status}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </HoverCardContent>
-                            </HoverCard>
+                                            ))}
+                                        </div>
+                                    </HoverCardContent>
+                                </HoverCard>
+
+                                <a
+                                    href={`/applications/${primaryApp.applicationId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-md transition-all"
+                                    title="Mở trong tab mới"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                            </div>
                         </div>
 
                         {/* Show status of primary application directly */}
-                        <Badge variant="secondary" className={statusColors[primaryApp.status] || ''}>
+                        <Badge variant="secondary" className={`font-medium ${statusColors[primaryApp.status] || ''}`}>
                             {statusLabels[primaryApp.status] || primaryApp.status}
                         </Badge>
                     </div>
@@ -120,3 +147,4 @@ const ChatContextHeader = ({ context }) => {
 };
 
 export default ChatContextHeader;
+
