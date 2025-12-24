@@ -24,8 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JobForm from '@/components/jobs/JobForm';
 import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin, Power, RefreshCw } from 'lucide-react';
 import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
-import ChatInterface from '@/components/chat/ChatInterface';
-import { createOrGetConversation } from '@/services/chatService';
+
 import JobApplications from './JobApplications';
 import { cn } from '@/lib/utils';
 
@@ -41,9 +40,7 @@ const RecruiterJobDetail = () => {
   const [error, setError] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState(null);
-  const [conversationId, setConversationId] = useState(null);
+
 
   const fetchJobDetail = useCallback(async () => {
     setIsLoading(true);
@@ -95,29 +92,7 @@ const RecruiterJobDetail = () => {
     }
   };
 
-  const handleMessageClick = async (candidate) => {
-    try {
-      setSelectedCandidate(candidate);
 
-      // Create or get conversation with the candidate
-      const response = await createOrGetConversation(candidate.userId);
-      const conversation = response.data;
-
-      // Open chat interface with the conversation
-      setConversationId(conversation._id);
-      setIsChatOpen(true);
-    } catch (err) {
-      console.error('Error creating conversation:', err);
-      const errorMessage = err.response?.data?.message || 'Không thể mở cuộc trò chuyện';
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleCloseChat = () => {
-    setIsChatOpen(false);
-    setSelectedCandidate(null);
-    setConversationId(null);
-  };
 
   const handleTabChange = (value) => {
     const params = new URLSearchParams(location.search);
@@ -277,7 +252,6 @@ const RecruiterJobDetail = () => {
                 <CardContent>
                   <CandidateSuggestions
                     jobId={jobId}
-                    onMessageClick={handleMessageClick}
                   />
                 </CardContent>
               </Card>
@@ -308,13 +282,7 @@ const RecruiterJobDetail = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Chat Interface */}
-      <ChatInterface
-        isOpen={isChatOpen}
-        onClose={handleCloseChat}
-        conversationId={conversationId}
-        recipientId={selectedCandidate?.userId}
-      />
+
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">

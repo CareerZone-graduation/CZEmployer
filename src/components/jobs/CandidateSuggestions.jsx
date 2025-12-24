@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Users } from 'lucide-react';
 
-const CandidateSuggestions = ({ jobId, onMessageClick }) => {
+const CandidateSuggestions = ({ jobId }) => {
   const [page, setPage] = useState(1);
   const limit = 10;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['suggestions', jobId, page],
     queryFn: () => getCandidateSuggestions(jobId, { page, limit }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Disable caching to ensure fresh data
     enabled: !!jobId,
   });
 
@@ -43,10 +43,11 @@ const CandidateSuggestions = ({ jobId, onMessageClick }) => {
       {/* Candidates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {candidates.map((candidate) => (
-          <CandidateCard 
-            key={candidate.userId} 
+          <CandidateCard
+            key={candidate.userId}
             candidate={candidate}
-            onMessageClick={onMessageClick}
+            jobId={jobId}
+            matchScore={candidate.similarityPercentage}
           />
         ))}
       </div>
@@ -132,7 +133,7 @@ const LoadingSkeleton = () => (
 
 const ErrorState = ({ error }) => {
   const errorMessage = error?.response?.data?.message || error?.message || 'Không thể tải danh sách ứng viên gợi ý';
-  
+
   return (
     <Card className="border-red-200 bg-red-50">
       <CardContent className="p-6">
@@ -157,7 +158,7 @@ const EmptyState = () => (
           Không tìm thấy ứng viên phù hợp
         </h3>
         <p className="text-sm text-gray-500 max-w-md">
-          Hiện tại chưa có ứng viên nào phù hợp với tin tuyển dụng này. 
+          Hiện tại chưa có ứng viên nào phù hợp với tin tuyển dụng này.
           Hệ thống sẽ tự động cập nhật khi có ứng viên mới.
         </p>
       </div>

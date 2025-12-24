@@ -20,12 +20,15 @@ import { getAccessToken } from '@/utils/token'; // <-- 1. Import hàm này
  * @param {Function} props.onClose - Callback to close the chat interface
  * @param {string} props.conversationId - Initial conversation ID to open (optional)
  * @param {string} props.recipientId - Initial recipient ID to start conversation with (optional)
+ * @param {string} props.jobId - Job ID for context and access check (optional)
  */
 const ChatInterface = ({
   isOpen,
   onClose,
   conversationId: initialConversationId = null,
-  recipientId: initialRecipientId = null
+  recipientId: initialRecipientId = null,
+  jobId = null,
+  skipContext = false
 }) => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connected', 'connecting', 'reconnecting', 'disconnected'
@@ -253,7 +256,7 @@ const ChatInterface = ({
           console.log('[ChatInterface] Creating/getting conversation with recipient:', initialRecipientId);
           // Đảm bảo import đã được xử lý (bạn có thể đưa import ra ngoài nếu muốn)
           const { createOrGetConversation } = await import('@/services/chatService');
-          const conversation = await createOrGetConversation(initialRecipientId);
+          const conversation = await createOrGetConversation(initialRecipientId, null, jobId, skipContext);
           console.log('[ChatInterface] Conversation created/retrieved:', conversation);
 
           setSelectedConversation(conversation);
@@ -266,7 +269,7 @@ const ChatInterface = ({
     };
 
     initializeConversation();
-  }, [isOpen, initialConversationId, initialRecipientId, connectionStatus]); // <-- THÊM 'connectionStatus' VÀO MẢNG DEPENDENCY
+  }, [isOpen, initialConversationId, initialRecipientId, connectionStatus, jobId, skipContext]); // <-- THÊM 'connectionStatus', 'jobId', 'skipContext' VÀO MẢNG DEPENDENCY
   /**
    * Handle conversation selection from list
    */

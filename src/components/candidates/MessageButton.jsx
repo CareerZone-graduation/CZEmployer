@@ -14,7 +14,7 @@ import ProfileUnlockModal from './ProfileUnlockModal';
  * @param {string} props.candidateName - Candidate full name
  * @param {Function} props.onMessageClick - Callback when message button is clicked (with access)
  */
-const MessageButton = ({ candidateId, candidateName, onMessageClick, disabledIfLocked = false }) => {
+const MessageButton = ({ candidateId, candidateName, onMessageClick, disabledIfLocked = false, jobId }) => {
   const [accessStatus, setAccessStatus] = useState(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
@@ -25,7 +25,7 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick, disabledIfL
 
       setIsCheckingAccess(true);
       try {
-        const response = await checkMessagingAccess(candidateId);
+        const response = await checkMessagingAccess(candidateId, jobId);
         setAccessStatus(response);
       } catch (error) {
         console.error('Error checking messaging access:', error);
@@ -38,7 +38,7 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick, disabledIfL
     };
 
     checkAccess();
-  }, [candidateId]);
+  }, [candidateId, jobId]);
 
   const handleButtonClick = () => {
     if (!accessStatus) return;
@@ -109,6 +109,7 @@ const MessageButton = ({ candidateId, candidateName, onMessageClick, disabledIfL
           candidateId={candidateId}
           candidateName={candidateName}
           onUnlockSuccess={handleUnlockSuccess}
+          jobId={jobId}
         />
       )}
     </>

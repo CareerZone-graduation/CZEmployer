@@ -137,15 +137,16 @@ const Messaging = () => {
     };
   }, []);
 
-  // Handle userId query param
+  // Handle userId and jobId query params
   const [searchParams] = useSearchParams();
   const userIdParam = searchParams.get('userId');
+  const jobIdParam = searchParams.get('jobId');
 
   useEffect(() => {
     const initConversation = async () => {
       if (userIdParam) {
         try {
-          const conversation = await chatService.createOrGetConversation(userIdParam);
+          const conversation = await chatService.createOrGetConversation(userIdParam, null, jobIdParam);
           setSelectedConversation(conversation);
           setShowMobileThread(true);
         } catch (error) {
@@ -158,7 +159,7 @@ const Messaging = () => {
     if (userIdParam && token) {
       initConversation();
     }
-  }, [userIdParam, token]);
+  }, [userIdParam, jobIdParam, token]);
 
   const handleConversationSelect = useCallback((conversation) => {
     setSelectedConversation(conversation);

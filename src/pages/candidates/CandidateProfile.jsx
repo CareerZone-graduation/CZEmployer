@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -30,6 +30,8 @@ import * as utils from '@/utils';
 
 const CandidateProfile = () => {
   const { userId } = useParams();
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get('jobId');
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +49,7 @@ const CandidateProfile = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await candidateService.getCandidateProfile(userId);
+      const response = await candidateService.getCandidateProfile(userId, jobId);
       console.log('Profile response:', response);
       setProfile(response.data);
     } catch (err) {
@@ -59,7 +61,7 @@ const CandidateProfile = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, jobId]);
 
   useEffect(() => {
     if (userId) {
@@ -85,7 +87,7 @@ const CandidateProfile = () => {
       setPdfUrl(null); // Reset URL while loading new one
 
       try {
-        const response = await candidateService.getCandidateCv(userId, cv._id);
+        const response = await candidateService.getCandidateCv(userId, cv._id, jobId);
         const blob = new Blob([response], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         pdfUrlRef.current = url;
@@ -108,12 +110,17 @@ const CandidateProfile = () => {
         pdfUrlRef.current = null;
       }
     };
-  }, [profile, userId, activeCvIndex]);
+  }, [profile, userId, activeCvIndex, jobId]);
 
   const handleUnlockProfile = async () => {
+    if (!jobId) {
+      toast.error('Cần ID công việc để mở khóa hồ sơ này. Vui lòng truy cập từ trang quản lý tin tuyển dụng.');
+      return;
+    }
+
     setIsUnlocking(true);
     try {
-      await unlockProfile(userId);
+      await unlockProfile(userId, jobId);
       toast.success('Đã mở khóa hồ sơ thành công!');
       fetchCandidateProfile(); // Refresh to get unmasked data
     } catch (err) {
@@ -220,6 +227,7 @@ const CandidateProfile = () => {
             candidateName={profile?.fullname || 'Ứng viên'}
             onMessageClick={handleMessageClick}
             disabledIfLocked={true}
+            jobId={jobId}
           />
 
           {/* Unlock Button - Only when locked */}
@@ -659,6 +667,8 @@ const CandidateProfile = () => {
         onClose={handleCloseChat}
         conversationId={selectedConversationId}
         recipientId={userId}
+        jobId={jobId}
+        skipContext={!!jobId}
       />
     </div>
   );

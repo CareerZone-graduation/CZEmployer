@@ -2,22 +2,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  MapPin, 
-  Briefcase, 
-  DollarSign, 
-  Eye, 
+import {
+  MapPin,
+  Briefcase,
+  DollarSign,
+  Eye,
   Lock,
   Star,
   TrendingUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import MessageButton from './MessageButton';
 
-const CandidateCard = ({ candidate, matchScore }) => {
+const CandidateCard = ({ candidate, matchScore, jobId }) => {
   const navigate = useNavigate();
-
+  console.log('matchScore', matchScore);
   const handleViewProfile = () => {
-    navigate(`/candidates/${candidate.userId || candidate._id}`);
+    navigate(`/candidates/${candidate.userId || candidate._id}${jobId ? `?jobId=${jobId}` : ''}`);
   };
 
   return (
@@ -47,8 +48,8 @@ const CandidateCard = ({ candidate, matchScore }) => {
               </div>
 
               {/* Match Score */}
-              {matchScore && (
-                <Badge 
+              { matchScore && (
+                <Badge
                   variant={matchScore >= 80 ? 'default' : matchScore >= 60 ? 'secondary' : 'outline'}
                   className="flex items-center gap-1 flex-shrink-0"
                 >
@@ -82,7 +83,7 @@ const CandidateCard = ({ candidate, matchScore }) => {
                   <span className="truncate">{candidate.address}</span>
                 </div>
               )}
-              
+
               {candidate.experiences && candidate.experiences.length > 0 && (
                 <div className="flex items-center gap-1">
                   <Briefcase className="h-4 w-4" />
@@ -94,7 +95,7 @@ const CandidateCard = ({ candidate, matchScore }) => {
                 <div className="flex items-center gap-1">
                   <DollarSign className="h-4 w-4" />
                   <span>
-                    {candidate.expectedSalary.min?.toLocaleString('vi-VN')} - 
+                    {candidate.expectedSalary.min?.toLocaleString('vi-VN')} -
                     {candidate.expectedSalary.max?.toLocaleString('vi-VN')} VNĐ
                   </span>
                 </div>
@@ -103,21 +104,23 @@ const CandidateCard = ({ candidate, matchScore }) => {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              <Button 
+              <Button
                 onClick={handleViewProfile}
                 size="sm"
                 className="flex-1"
+                variant="outline"
               >
                 <Eye className="h-4 w-4 mr-2" />
                 Xem hồ sơ
               </Button>
 
-              {!candidate.isUnlocked && (
-                <Badge variant="outline" className="text-xs">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Chưa mở khóa
-                </Badge>
-              )}
+              <MessageButton
+                candidateId={candidate.userId || candidate._id}
+                candidateName={candidate.fullname}
+                onMessageClick={() => navigate(`/candidates/${candidate.userId || candidate._id}?jobId=${jobId}`)}
+                jobId={jobId}
+                disabledIfLocked={true}
+              />
             </div>
           </div>
         </div>

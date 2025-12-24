@@ -39,10 +39,12 @@ const withRetry = async (requestFn, retries = RETRY_CONFIG.maxRetries) => {
  * @param {string} candidateId - Candidate user ID
  * @returns {Promise<{canMessage: boolean, reason: string}>}
  */
-export const checkMessagingAccess = async (candidateId) => {
+export const checkMessagingAccess = async (candidateId, jobId) => {
   try {
     const response = await withRetry(() =>
-      apiClient.get(`/chat/access-check/${candidateId}`)
+      apiClient.get(`/chat/access-check/${candidateId}`, {
+        params: { jobId }
+      })
     );
     return response.data;
   } catch (error) {
@@ -66,10 +68,16 @@ export const checkMessagingAccess = async (candidateId) => {
  * @param {string} candidateId - Candidate user ID
  * @returns {Promise<Object>} Conversation object
  */
-export const createOrGetConversation = async (candidateId) => {
+export const createOrGetConversation = async (candidateId, recipientId, jobId, skipContext = false) => {
   try {
+    const payload = {};
+    if (candidateId) payload.candidateId = candidateId;
+    if (recipientId) payload.recipientId = recipientId;
+    if (jobId) payload.jobId = jobId;
+    if (skipContext) payload.skipContext = skipContext;
+
     const response = await withRetry(() =>
-      apiClient.post('/chat/conversations', { candidateId })
+      apiClient.post('/chat/conversations', payload)
     );
     // Backend returns { success, message, data: conversation }
     return response.data.data || response.data;
@@ -229,10 +237,11 @@ export const markMessagesAsRead = async (messageIds) => {
  * @param {string} candidateId - Candidate user ID
  * @returns {Promise<Object>} Transaction details and updated credit balance
  */
-export const unlockProfile = async (candidateId) => {
+export const unlockProfile = async (candidateId, jobId) => {
   try {
     const response = await apiClient.post('/recruiters/unlock-profile', {
-      candidateId
+      candidateId,
+      jobId
     });
     return response.data;
   } catch (error) {

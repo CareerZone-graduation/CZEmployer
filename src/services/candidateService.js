@@ -5,8 +5,10 @@ import apiClient from './apiClient';
  * @param {string} userId - User ID
  * @returns {Promise} API response
  */
-export const getCandidateProfile = async (userId) => {
-  const response = await apiClient.get(`/recruiters/candidates/${userId}`);
+export const getCandidateProfile = async (userId, jobId) => {
+  const response = await apiClient.get(`/recruiters/candidates/${userId}`, {
+    params: { jobId }
+  });
   return response;
 };
 
@@ -16,8 +18,9 @@ export const getCandidateProfile = async (userId) => {
  * @param {string} cvId - CV ID
  * @returns {Promise<ArrayBuffer>} PDF file as ArrayBuffer
  */
-export const getCandidateCv = async (userId, cvId) => {
+export const getCandidateCv = async (userId, cvId, jobId) => {
   const response = await apiClient.get(`/recruiters/candidates/${userId}/cv/${cvId}`, {
+    params: { jobId },
     responseType: 'arraybuffer'
   });
   return response;

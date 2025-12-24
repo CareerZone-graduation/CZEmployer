@@ -390,7 +390,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 size="sm"
                 variant="outline"
                 className="flex-1 md:flex-none"
-                onClick={() => window.open(`/messaging?userId=${application.candidateUserId}`, '_blank')}
+                onClick={() => window.open(`/messaging?userId=${application.candidateUserId}&jobId=${jobId}`, '_blank')}
               >
                 <MessageCircle className="mr-2 h-3.5 w-3.5" />
                 Nhắn tin

@@ -27,19 +27,20 @@ const PROFILE_UNLOCK_COST = 50;
  * @param {string} props.candidateName - Candidate full name
  * @param {Function} props.onUnlockSuccess - Callback when unlock is successful
  */
-const ProfileUnlockModal = ({ 
-  isOpen, 
-  onClose, 
-  candidateId, 
+const ProfileUnlockModal = ({
+  isOpen,
+  onClose,
+  candidateId,
   candidateName,
-  onUnlockSuccess 
+  onUnlockSuccess,
+  jobId
 }) => {
   const dispatch = useDispatch();
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [error, setError] = useState(null);
 
   // Get current user's credit balance from Redux store
-  const currentBalance = useSelector((state) => 
+  const currentBalance = useSelector((state) =>
     state.auth.user?.user?.coinBalance || 0
   );
 
@@ -54,8 +55,8 @@ const ProfileUnlockModal = ({
     setError(null);
 
     try {
-      const response = await unlockProfile(candidateId);
-      
+      const response = await unlockProfile(candidateId, jobId);
+
       // Update credit balance in Redux store
       if (response.updatedBalance !== undefined) {
         dispatch(updateCoinBalance(response.updatedBalance));
@@ -97,7 +98,9 @@ const ProfileUnlockModal = ({
             Mở khóa hồ sơ ứng viên
           </DialogTitle>
           <DialogDescription>
-            Mở khóa hồ sơ để xem thông tin chi tiết và nhắn tin với ứng viên
+            {jobId
+              ? 'Mở khóa hồ sơ để xem thông tin chi tiết và nhắn tin với ứng viên cho công việc này'
+              : 'Mở khóa hồ sơ để xem thông tin chi tiết và nhắn tin với ứng viên'}
           </DialogDescription>
         </DialogHeader>
 
