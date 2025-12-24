@@ -40,6 +40,7 @@ import ErrorState from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import RescheduleInterviewModal from '@/components/interviews/RescheduleInterviewModal';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { RefreshCw } from 'lucide-react';
 
 const InterviewList = () => {
   const navigate = useNavigate();
@@ -223,11 +224,23 @@ const InterviewList = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Quản lý Phỏng vấn</h1>
-        <p className="text-muted-foreground">
-          Quản lý và theo dõi các buổi phỏng vấn của bạn
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Quản lý Phỏng vấn</h1>
+          <p className="text-muted-foreground">
+            Quản lý và theo dõi các buổi phỏng vấn của bạn
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isLoading}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          Làm mới
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">

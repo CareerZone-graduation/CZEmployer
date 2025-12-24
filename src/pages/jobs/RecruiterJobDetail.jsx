@@ -22,19 +22,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JobForm from '@/components/jobs/JobForm';
-import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin, Power } from 'lucide-react';
+import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin, Power, RefreshCw } from 'lucide-react';
 import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { createOrGetConversation } from '@/services/chatService';
 import JobApplications from './JobApplications';
+import { cn } from '@/lib/utils';
 
 const RecruiterJobDetail = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const tabParam = searchParams.get('tab');
-  const defaultTab = tabParam || location.state?.defaultTab || 'overview';
+  const activeTab = searchParams.get('tab') || location.state?.defaultTab || 'overview';
 
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,6 +119,12 @@ const RecruiterJobDetail = () => {
     setConversationId(null);
   };
 
+  const handleTabChange = (value) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', value);
+    navigate({ search: params.toString() }, { replace: true });
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', className: 'bg-green-100 text-green-800 hover:bg-green-200' },
@@ -163,6 +169,16 @@ const RecruiterJobDetail = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Quay lại danh sách
             </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchJobDetail}
+            disabled={isLoading}
+            className="text-gray-500 hover:text-gray-900"
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            Làm mới
           </Button>
         </div>
 
@@ -212,7 +228,7 @@ const RecruiterJobDetail = () => {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px] mb-6">
           <TabsTrigger value="overview">Thông tin chung</TabsTrigger>
           <TabsTrigger value="candidates">Danh sách ứng viên</TabsTrigger>

@@ -30,6 +30,7 @@ import ApplicationDetail from './ApplicationDetail';
 import CandidateCompareModal from '@/components/candidates/CandidateCompareModal';
 import KanbanBoard from './kanban/KanbanBoard';
 import ScheduleInterview from '@/components/interviews/ScheduleInterview';
+import { cn } from '@/lib/utils';
 
 const JobApplications = ({ isEmbedded = false }) => {
   const { jobId } = useParams();
@@ -329,6 +330,15 @@ const JobApplications = ({ isEmbedded = false }) => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <CardTitle>Danh sách ứng viên</CardTitle>
                 <div className="flex w-full md:w-auto items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => { fetchJob(); fetchApplications(); }}
+                    disabled={isAppsLoading || isJobLoading}
+                    title="Làm mới dữ liệu"
+                  >
+                    <RefreshCcw className={cn("h-4 w-4", (isAppsLoading || isJobLoading) && "animate-spin")} />
+                  </Button>
                   <div className="relative flex-1 md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                     <Input
