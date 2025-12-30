@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/utils/formatDate';
+import { formatDateTime } from '@/utils/formatDate';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import { Calendar, Edit, Trash2, ArrowLeft, Clock, ArrowRight, FilePlus, XCircle, Video, CheckCircle2, StickyNote, ExternalLink } from 'lucide-react';
@@ -46,9 +46,9 @@ const HistoryItem = ({ item }) => {
           <>
             <div className="flex flex-wrap items-center text-sm mt-1">
               <Clock className="h-4 w-4 mr-2 text-gray-500" />
-              <span className="line-through text-gray-500">{formatDate(item.fromTime)}</span>
+              <span className="line-through text-gray-500">{formatDateTime(item.fromTime)}</span>
               <ArrowRight className="h-4 w-4 mx-2 text-primary" />
-              <span className="font-semibold text-primary">{formatDate(item.toTime)}</span>
+              <span className="font-semibold text-primary">{formatDateTime(item.toTime)}</span>
             </div>
             {item.reason && <p className="text-sm mt-1 pl-6"><strong>Lý do:</strong> {item.reason}</p>}
           </>
@@ -108,7 +108,7 @@ const HistoryItem = ({ item }) => {
   return (
     <div className="relative pl-8 py-4 border-l border-gray-200 dark:border-gray-700 last:border-l-transparent">
       <div className="absolute left-[-9px] top-5 h-4 w-4 bg-gray-200 rounded-full dark:bg-gray-600"></div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(item.timestamp)}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{formatDateTime(item.timestamp)}</p>
       {renderActionDetails()}
     </div>
   );
@@ -282,7 +282,7 @@ const InterviewDetail = () => {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <DetailItem label="Thời gian">
-              <p className="text-lg font-semibold">{formatDate(interview.scheduledTime)}</p>
+              <p className="text-lg font-semibold">{formatDateTime(interview.scheduledTime)}</p>
             </DetailItem>
             <DetailItem label="Tên phòng">
               <p>{interview.roomName}</p>
@@ -364,7 +364,7 @@ const InterviewDetail = () => {
                           {senderName}
                         </span>
                         <span className="text-xs text-gray-400">
-                          {formatDate(msg.timestamp)}
+                          {formatDateTime(msg.timestamp)}
                         </span>
                       </div>
                       <div className={`p-3 rounded-lg max-w-[80%] ${isRecruiter

@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { requestForToken, setupOnMessageListener } from '@/services/firebase';
+import { requestForToken, setupOnMessageListener, waitForFCMInit } from '@/services/firebase';
 import { fetchRecentNotifications, fetchUnreadCount, fetchNotifications } from '@/redux/notificationSlice';
 import { toast } from 'sonner';
+
+// Helper: Kiểm tra xem Notification API có được hỗ trợ không
+const isNotificationSupported = () => {
+  return typeof window !== 'undefined' && 'Notification' in window;
+};
 
 /**
  * A hook to manage Firebase Cloud Messaging for Recruiter.
@@ -15,15 +20,33 @@ const useFirebaseMessaging = () => {
 
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
 
   // Check initial status
   useEffect(() => {
     const checkStatus = async () => {
+      // Đợi FCM khởi tạo xong
+      const fcmSupported = await waitForFCMInit();
+      
+      // Kiểm tra xem FCM và Notification API có được hỗ trợ không
+      if (!fcmSupported || !isNotificationSupported()) {
+        console.warn('Push notifications are not supported on this device (iOS Safari/Chrome)');
+        setIsSupported(false);
+        setIsPushEnabled(false);
+        return;
+      }
+      
+      setIsSupported(true);
+      
       if (Notification.permission === 'granted') {
         const { getFCMMessaging, checkDeviceRegistration } = await import('@/services/firebase');
         const { getToken } = await import('firebase/messaging');
         try {
           const messaging = getFCMMessaging();
+          if (!messaging) {
+            setIsPushEnabled(false);
+            return;
+          }
           const currentToken = await getToken(messaging, { vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY });
           if (currentToken) {
             const isRegistered = await checkDeviceRegistration(currentToken);
@@ -46,7 +69,7 @@ const useFirebaseMessaging = () => {
 
   const checkPermission = () => {
     // Simplified check just for browser permission update
-    if (Notification.permission !== 'granted') {
+    if (!isNotificationSupported() || Notification.permission !== 'granted') {
       setIsPushEnabled(false);
     }
   };
@@ -55,6 +78,11 @@ const useFirebaseMessaging = () => {
    * Manually requests notification permission and retrieves the FCM token.
    */
   const requestPermission = async () => {
+    if (!isSupported) {
+      toast.warning('Thiết bị này không hỗ trợ thông báo đẩy (iOS Safari/Chrome).');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const token = await requestForToken();
@@ -81,7 +109,11 @@ const useFirebaseMessaging = () => {
 
   // === FOREGROUND MESSAGE HANDLER ===
   useEffect(() => {
-    // Chỉ thiết lập listener nếu người dùng đã cho phép thông báo
+    // Chỉ thiết lập listener nếu FCM được hỗ trợ và người dùng đã cho phép thông báo
+    if (!isSupported || !isNotificationSupported()) {
+      return;
+    }
+    
     if (Notification.permission === 'granted') {
       console.log('Setting up Firebase messaging listener...');
 
@@ -129,11 +161,16 @@ const useFirebaseMessaging = () => {
         unsubscribe();
       };
     }
-  }, [dispatch, pagination, initialized]);
+  }, [dispatch, pagination, initialized, isSupported]);
 
   // === VISIBILITY CHANGE HANDLER ===
   // Khi user quay lại tab sau khi ở background, refetch notifications
   useEffect(() => {
+    // Bỏ qua nếu không hỗ trợ
+    if (!isSupported || !isNotificationSupported()) {
+      return;
+    }
+    
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && Notification.permission === 'granted') {
         console.log('Tab became visible, refreshing notifications...');
@@ -157,18 +194,27 @@ const useFirebaseMessaging = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dispatch, pagination, initialized]);
+  }, [dispatch, pagination, initialized, isSupported]);
 
   /**
    * Manually disables push notifications for this device.
    */
   const disableNotifications = async () => {
+    if (!isSupported) {
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { getFCMMessaging, unregisterDeviceToken } = await import('@/services/firebase');
       const { getToken, deleteToken } = await import('firebase/messaging');
 
       const messaging = getFCMMessaging();
+      if (!messaging) {
+        setIsPushEnabled(false);
+        return;
+      }
+      
       const currentToken = await getToken(messaging, { vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY });
 
       if (currentToken) {
@@ -197,7 +243,8 @@ const useFirebaseMessaging = () => {
     requestPermission,
     disableNotifications,
     isPushEnabled,
-    isLoading
+    isLoading,
+    isSupported // Thêm để UI có thể ẩn nút nếu không hỗ trợ
   };
 };
 

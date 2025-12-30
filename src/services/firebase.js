@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import apiClient from './apiClient';
 
 // IMPORTANT: Replace with your web app's Firebase configuration.
@@ -14,7 +14,35 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+
+// Kiểm tra xem FCM có được hỗ trợ không (iOS Safari không hỗ trợ)
+let messaging = null;
+let fcmSupported = false;
+
+// Hàm kiểm tra và khởi tạo messaging
+const initMessaging = async () => {
+  try {
+    fcmSupported = await isSupported();
+    if (fcmSupported) {
+      messaging = getMessaging(app);
+    } else {
+      console.warn('Firebase Cloud Messaging is not supported on this browser (iOS Safari/Chrome)');
+    }
+  } catch (error) {
+    console.warn('Failed to initialize Firebase Messaging:', error);
+    fcmSupported = false;
+  }
+  return fcmSupported;
+};
+
+// Khởi tạo ngay
+const messagingPromise = initMessaging();
+
+/**
+ * Kiểm tra xem FCM có được hỗ trợ không
+ */
+export const isFCMSupported = () => fcmSupported;
+export const waitForFCMInit = () => messagingPromise;
 
 /**
  * Registers the device token with the backend server.
@@ -65,6 +93,14 @@ export const checkDeviceRegistration = async (token) => {
  * @returns {Promise<string|null>} The Firebase Cloud Messaging token.
  */
 export const requestForToken = async () => {
+  // Đợi FCM khởi tạo xong
+  await messagingPromise;
+  
+  if (!fcmSupported || !messaging) {
+    console.warn('FCM is not supported on this device');
+    return null;
+  }
+
   try {
     const currentToken = await getToken(messaging);
     if (currentToken) {
@@ -99,6 +135,10 @@ export const getFCMMessaging = () => messaging;
  * @returns {import('firebase/messaging').Unsubscribe} A function to unsubscribe the listener.
  */
 export const setupOnMessageListener = (callback) => {
+  if (!fcmSupported || !messaging) {
+    console.warn('FCM is not supported, skipping message listener setup');
+    return () => {}; // Return empty unsubscribe function
+  }
   return onMessage(messaging, (payload) => {
     console.log('Foreground message received:', payload);
     callback(payload);
