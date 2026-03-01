@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { CalendarIcon, MapPin } from 'lucide-react';
+import { CalendarIcon, Sparkles } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +29,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as jobService from '@/services/jobService';
+import * as aiService from '@/services/aiService';
+import AutoSuggestInput from './AutoSuggestInput';
+import SmartAutocompleteInput from './SmartAutocompleteInput';
+import AutoSuggestTextarea from './AutoSuggestTextarea';
+import { 
+  JOB_TITLE_SUGGESTIONS, 
+  QUICK_TEMPLATES,
+  DESCRIPTION_SUGGESTIONS,
+  REQUIREMENTS_SUGGESTIONS,
+  BENEFITS_SUGGESTIONS
+} from '@/constants/jobTemplates';
 import {
   jobTypeEnum,
   jobTypeMap,
@@ -54,6 +65,9 @@ import {
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
   const [showMap, setShowMap] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [previousValues, setPreviousValues] = useState(null); // Store previous values for undo
 
   // State for location dropdowns
   const [provinces, setProvinces] = useState([]);
@@ -108,6 +122,8 @@ const JobForm = ({ onSuccess, job }) => {
   const useCompanyAddress = useWatch({ control, name: 'useCompanyAddress' });
   const watchedProvince = useWatch({ control, name: 'location.province' });
   const watchedDistrict = useWatch({ control, name: 'location.district' });
+  const watchedTitle = useWatch({ control, name: 'title' });
+  
 
   // --- Location Logic ---
 
@@ -167,6 +183,55 @@ const JobForm = ({ onSuccess, job }) => {
     }
   }, [useCompanyAddress, companyProfile, setValue]);
 
+  // Auto-generate suggestions when title changes
+  useEffect(() => {
+    const generateSuggestions = async () => {
+      // Only generate if title is long enough and fields are empty
+      if (!watchedTitle || watchedTitle.trim().length < 5) return;
+      
+      const currentDescription = form.getValues('description');
+      const currentRequirements = form.getValues('requirements');
+      const currentBenefits = form.getValues('benefits');
+      
+      // Only auto-fill if all fields are empty
+      if (currentDescription || currentRequirements || currentBenefits) return;
+      
+      // Debounce: wait for user to stop typing
+      const timeoutId = setTimeout(async () => {
+        try {
+          setIsGeneratingSuggestions(true);
+          const response = await aiService.generateSmartSuggestions(watchedTitle);
+          
+          if (response.success && response.data) {
+            // Only fill if fields are still empty
+            if (!form.getValues('description') && response.data.description) {
+              form.setValue('description', response.data.description);
+            }
+            if (!form.getValues('requirements') && response.data.requirements) {
+              form.setValue('requirements', response.data.requirements);
+            }
+            if (!form.getValues('benefits') && response.data.benefits) {
+              form.setValue('benefits', response.data.benefits);
+            }
+            
+            toast.success('Đã tự động điền nội dung phù hợp!', {
+              description: 'Bạn có thể chỉnh sửa hoặc dùng AI để cải thiện thêm'
+            });
+          }
+        } catch (error) {
+          console.error('Error generating suggestions:', error);
+          // Silent fail - don't show error to user for auto-suggestions
+        } finally {
+          setIsGeneratingSuggestions(false);
+        }
+      }, 2000); // Wait 2 seconds after user stops typing
+      
+      return () => clearTimeout(timeoutId);
+    };
+    
+    generateSuggestions();
+  }, [form, watchedTitle]);
+
   const onSubmit = useCallback(
     async (values) => {
       try {
@@ -197,6 +262,91 @@ const JobForm = ({ onSuccess, job }) => {
     },
     [isEditMode, job, onSuccess],
   );
+
+  const handleEnhanceWithAI = useCallback(async () => {
+    try {
+      const currentValues = form.getValues();
+      
+      // Check if there's enough content to enhance
+      const hasContent = currentValues.title || currentValues.description || 
+                        currentValues.requirements || currentValues.benefits;
+      
+      if (!hasContent) {
+        toast.error('Vui lòng nhập nội dung trước khi sử dụng AI');
+        return;
+      }
+
+      // Save current values for undo
+      setPreviousValues({
+        title: currentValues.title,
+        description: currentValues.description,
+        requirements: currentValues.requirements,
+        benefits: currentValues.benefits,
+      });
+
+      setIsEnhancing(true);
+      toast.info('Đang cải thiện nội dung với AI...', {
+        description: 'Vui lòng đợi trong giây lát'
+      });
+
+      // Prepare data for AI enhancement
+      const dataToEnhance = {
+        title: currentValues.title,
+        description: currentValues.description,
+        requirements: currentValues.requirements,
+        benefits: currentValues.benefits,
+      };
+
+      console.log('Sending data to AI:', dataToEnhance);
+      const response = await aiService.enhanceJobContent(dataToEnhance);
+      console.log('AI response:', response);
+      
+      if (response.success && response.data) {
+        // Update form with enhanced content
+        if (response.data.title) form.setValue('title', response.data.title);
+        if (response.data.description) form.setValue('description', response.data.description);
+        if (response.data.requirements) form.setValue('requirements', response.data.requirements);
+        if (response.data.benefits) form.setValue('benefits', response.data.benefits);
+        
+        toast.success('Cải thiện nội dung thành công!', {
+          description: 'Nội dung đã được tối ưu hóa bởi AI. Nhấn "Hoàn tác" nếu không hài lòng.'
+        });
+      } else {
+        console.error('Invalid response format:', response);
+        toast.error('Phản hồi không hợp lệ từ server');
+        setPreviousValues(null); // Clear previous values on error
+      }
+    } catch (error) {
+      console.error('Error enhancing with AI:', error);
+      console.error('Error response:', error.response);
+      toast.error('Không thể cải thiện nội dung', {
+        description: error.response?.data?.message || error.message || 'Vui lòng thử lại sau'
+      });
+      setPreviousValues(null); // Clear previous values on error
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [form]);
+
+  const handleUndo = useCallback(() => {
+    if (!previousValues) {
+      toast.error('Không có gì để hoàn tác');
+      return;
+    }
+
+    // Restore previous values
+    if (previousValues.title !== undefined) form.setValue('title', previousValues.title);
+    if (previousValues.description !== undefined) form.setValue('description', previousValues.description);
+    if (previousValues.requirements !== undefined) form.setValue('requirements', previousValues.requirements);
+    if (previousValues.benefits !== undefined) form.setValue('benefits', previousValues.benefits);
+    
+    // Clear previous values
+    setPreviousValues(null);
+    
+    toast.success('Đã hoàn tác thành công!', {
+      description: 'Nội dung đã được khôi phục về trước khi enhance'
+    });
+  }, [form, previousValues]);
 
   return (
     <Form {...form}>
@@ -233,6 +383,53 @@ const JobForm = ({ onSuccess, job }) => {
           </div>
         )}
 
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white text-sm font-semibold">
+              ✨
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-blue-900">
+                    {isGeneratingSuggestions ? '🤖 Đang tự động điền nội dung...' : 'Cải thiện nội dung với AI'}
+                  </h4>
+                  <p className="mt-1 text-sm text-blue-800">
+                    {isGeneratingSuggestions 
+                      ? 'AI đang tạo nội dung phù hợp dựa trên tiêu đề công việc...'
+                      : 'Nhập tiêu đề công việc để tự động điền, hoặc nhấn nút để AI tối ưu hóa nội dung.'
+                    }
+                  </p>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnhanceWithAI}
+                    disabled={isEnhancing || isGeneratingSuggestions}
+                    className="whitespace-nowrap"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isEnhancing ? 'Đang xử lý...' : 'Enhance with AI'}
+                  </Button>
+                  {previousValues && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleUndo}
+                      className="whitespace-nowrap text-orange-600 hover:text-orange-700"
+                    >
+                      ↶ Hoàn tác
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="title"
@@ -240,9 +437,14 @@ const JobForm = ({ onSuccess, job }) => {
             <FormItem>
               <FormLabel>Tiêu đề công việc</FormLabel>
               <FormControl>
-                <Input placeholder="Chuyên viên Phát triển Web Fullstack" {...field} />
+                <SmartAutocompleteInput 
+                  placeholder="Gõ 'l' để xem gợi ý: Lập trình viên, Lễ tân..." 
+                  {...field} 
+                />
               </FormControl>
-              <FormDescription>Tiêu đề hấp dẫn sẽ thu hút nhiều ứng viên.</FormDescription>
+              <FormDescription>
+                Gợi ý từ công việc thực tế. Gõ 1 ký tự để xem danh sách công việc phổ biến.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -253,15 +455,20 @@ const JobForm = ({ onSuccess, job }) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mô tả công việc</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Mô tả công việc</FormLabel>
+               
+              </div>
               <FormControl>
-                <Textarea
-                  placeholder="Tham gia phát triển các ứng dụng web phức tạp..."
+                <AutoSuggestTextarea
+                  placeholder="Gõ 'Chúng' để xem gợi ý..."
                   className="min-h-[150px]"
+                  suggestions={DESCRIPTION_SUGGESTIONS}
+                  minTriggerLength={3}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Mô tả chi tiết về công việc và trách nhiệm.</FormDescription>
+              <FormDescription>Mô tả chi tiết về công việc và trách nhiệm. Gõ vài từ và nhấn Tab để chấp nhận gợi ý.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -272,15 +479,20 @@ const JobForm = ({ onSuccess, job }) => {
           name="requirements"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Yêu cầu công việc</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Yêu cầu công việc</FormLabel>
+               
+              </div>
               <FormControl>
-                <Textarea
-                  placeholder="Có kinh nghiệm 3+ năm với JavaScript, React..."
+                <AutoSuggestTextarea
+                  placeholder="Gõ 'Yêu' để xem gợi ý..."
                   className="min-h-[150px]"
+                  suggestions={REQUIREMENTS_SUGGESTIONS}
+                  minTriggerLength={3}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Các kỹ năng và kinh nghiệm cần thiết cho vị trí.</FormDescription>
+              <FormDescription>Các kỹ năng và kinh nghiệm cần thiết cho vị trí. Gõ vài từ và nhấn Tab để chấp nhận gợi ý.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -291,15 +503,20 @@ const JobForm = ({ onSuccess, job }) => {
           name="benefits"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Quyền lợi</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Quyền lợi</FormLabel>
+              
+              </div>
               <FormControl>
-                <Textarea
-                  placeholder="Lương cạnh tranh, bảo hiểm đầy đủ..."
+                <AutoSuggestTextarea
+                  placeholder="Gõ '- Lương' để xem gợi ý..."
                   className="min-h-[150px]"
+                  suggestions={BENEFITS_SUGGESTIONS}
+                  minTriggerLength={3}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Các phúc lợi mà ứng viên sẽ nhận được.</FormDescription>
+              <FormDescription>Các phúc lợi mà ứng viên sẽ nhận được. Gõ vài từ và nhấn Tab để chấp nhận gợi ý.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
