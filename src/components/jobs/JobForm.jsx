@@ -66,7 +66,7 @@ const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
   const [showMap, setShowMap] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [isGeneratingSuggestions] = useState(false);
   const [previousValues, setPreviousValues] = useState(null); // Store previous values for undo
 
   // State for location dropdowns
@@ -122,7 +122,7 @@ const JobForm = ({ onSuccess, job }) => {
   const useCompanyAddress = useWatch({ control, name: 'useCompanyAddress' });
   const watchedProvince = useWatch({ control, name: 'location.province' });
   const watchedDistrict = useWatch({ control, name: 'location.district' });
-  const watchedTitle = useWatch({ control, name: 'title' });
+  
   
 
   // --- Location Logic ---
@@ -183,7 +183,9 @@ const JobForm = ({ onSuccess, job }) => {
     }
   }, [useCompanyAddress, companyProfile, setValue]);
 
-  // Auto-generate suggestions when title changes
+  // Auto-generate suggestions when title changes - DISABLED
+  // Uncomment below if you want auto-fill feature
+  /*
   useEffect(() => {
     const generateSuggestions = async () => {
       // Only generate if title is long enough and fields are empty
@@ -231,6 +233,7 @@ const JobForm = ({ onSuccess, job }) => {
     
     generateSuggestions();
   }, [form, watchedTitle]);
+  */
 
   const onSubmit = useCallback(
     async (values) => {
@@ -267,21 +270,27 @@ const JobForm = ({ onSuccess, job }) => {
     try {
       const currentValues = form.getValues();
       
-      // Check if there's enough content to enhance
-      const hasContent = currentValues.title || currentValues.description || 
-                        currentValues.requirements || currentValues.benefits;
+      // Check if there's actual content to enhance (not just empty fields)
+      const hasTitle = currentValues.title && currentValues.title.trim().length > 0;
+      const hasDescription = currentValues.description && currentValues.description.trim().length > 0;
+      const hasRequirements = currentValues.requirements && currentValues.requirements.trim().length > 0;
+      const hasBenefits = currentValues.benefits && currentValues.benefits.trim().length > 0;
       
-      if (!hasContent) {
-        toast.error('Vui lòng nhập nội dung trước khi sử dụng AI');
+      const hasAnyContent = hasTitle || hasDescription || hasRequirements || hasBenefits;
+      
+      if (!hasAnyContent) {
+        toast.error('Vui lòng nhập nội dung trước khi sử dụng AI', {
+          description: 'Ít nhất một trong các trường: Tiêu đề, Mô tả, Yêu cầu, hoặc Quyền lợi cần có nội dung'
+        });
         return;
       }
 
-      // Save current values for undo
+      // Save current values for undo (only fields that have content)
       setPreviousValues({
-        title: currentValues.title,
-        description: currentValues.description,
-        requirements: currentValues.requirements,
-        benefits: currentValues.benefits,
+        title: hasTitle ? currentValues.title : undefined,
+        description: hasDescription ? currentValues.description : undefined,
+        requirements: hasRequirements ? currentValues.requirements : undefined,
+        benefits: hasBenefits ? currentValues.benefits : undefined,
       });
 
       setIsEnhancing(true);
@@ -289,24 +298,31 @@ const JobForm = ({ onSuccess, job }) => {
         description: 'Vui lòng đợi trong giây lát'
       });
 
-      // Prepare data for AI enhancement
-      const dataToEnhance = {
-        title: currentValues.title,
-        description: currentValues.description,
-        requirements: currentValues.requirements,
-        benefits: currentValues.benefits,
-      };
+      // Prepare data for AI enhancement - only send fields with content
+      const dataToEnhance = {};
+      if (hasTitle) dataToEnhance.title = currentValues.title;
+      if (hasDescription) dataToEnhance.description = currentValues.description;
+      if (hasRequirements) dataToEnhance.requirements = currentValues.requirements;
+      if (hasBenefits) dataToEnhance.benefits = currentValues.benefits;
 
       console.log('Sending data to AI:', dataToEnhance);
       const response = await aiService.enhanceJobContent(dataToEnhance);
       console.log('AI response:', response);
       
       if (response.success && response.data) {
-        // Update form with enhanced content
-        if (response.data.title) form.setValue('title', response.data.title);
-        if (response.data.description) form.setValue('description', response.data.description);
-        if (response.data.requirements) form.setValue('requirements', response.data.requirements);
-        if (response.data.benefits) form.setValue('benefits', response.data.benefits);
+        // Safely update form with enhanced content - ensure values are strings
+        if (hasTitle && response.data.title && typeof response.data.title === 'string') {
+          form.setValue('title', response.data.title);
+        }
+        if (hasDescription && response.data.description && typeof response.data.description === 'string') {
+          form.setValue('description', response.data.description);
+        }
+        if (hasRequirements && response.data.requirements && typeof response.data.requirements === 'string') {
+          form.setValue('requirements', response.data.requirements);
+        }
+        if (hasBenefits && response.data.benefits && typeof response.data.benefits === 'string') {
+          form.setValue('benefits', response.data.benefits);
+        }
         
         toast.success('Cải thiện nội dung thành công!', {
           description: 'Nội dung đã được tối ưu hóa bởi AI. Nhấn "Hoàn tác" nếu không hài lòng.'
@@ -391,14 +407,9 @@ const JobForm = ({ onSuccess, job }) => {
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold text-blue-900">
-                    {isGeneratingSuggestions ? '🤖 Đang tự động điền nội dung...' : 'Cải thiện nội dung với AI'}
-                  </h4>
+                  <h4 className="font-semibold text-blue-900">Cải thiện nội dung với AI</h4>
                   <p className="mt-1 text-sm text-blue-800">
-                    {isGeneratingSuggestions 
-                      ? 'AI đang tạo nội dung phù hợp dựa trên tiêu đề công việc...'
-                      : 'Nhập tiêu đề công việc để tự động điền, hoặc nhấn nút để AI tối ưu hóa nội dung.'
-                    }
+                    Nhập nội dung vào các trường bên dưới, sau đó nhấn nút để AI tối ưu hóa và viết lại chuyên nghiệp hơn.
                   </p>
                 </div>
                 <div className="flex gap-2 ml-4">
@@ -407,7 +418,7 @@ const JobForm = ({ onSuccess, job }) => {
                     variant="outline"
                     size="sm"
                     onClick={handleEnhanceWithAI}
-                    disabled={isEnhancing || isGeneratingSuggestions}
+                    disabled={isEnhancing}
                     className="whitespace-nowrap"
                   >
                     <Sparkles className="mr-2 h-4 w-4" />
