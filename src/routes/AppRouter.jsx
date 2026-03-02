@@ -34,7 +34,6 @@ import CompanyRegister from '@/pages/company/CompanyRegister';
 import RegistrationSuccess from '@/pages/auth/RegistrationSuccess';
 import VerifyEmail from '@/pages/auth/VerifyEmail';
 import VerifyEmailPrompt from '@/pages/auth/VerifyEmailPrompt';
-import TestCompanyForm from '@/pages/test/TestCompanyForm';
 import CVViewer from '@/pages/CVViewer';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentFailure from '@/pages/PaymentFailure';
@@ -130,7 +129,6 @@ const AppRouter = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="company-profile" element={<CompanyProfile />} />
           <Route path="company-register" element={<CompanyRegister />} />
-          <Route path="test-company-form" element={<TestCompanyForm />} />
           <Route path="billing" element={<BillingPage />} />
 
           {/* Module Jobs với các tab */}
