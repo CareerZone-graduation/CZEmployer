@@ -106,6 +106,15 @@ const SmartAutocompleteInput = ({
     onChange({ target: { value: suggestion } });
     setShowDropdown(false);
     setSelectedIndex(-1);
+    setSuggestions([]); // Clear suggestions after selection
+  };
+
+  const handleBlur = (e) => {
+    // Use setTimeout to allow click events on dropdown to fire first
+    setTimeout(() => {
+      setShowDropdown(false);
+      setSelectedIndex(-1);
+    }, 200);
   };
 
   return (
@@ -115,6 +124,7 @@ const SmartAutocompleteInput = ({
         value={value}
         onChange={onChange}
         onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
         onFocus={() => {
           if (suggestions.length > 0) {
             setShowDropdown(true);
