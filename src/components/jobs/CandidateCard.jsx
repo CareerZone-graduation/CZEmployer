@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, Clock } from 'lucide-react';
+import { Briefcase, Clock, CheckCircle2 } from 'lucide-react';
 
 const CandidateCard = ({ candidate, jobId, matchScore }) => {
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ const CandidateCard = ({ candidate, jobId, matchScore }) => {
             </div>
 
             {candidate.skills && candidate.skills.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 line-clamp-2">
+              <div className="flex flex-wrap gap-1.5 line-clamp-2 mb-3">
                 {candidate.skills.slice(0, 4).map((skill, techIndex) => (
                   <Badge
                     key={techIndex}
@@ -78,6 +78,20 @@ const CandidateCard = ({ candidate, jobId, matchScore }) => {
                     +{candidate.skills.length - 4}
                   </span>
                 )}
+              </div>
+            )}
+
+            {candidate.matchReasons && candidate.matchReasons.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-[11px] font-semibold text-gray-700 mb-2 uppercase tracking-wider">Lý do phù hợp</p>
+                <div className="space-y-1.5">
+                  {candidate.matchReasons.map((reason, idx) => (
+                    <div key={idx} className="flex items-start text-xs text-gray-600">
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-green-500 shrink-0 mt-0.5" />
+                      <span>{reason.value} <span className="text-green-600 font-medium ml-1">(+{reason.weight}đ)</span></span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
