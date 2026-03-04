@@ -1,5 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { MapPin, DollarSign, TrendingUp } from 'lucide-react';
+import { MapPin, DollarSign, TrendingUp, Clock } from 'lucide-react';
+
+function formatDeadline(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+}
 
 export function JobCardList({ jobs }) {
     const prevCountRef = useRef(0);
@@ -48,9 +56,15 @@ export function JobCardList({ jobs }) {
                                         <span className="font-medium">{job.minSalary} - {job.maxSalary}</span>
                                     </div>
                                     <div className="flex items-center gap-1 bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded-md">
-                                        <MapPin className="w-3 h-3" />
+                                        <MapPin className="h-3 w-3" />
                                         <span className="truncate max-w-[80px]">{job.province}</span>
                                     </div>
+                                    {job.deadline && (
+                                        <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-md" title="Hạn ứng tuyển">
+                                            <Clock className="w-3 h-3" />
+                                            <span>{formatDeadline(job.deadline)}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {job.matchScore > 0 && (
