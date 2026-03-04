@@ -18,7 +18,8 @@ import {
   MessageCircle,
   LogOut,
   LifeBuoy,
-  Settings
+  Settings,
+  Sparkles
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,6 +43,7 @@ import { logoutSuccess } from '@/redux/authSlice';
 import { clearNotifications } from '@/redux/notificationSlice';
 import { logoutServer } from '@/services/authService';
 import { useDispatch } from 'react-redux';
+import { useCopilot } from '@/contexts/CopilotContext';
 
 const sidebarItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
@@ -61,6 +63,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
   const { unreadCount: notificationUnreadCount } = useSelector((state) => state.notifications);
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
+  const { openCopilot } = useCopilot();
 
   // Fetch conversations to get unread count
   // Fetch conversations to get unread count
@@ -320,6 +323,35 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
             );
           })}
         </nav>
+
+        {/* Action Button: Copilot */}
+        <div className="p-2 mb-2 px-3">
+          {shouldShowExpanded ? (
+            <Button
+              onClick={() => openCopilot()}
+              className="w-full justify-start gap-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 border-none shadow-sm"
+              variant="outline"
+            >
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <span className="font-semibold">CareerZone Copilot AI</span>
+            </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => openCopilot()}
+                  className="w-10 h-10 p-0 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 border-none shadow-sm mx-auto flex"
+                  variant="outline"
+                >
+                  <Sparkles className="h-5 w-5 text-indigo-600" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                CareerZone Copilot AI
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
 
         {/* Bottom Section: System Menu (Settings, Support, Logout) */}
         <div className="p-2 mt-auto border-t border-gray-200">
