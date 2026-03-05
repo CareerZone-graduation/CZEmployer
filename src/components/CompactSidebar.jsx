@@ -329,21 +329,21 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           {shouldShowExpanded ? (
             <Button
               onClick={() => openCopilot()}
-              className="w-full justify-start gap-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 border-none shadow-sm"
+              className="copilot-glow-btn w-full justify-start gap-3 text-indigo-700 transition-all duration-300 border-none shadow-sm hover:translate-x-1 active:scale-95 group"
               variant="outline"
             >
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <span className="font-semibold">CareerZone Copilot AI</span>
+              <Sparkles className="h-4 w-4 text-indigo-600 relative z-10" />
+              <span className="font-bold relative z-10">CareerZone Copilot AI</span>
             </Button>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   onClick={() => openCopilot()}
-                  className="w-10 h-10 p-0 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 border-none shadow-sm mx-auto flex"
+                  className="copilot-glow-btn w-12 h-12 p-0 rounded-xl text-indigo-700 transition-all duration-300 border-none shadow-sm mx-auto flex items-center justify-center hover:scale-110 active:scale-95"
                   variant="outline"
                 >
-                  <Sparkles className="h-5 w-5 text-indigo-600" />
+                  <Sparkles className="h-5 w-5 text-indigo-600 relative z-10" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
