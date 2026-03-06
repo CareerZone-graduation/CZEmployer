@@ -21,9 +21,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar, Bot } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-
+import { useCopilot } from '@/contexts/CopilotContext';
 
 import Modal from '@/components/common/Modal';
 import ApplicationDetail from './ApplicationDetail';
@@ -46,6 +46,7 @@ const JobApplications = ({ isEmbedded = false }) => {
 
   const [viewingApplicationId, setViewingApplicationId] = useState(null);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const { openCopilot } = useCopilot();
 
   // Schedule Interview State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -153,7 +154,7 @@ const JobApplications = ({ isEmbedded = false }) => {
       toast.error('Chỉ có thể so sánh tối đa 5 ứng viên');
       return;
     }
-    setIsCompareModalOpen(true);
+    openCopilot('compare_candidates', { applicationIds: selectedApplications });
   };
 
   const handleRemoveFromCompare = (applicationId) => {
@@ -470,9 +471,10 @@ const JobApplications = ({ isEmbedded = false }) => {
                               variant="default"
                               onClick={handleCompare}
                               disabled={selectedApplications.length < 2}
+                              className="bg-indigo-600 hover:bg-indigo-700"
                             >
-                              <Users className="h-4 w-4 mr-2" />
-                              So sánh ({selectedApplications.length})
+                              <Bot className="h-4 w-4 mr-2" />
+                              So sánh & nhận gợi ý AI ({selectedApplications.length})
                             </Button>
 
                             <Button variant="ghost" onClick={() => setSelectedApplications([])}>

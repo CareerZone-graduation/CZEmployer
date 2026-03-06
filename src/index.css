@@ -272,3 +272,70 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* AI MAGIC BUTTON GLOW */
+@keyframes copilot-glow-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.copilot-glow-btn {
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.copilot-glow-btn::before {
+  content: '';
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 400%;
+  height: 400%;
+  background: conic-gradient(transparent,
+      rgba(99, 102, 241, 0.9),
+      /* Indigo */
+      rgba(14, 165, 233, 0.9),
+      /* Sky */
+      rgba(16, 185, 129, 0.9),
+      /* Emerald */
+      rgba(234, 179, 8, 0.9),
+      /* Yellow */
+      rgba(244, 63, 94, 0.9),
+      /* Rose */
+      rgba(217, 70, 239, 0.9),
+      /* Fuchsia */
+      rgba(168, 85, 247, 0.9),
+      /* Purple */
+      transparent 30%);
+  animation: copilot-glow-rotate 2s linear infinite;
+  z-index: -2;
+}
+
+.copilot-glow-btn::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  background: white;
+  border-radius: inherit;
+  z-index: -1;
+  transition: background 0.3s ease;
+}
+
+.dark .copilot-glow-btn::after {
+  background: oklch(0.205 0 0);
+  /* --card in recruiter dark */
+}
+
+.copilot-glow-btn:hover::after {
+  background: rgb(249 250 251);
+}
+
+.dark .copilot-glow-btn:hover::after {
+  background: oklch(0.22 0 0);
+}

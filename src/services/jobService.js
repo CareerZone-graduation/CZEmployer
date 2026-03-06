@@ -39,3 +39,32 @@ export const deleteJob = async (jobId) => {
 export const getRecruiterJobById = async (jobId) => {
   return await apiClient.get(`/jobs/recruiter/${jobId}`);
 };
+
+
+/**
+ * Search job titles for autocomplete
+ * @param {string} query - Search query
+ * @param {number} limit - Maximum results
+ * @returns {Promise<string[]>} Array of job titles
+ */
+export const searchJobTitles = async (query, limit = 10) => {
+  console.log('Calling API with query:', query);
+  const response = await apiClient.get('/jobs/suggestions/titles', {
+    params: { q: query, limit }
+  });
+  console.log('API response:', response);
+  // apiClient already unwraps to response.data, so response = { success, data }
+  return response.data || [];
+};
+
+/**
+ * Get popular job titles
+ * @param {number} limit - Maximum results
+ * @returns {Promise<string[]>} Array of popular job titles
+ */
+export const getPopularJobTitles = async (limit = 20) => {
+  const response = await apiClient.get('/jobs/suggestions/popular', {
+    params: { limit }
+  });
+  return response.data || [];
+};
