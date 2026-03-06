@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, TrendingUp, Clock } from 'lucide-react';
 
 function formatDeadline(dateStr) {
@@ -10,6 +11,7 @@ function formatDeadline(dateStr) {
 }
 
 export function JobCardList({ jobs }) {
+    const navigate = useNavigate();
     const prevCountRef = useRef(0);
 
     useEffect(() => {
@@ -37,6 +39,7 @@ export function JobCardList({ jobs }) {
                             opacity: isNew ? 0 : 1,
                             animationDelay: isNew ? `${index * 60}ms` : '0ms',
                         }}
+                        onClick={() => navigate(`/jobs/recruiter/${job._id}`)}
                     >
                         <div className="flex gap-2.5">
                             {job.logo && (

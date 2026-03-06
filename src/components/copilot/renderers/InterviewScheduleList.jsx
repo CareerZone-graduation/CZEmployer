@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, Briefcase } from 'lucide-react';
 
 const statusConfig = {
@@ -20,6 +21,8 @@ function formatDateTime(dateStr) {
 }
 
 export function InterviewScheduleList({ interviews }) {
+    const navigate = useNavigate();
+
     if (!interviews || interviews.length === 0) {
         return (
             <div className="text-sm text-gray-400 italic px-3 py-2.5 border border-dashed border-gray-200 rounded-xl bg-gray-50">
@@ -38,12 +41,13 @@ export function InterviewScheduleList({ interviews }) {
                 return (
                     <div
                         key={iv._id}
-                        className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow hover:border-sky-200 transition-all duration-200"
+                        className="group p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow hover:border-sky-200 transition-all duration-200 cursor-pointer"
                         style={{
                             animation: 'copilot-card-fadein 0.4s ease-out forwards',
                             opacity: 0,
                             animationDelay: `${index * 60}ms`,
                         }}
+                        onClick={() => navigate(`/interviews/${iv._id}`)}
                     >
                         {/* Header: Job title + Status */}
                         <div className="flex items-start justify-between gap-2 mb-1.5">
