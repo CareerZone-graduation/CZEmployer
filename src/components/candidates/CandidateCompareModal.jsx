@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ReactMarkdown from 'react-markdown';
 import ErrorState from '@/components/common/ErrorState';
 import Modal from '@/components/common/Modal';
+import AIScoresRadarChart from './AIScoresRadarChart';
 import {
     Mail,
     Phone,
@@ -26,7 +27,8 @@ import {
     X,
     FileText,
     Sparkles,
-    Loader2
+    Loader2,
+    Radar
 } from 'lucide-react';
 
 const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveCandidate, onViewDetail }) => {
@@ -34,6 +36,7 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [aiAnalysis, setAiAnalysis] = useState('');
+    const [aiScores, setAiScores] = useState(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
 
     const fetchCandidates = useCallback(async () => {
@@ -61,6 +64,7 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
             fetchCandidates();
             // Reset AI state when opened
             setAiAnalysis('');
+            setAiScores(null);
             setIsAiLoading(false);
         }
     }, [isOpen, applicationIds, fetchCandidates]);
@@ -69,9 +73,11 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
         if (aiAnalysis || isAiLoading) return;
         setIsAiLoading(true);
         setAiAnalysis('');
+        setAiScores(null);
+
         try {
             const stream = await applicationService.compareWithAI(applicationIds);
-            
+
             if (!stream || typeof stream.getReader !== 'function') {
                 toast.error('Không thể đọc dữ liệu stream từ máy chủ.');
                 setIsAiLoading(false);
@@ -81,6 +87,8 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
             const reader = stream.getReader();
             const decoder = new TextDecoder('utf-8');
             let done = false;
+            let buffer = '';
+            let jsonExtracted = false;
 
             while (!done) {
                 const { value, done: readerDone } = await reader.read();
@@ -88,7 +96,7 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                 if (value) {
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
-                    
+
                     for (const line of lines) {
                         if (line.trim().startsWith('data: ')) {
                             const data = line.trim().slice(6);
@@ -98,11 +106,37 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                             }
                             try {
                                 const parsed = JSON.parse(data);
-                                // Backend gửi "delta" field, không phải "text"
+                                // Backend gửi "delta" field
                                 if (parsed.delta) {
-                                    setAiAnalysis(prev => prev + parsed.delta);
+                                    buffer += parsed.delta;
+
+                                    // Extract JSON scores if not yet extracted
+                                    if (!jsonExtracted && buffer.includes('```json') && buffer.includes('```\n')) {
+                                        const jsonStart = buffer.indexOf('```json') + 7;
+                                        const jsonEnd = buffer.indexOf('```', jsonStart);
+                                        if (jsonEnd > jsonStart) {
+                                            const jsonStr = buffer.substring(jsonStart, jsonEnd).trim();
+                                            try {
+                                                const scoresData = JSON.parse(jsonStr);
+                                                setAiScores(scoresData);
+                                                jsonExtracted = true;
+                                                // Remove JSON from display text
+                                                const textAfterJson = buffer.substring(jsonEnd + 3);
+                                                setAiAnalysis(textAfterJson.trim());
+                                                buffer = textAfterJson;
+                                            } catch (e) {
+                                                console.error('Failed to parse JSON scores:', e);
+                                            }
+                                        }
+                                    } else if (jsonExtracted) {
+                                        // After JSON extracted, append to analysis
+                                        setAiAnalysis(prev => prev + parsed.delta);
+                                    }
                                 } else if (parsed.text) {
-                                    setAiAnalysis(prev => prev + parsed.text);
+                                    buffer += parsed.text;
+                                    if (jsonExtracted) {
+                                        setAiAnalysis(prev => prev + parsed.text);
+                                    }
                                 } else if (parsed.error) {
                                     toast.error(parsed.error);
                                     done = true;
@@ -245,7 +279,7 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                                 className="relative overflow-hidden data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all group"
                             >
                                 <Sparkles className="w-4 h-4 mr-2 group-data-[state=active]:animate-pulse" />
-                                Phân tích & Gợi ý AI
+                                Phân tích AI
                                 {/* Shimmer effect */}
                                 <span className="absolute inset-0 opacity-0 group-data-[state=active]:opacity-100 group-data-[state=active]:animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" style={{
                                     backgroundSize: '200% 100%',
@@ -393,7 +427,7 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                                         <div>
                                             <h3 className="font-semibold text-lg text-slate-800">Đánh giá đa chiều với AI</h3>
                                             <p className="text-sm text-slate-500 max-w-sm mt-2 leading-relaxed">
-                                                Hệ thống sẽ tổng hợp CV, thư ứng tuyển và thông tin cá nhân của các ứng viên để đưa ra bảng so sánh chi tiết, khách quan và đưa ra lựa chọn phù hợp nhất cho vị trí công việc.
+                                                AI sẽ phân tích CV, thư xin việc và chấm điểm khách quan cho từng ứng viên, sau đó đưa ra biểu đồ trực quan và gợi ý tuyển dụng.
                                             </p>
                                         </div>
                                         <Button
@@ -411,33 +445,51 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                                         </Button>
                                     </div>
                                 ) : (
-                                    <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert prose-indigo">
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            rehypePlugins={[rehypeRaw]}
-                                            components={{
-                                                table: ({node, ...props}) => (
-                                                    <table className="border-collapse border border-gray-300 w-full my-4" {...props} />
-                                                ),
-                                                th: ({node, ...props}) => (
-                                                    <th className="border border-gray-300 bg-gray-100 p-2 text-left" {...props} />
-                                                ),
-                                                td: ({node, ...props}) => (
-                                                    <td className="border border-gray-300 p-2" {...props} />
-                                                ),
-                                                ol: ({node, ...props}) => (
-                                                    <ol className="list-decimal list-outside ml-6 my-4 space-y-2" {...props} />
-                                                ),
-                                                ul: ({node, ...props}) => (
-                                                    <ul className="list-disc list-outside ml-6 my-4 space-y-2" {...props} />
-                                                ),
-                                                li: ({node, ...props}) => (
-                                                    <li className="pl-2" {...props} />
-                                                ),
-                                            }}
-                                        >
-                                            {aiAnalysis}
-                                        </ReactMarkdown>
+                                    <div>
+                                        {/* AI Scores Radar Chart */}
+                                        {aiScores && (
+                                            <div className="mb-8 pb-8 border-b border-gray-200">
+                                                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                                    <Radar className="w-5 h-5 text-indigo-500" />
+                                                    Điểm số từ AI
+                                                </h3>
+                                                <AIScoresRadarChart aiScores={aiScores} />
+                                            </div>
+                                        )}
+
+                                        {/* Markdown Analysis */}
+                                        {aiAnalysis && (
+                                            <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert prose-indigo">
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    rehypePlugins={[rehypeRaw]}
+                                                    /* eslint-disable no-unused-vars */
+                                                    components={{
+                                                        table: ({node, ...props}) => (
+                                                            <table className="border-collapse border border-gray-300 w-full my-4" {...props} />
+                                                        ),
+                                                        th: ({node, ...props}) => (
+                                                            <th className="border border-gray-300 bg-gray-100 p-2 text-left" {...props} />
+                                                        ),
+                                                        td: ({node, ...props}) => (
+                                                            <td className="border border-gray-300 p-2" {...props} />
+                                                        ),
+                                                        ol: ({node, ...props}) => (
+                                                            <ol className="list-decimal list-outside ml-6 my-4 space-y-2" {...props} />
+                                                        ),
+                                                        ul: ({node, ...props}) => (
+                                                            <ul className="list-disc list-outside ml-6 my-4 space-y-2" {...props} />
+                                                        ),
+                                                        li: ({node, ...props}) => (
+                                                            <li className="pl-2" {...props} />
+                                                        ),
+                                                    }}
+                                                    /* eslint-enable no-unused-vars */
+                                                >
+                                                    {aiAnalysis}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
 
                                         {isAiLoading && (
                                             <div className="flex items-center gap-2 mt-6 text-indigo-500 text-sm font-medium animate-pulse border-t pt-4">
