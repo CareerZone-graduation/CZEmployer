@@ -46,7 +46,6 @@ const JobApplications = ({ isEmbedded = false }) => {
 
   const [viewingApplicationId, setViewingApplicationId] = useState(null);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
-  const { openCopilot } = useCopilot();
 
   // Schedule Interview State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -147,14 +146,14 @@ const JobApplications = ({ isEmbedded = false }) => {
 
   const handleCompare = () => {
     if (selectedApplications.length < 2) {
-      toast.error('Vui lòng chọn ít nhất 2 ứng viên để so sánh');
+      toast.warning('Vui lòng chọn ít nhất 2 ứng viên để so sánh');
       return;
     }
     if (selectedApplications.length > 5) {
       toast.error('Chỉ có thể so sánh tối đa 5 ứng viên');
       return;
     }
-    openCopilot('compare_candidates', { applicationIds: selectedApplications });
+    setIsCompareModalOpen(true);
   };
 
   const handleRemoveFromCompare = (applicationId) => {
@@ -461,9 +460,9 @@ const JobApplications = ({ isEmbedded = false }) => {
                   <CardContent className="p-0">
                     {/* Bulk Actions Toolbar */}
                     {selectedApplications.length > 0 && (
-                      <div className="bg-blue-50 border-b border-blue-200 p-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-4 animate-in slide-in-from-top duration-300">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium">
+                          <span className="font-medium text-gray-700">
                             Đã chọn {selectedApplications.length} ứng viên
                           </span>
                           <div className="flex gap-2">
@@ -471,13 +470,19 @@ const JobApplications = ({ isEmbedded = false }) => {
                               variant="default"
                               onClick={handleCompare}
                               disabled={selectedApplications.length < 2}
-                              className="bg-indigo-600 hover:bg-indigo-700"
+                              className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg group transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                              <Bot className="h-4 w-4 mr-2" />
+                              <Bot className="h-4 w-4 mr-2 group-hover:animate-pulse" />
                               So sánh & nhận gợi ý AI ({selectedApplications.length})
+                              {/* Shimmer effect on hover */}
+                              {selectedApplications.length >= 2 && (
+                                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 animate-shimmer" style={{
+                                  backgroundSize: '200% 100%'
+                                }} />
+                              )}
                             </Button>
 
-                            <Button variant="ghost" onClick={() => setSelectedApplications([])}>
+                            <Button variant="ghost" onClick={() => setSelectedApplications([])} className="hover:bg-red-50 hover:text-red-600 transition-colors">
                               Bỏ chọn
                             </Button>
                           </div>

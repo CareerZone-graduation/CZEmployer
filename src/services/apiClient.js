@@ -12,8 +12,8 @@ export const setupApiClient = (appStore) => {
 };
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL + '/api', 
-  timeout: 15000,
+  baseURL: import.meta.env.VITE_API_BASE_URL + '/api',
+  timeout: 30000,
   withCredentials: false, // KHÔNG gửi cookie mặc định
 });
 

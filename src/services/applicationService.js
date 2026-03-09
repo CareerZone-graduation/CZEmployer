@@ -63,4 +63,22 @@ export const scheduleInterview = async (applicationId, scheduledTime) => {
   return await apiClient.post(`/applications/${applicationId}/interviews`, { scheduledTime });
 };
 
+/**
+ * Gửi request so sánh ứng viên qua AI (nhận về SSE stream)
+ * Sử dụng apiClient với adapter fetch để hỗ trợ streaming trong trình duyệt
+ * @param {Array<string>} applicationIds - Danh sách ID ứng viên
+ * @returns {Promise<ReadableStream>}
+ */
+export const compareWithAI = async (applicationIds) => {
+  return await apiClient.post(
+    '/applications/compare-ai',
+    { applicationIds },
+    {
+      responseType: 'stream',
+      adapter: 'fetch', // Bắt buộc dùng fetch để đọc stream chunk-by-chunk trong browser
+      timeout: 120000 // 2 phút cho AI processing + PDF extraction
+    }
+  );
+};
+
 
