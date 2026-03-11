@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { TextShimmer } from '@/components/ui/text-shimmer';
 
 // ── Structured Data Router ──
 function StructuredDataRenderer({ data }) {
@@ -159,9 +160,15 @@ function ToolProgressIndicator({ toolProgress }) {
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                 <Bot className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="copilot-shimmer-pill">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" />
-                <span className="text-[13px] text-gray-600 font-medium">{label}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-100 rounded-2xl rounded-tl-md shadow-sm">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500 flex-shrink-0" />
+                <TextShimmer
+                    as="span"
+                    duration={2}
+                    className="text-[13px] font-medium  dark:[--base-color:#9ca3af] dark:[--base-gradient-color:#34d399]"
+                >
+                    {label}
+                </TextShimmer>
             </div>
         </div>
     );
