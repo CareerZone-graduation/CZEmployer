@@ -352,3 +352,26 @@
 .dark .copilot-glow-btn:hover::after {
   background: oklch(0.22 0 0);
 }
+
+/* AI FIELD EFFECTS - Clean & Bold */
+@keyframes ai-pulse-glow {
+  0% { box-shadow: 0 0 5px rgba(168, 85, 247, 0.4); border-color: rgba(168, 85, 247, 0.6); }
+  50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); border-color: rgba(168, 85, 247, 1); }
+  100% { box-shadow: 0 0 5px rgba(168, 85, 247, 0.4); border-color: rgba(168, 85, 247, 0.6); }
+}
+
+.ai-field-streaming {
+  position: relative;
+  border: 3px solid #a855f7 !important; /* Thick purple border */
+  border-radius: 0.5rem;
+  animation: ai-pulse-glow 2s infinite ease-in-out;
+  z-index: 1;
+}
+
+/* Field after enhancement: solid purple indicator */
+.ai-field-done {
+  border: 2px solid rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.02);
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
