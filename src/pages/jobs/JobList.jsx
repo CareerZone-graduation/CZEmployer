@@ -36,7 +36,7 @@ const JobList = () => {
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
-    status: 'ACTIVE',
+    status: 'all', // Dùng 'all' thay vì ''
     sortBy: 'createdAt:desc',
     search: '',
   });
@@ -179,6 +179,7 @@ const JobList = () => {
   };
 
   const getStatusBadge = (job) => {
+    // Ưu tiên hiển thị moderationStatus trước
     if (job.moderationStatus === 'PENDING') {
       return (
         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
@@ -187,6 +188,15 @@ const JobList = () => {
       );
     }
 
+    if (job.moderationStatus === 'REJECTED') {
+      return (
+        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+          Bị từ chối
+        </Badge>
+      );
+    }
+
+    // Sau đó mới hiển thị job status (ACTIVE, INACTIVE, EXPIRED)
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển dụng', variant: 'default', className: 'bg-green-100 text-green-800' },
       INACTIVE: { label: 'Ngừng tuyển dụng', variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
@@ -299,8 +309,11 @@ const JobList = () => {
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Tất cả tin</SelectItem>
                   <SelectItem value="ACTIVE">Đang tuyển dụng</SelectItem>
                   <SelectItem value="INACTIVE">Ngừng tuyển dụng</SelectItem>
+                  <SelectItem value="PENDING">Chờ duyệt</SelectItem>
+                  <SelectItem value="REJECTED">Bị từ chối</SelectItem>
                   <SelectItem value="EXPIRED">Hết hạn nộp</SelectItem>
                 </SelectContent>
               </Select>
