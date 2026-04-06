@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JobForm from '@/components/jobs/JobForm';
-import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin, Power, RefreshCw } from 'lucide-react';
+import { Briefcase, Calendar, DollarSign, Clock, Building, Users, UserPlus, ArrowLeft, Edit, Trash2, MapPin, Power, RefreshCw } from 'lucide-react';
 import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
+import InviteTalentPoolModal from '@/components/company/talent-pool/InviteTalentPoolModal';
 
 import JobApplications from './JobApplications';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ const RecruiterJobDetail = () => {
   const [error, setError] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
 
   const fetchJobDetail = useCallback(async () => {
@@ -213,7 +215,17 @@ const RecruiterJobDetail = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+              {job.status === 'ACTIVE' && (
+                <Button
+                  variant="outline"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => setIsInviteModalOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Mời từ Talent Pool
+                </Button>
+              )}
               {job.status !== 'EXPIRED' && (
                 <Button
                   variant="outline"
@@ -346,6 +358,13 @@ const RecruiterJobDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InviteTalentPoolModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        jobId={jobId}
+        jobTitle={job.title}
+      />
     </div>
   );
 };

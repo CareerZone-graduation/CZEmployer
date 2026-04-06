@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar, Bot } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar, Bot, Star } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCopilot } from '@/contexts/CopilotContext';
 
@@ -514,7 +514,12 @@ const JobApplications = ({ isEmbedded = false }) => {
                             {applications.map((app) => (
                               <TableRow
                                 key={app._id}
-                                className="hover:bg-gray-50"
+                                className={cn(
+                                  "transition-colors",
+                                  app.source === 'TALENT_POOL_INVITATION'
+                                    ? "bg-purple-50 hover:bg-purple-100"
+                                    : "hover:bg-gray-50"
+                                )}
                               >
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                   <Checkbox
@@ -542,6 +547,12 @@ const JobApplications = ({ isEmbedded = false }) => {
                                       <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs">
                                         <RefreshCcw className="h-3 w-3 mr-1" />
                                         Ứng tuyển lại
+                                      </Badge>
+                                    )}
+                                    {app.source === 'TALENT_POOL_INVITATION' && (
+                                      <Badge variant="outline" className="text-purple-700 border-purple-200 bg-purple-50 text-xs">
+                                        <Star className="h-3 w-3 mr-1" />
+                                        Từ Talent Pool
                                       </Badge>
                                     )}
                                   </div>

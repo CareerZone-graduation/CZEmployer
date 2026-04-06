@@ -30,9 +30,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Trash2, Edit, Eye, Briefcase } from 'lucide-react';
+import { UserPlus, MoreHorizontal, Trash2, Edit, Eye, Briefcase } from 'lucide-react';
 import * as utils from '@/utils';
 import EditTalentPoolEntryDialog from './EditTalentPoolEntryDialog';
+import InviteToJobModal from './InviteToJobModal';
 import { useNavigate } from 'react-router-dom';
 
 const TalentPoolTable = ({ data, meta, onPageChange }) => {
@@ -40,6 +41,13 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
   const queryClient = useQueryClient();
   const [entryToDelete, setEntryToDelete] = useState(null);
   const [entryToEdit, setEntryToEdit] = useState(null);
+  const [inviteModalData, setInviteModalData] = useState({
+    isOpen: false,
+    candidateProfileId: null,
+    candidateName: '',
+    invitations: [],
+    appliedJobId: null,
+  });
 
   // Remove mutation
   const removeMutation = useMutation({
@@ -66,6 +74,16 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
 
   const handleEdit = (entry) => {
     setEntryToEdit(entry);
+  };
+
+  const handleInvite = (entry) => {
+    setInviteModalData({
+      isOpen: true,
+      candidateProfileId: entry.candidateProfileId,
+      candidateName: entry.candidateSnapshot?.name || 'Ứng viên',
+      invitations: entry.invitations || [],
+      appliedJobId: entry.candidateSnapshot?.appliedJobId || null,
+    });
   };
 
   const handleViewApplication = (entry) => {
@@ -156,6 +174,11 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleInvite(entry)}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Mời ứng tuyển
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleViewApplication(entry)}>
                         <Eye className="mr-2 h-4 w-4" />
                         Xem đơn ứng tuyển
@@ -236,6 +259,17 @@ const TalentPoolTable = ({ data, meta, onPageChange }) => {
           entry={entryToEdit}
           open={!!entryToEdit}
           onClose={() => setEntryToEdit(null)}
+        />
+      )}
+      {/* Invite Modal */}
+      {inviteModalData.isOpen && (
+        <InviteToJobModal
+          isOpen={inviteModalData.isOpen}
+          onClose={() => setInviteModalData({ ...inviteModalData, isOpen: false })}
+          candidateProfileId={inviteModalData.candidateProfileId}
+          candidateName={inviteModalData.candidateName}
+          invitations={inviteModalData.invitations}
+          appliedJobId={inviteModalData.appliedJobId}
         />
       )}
     </>
