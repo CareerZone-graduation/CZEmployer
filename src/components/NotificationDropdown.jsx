@@ -18,9 +18,19 @@ import { formatDistanceToNow, isValid } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
 const getNotificationLink = (notification) => {
-  const { type, entity, metadata } = notification;
+  const { type, entity, metadata, relatedJob } = notification;
 
   switch (type) {
+    case 'JOB_APPROVED':
+    case 'JOB_REJECTED':
+      // Sử dụng relatedJob field từ backend
+      const jobId = relatedJob || metadata?.jobId;
+      if (!jobId) return '/jobs';
+      
+      // Dẫn đến trang view job detail
+      // Trong trang detail sẽ có nút Edit nếu job bị reject
+      return `/jobs/recruiter/${jobId}`;
+      
     case 'job_applicants_rollup':
       // Link to: /jobs/:jobId/applications
       // Link to: /jobs/recruiter/:jobId?tab=candidates
