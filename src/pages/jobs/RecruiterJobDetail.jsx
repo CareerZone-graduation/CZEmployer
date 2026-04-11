@@ -226,7 +226,7 @@ const RecruiterJobDetail = () => {
                   Mời từ Talent Pool
                 </Button>
               )}
-              {job.status !== 'EXPIRED' && (
+              {job.status !== 'EXPIRED' && job.moderationStatus === 'APPROVED' && (
                 <Button
                   variant="outline"
                   onClick={handleToggleStatus}
@@ -286,21 +286,23 @@ const RecruiterJobDetail = () => {
               </Card>
 
               {/* AI Suggestions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      Gợi ý Ứng viên
-                    </span>
-                    <Badge variant="secondary" className="bg-blue-50 text-blue-700">Beta</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CandidateSuggestions
-                    jobId={jobId}
-                  />
-                </CardContent>
-              </Card>
+              {job.moderationStatus !== 'REJECTED' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        Gợi ý Ứng viên
+                      </span>
+                      <Badge variant="secondary" className="bg-blue-50 text-blue-700">Beta</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CandidateSuggestions
+                      jobId={jobId}
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Right Column: Stats & Info */}

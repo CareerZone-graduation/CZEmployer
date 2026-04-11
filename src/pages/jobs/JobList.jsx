@@ -423,7 +423,7 @@ const JobList = () => {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {job.status !== 'EXPIRED' && (
+                            {job.status !== 'EXPIRED' && job.moderationStatus === 'APPROVED' && (
                               <Button
                                 variant="outline"
                                 size="sm"
