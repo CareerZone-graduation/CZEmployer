@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JobForm from '@/components/jobs/JobForm';
-import { Briefcase, Calendar, DollarSign, Clock, Building, Users, ArrowLeft, Edit, Trash2, MapPin, Power, RefreshCw } from 'lucide-react';
+import { Briefcase, Calendar, DollarSign, Clock, Building, Users, UserPlus, ArrowLeft, Edit, Trash2, MapPin, Power, RefreshCw } from 'lucide-react';
 import CandidateSuggestions from '@/components/jobs/CandidateSuggestions';
+import InviteTalentPoolModal from '@/components/company/talent-pool/InviteTalentPoolModal';
 
 import JobApplications from './JobApplications';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ const RecruiterJobDetail = () => {
   const [error, setError] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
 
   const fetchJobDetail = useCallback(async () => {
@@ -158,6 +160,40 @@ const RecruiterJobDetail = () => {
         </div>
 
         <div className="bg-white p-6 rounded-xl border shadow-sm">
+          {/* Rejection Alert - Show if job is rejected */}
+          {job.moderationStatus === 'REJECTED' && job.aiModerationResult && (
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-red-800 mb-1">
+                    Tin tuyển dụng bị từ chối
+                  </h3>
+                  <p className="text-sm text-red-700 mb-2">
+                    {job.aiModerationResult.summary || 'Tin tuyển dụng của bạn không đáp ứng tiêu chuẩn của hệ thống.'}
+                  </p>
+                  {job.aiModerationResult.reasons && job.aiModerationResult.reasons.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-red-800 mb-1">Lý do chi tiết:</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
+                        {job.aiModerationResult.reasons.map((reason, idx) => (
+                          <li key={idx}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className="text-xs text-red-600 mt-3">
+                    Vui lòng chỉnh sửa tin tuyển dụng và gửi lại để được duyệt.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-3 flex-wrap">
@@ -179,7 +215,17 @@ const RecruiterJobDetail = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+              {job.status === 'ACTIVE' && (
+                <Button
+                  variant="outline"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => setIsInviteModalOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Mời từ Talent Pool
+                </Button>
+              )}
               {job.status !== 'EXPIRED' && (
                 <Button
                   variant="outline"
@@ -312,6 +358,13 @@ const RecruiterJobDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InviteTalentPoolModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        jobId={jobId}
+        jobTitle={job.title}
+      />
     </div>
   );
 };

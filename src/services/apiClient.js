@@ -12,8 +12,8 @@ export const setupApiClient = (appStore) => {
 };
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL + '/api', 
-  timeout: 15000,
+  baseURL: import.meta.env.VITE_API_BASE_URL + '/api',
+  timeout: 30000,
   withCredentials: false, // KHÔNG gửi cookie mặc định
 });
 
@@ -111,5 +111,59 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Helper function for streaming requests (SSE)
+ * Uses Fetch API but with automatic token handling like apiClient
+ */
+export const streamRequest = async (url, options = {}) => {
+  const token = getAccessToken();
+
+  if (!token) {
+    throw new Error('Không tìm thấy token xác thực');
+  }
+
+  const fullUrl = `${import.meta.env.VITE_API_BASE_URL}/api${url}`;
+
+  const response = await fetch(fullUrl, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  // Handle 401 - token expired
+  if (response.status === 401) {
+    try {
+      // Try to refresh token
+      const refreshResponse = await refreshToken();
+      const { accessToken } = refreshResponse.data;
+      saveAccessToken(accessToken);
+
+      // Retry with new token
+      return fetch(fullUrl, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          ...options.headers,
+        },
+      });
+    } catch (refreshErr) {
+      // Refresh failed - logout
+      if (store) {
+        import('@/services/socketService').then(({ default: socketService }) => {
+          socketService.disconnect();
+        });
+        store.dispatch(logoutSuccess());
+      }
+      throw new Error('Phiên đăng nhập đã hết hạn');
+    }
+  }
+
+  return response;
+};
 
 export default apiClient;

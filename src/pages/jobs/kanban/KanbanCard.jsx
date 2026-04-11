@@ -15,6 +15,7 @@ import {
     MoreHorizontal,
     Download,
     RefreshCcw,
+    Star,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -44,7 +45,11 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
             className={`mb-3 cursor-grab active:cursor-grabbing touch-none`}
             onClick={() => onClick(application)}
         >
-            <Card className={`hover:shadow-lg transition-all duration-200 border-gray-200/60 bg-white group`}>
+            <Card className={`hover:shadow-lg transition-all duration-200 group ${
+                application.source === 'TALENT_POOL_INVITATION'
+                    ? 'border-purple-300 bg-purple-50'
+                    : 'border-gray-200/60 bg-white'
+            }`}>
                 <CardContent className="p-2.5">
                     <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -72,12 +77,20 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                             </Badge>
                         )}
                     </div>
-                    {application.isReapplied && (
-                        <div className="mt-1.5">
-                            <Badge variant="outline" className="text-[10px] px-1.5 h-4 text-orange-600 border-orange-300 bg-orange-50">
-                                <RefreshCcw className="h-2.5 w-2.5 mr-1" />
-                                Ứng tuyển lại
-                            </Badge>
+                    {(application.isReapplied || application.source === 'TALENT_POOL_INVITATION') && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                            {application.isReapplied && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 h-4 text-orange-600 border-orange-300 bg-orange-50">
+                                    <RefreshCcw className="h-2.5 w-2.5 mr-1" />
+                                    Ứng tuyển lại
+                                </Badge>
+                            )}
+                            {application.source === 'TALENT_POOL_INVITATION' && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 h-4 text-purple-700 border-purple-200 bg-purple-50">
+                                    <Star className="h-2.5 w-2.5 mr-1" />
+                                    Từ Talent Pool
+                                </Badge>
+                            )}
                         </div>
                     )}
                     {(application.status === 'OFFER_DECLINED' || application.isDeclineByCandidate) && (

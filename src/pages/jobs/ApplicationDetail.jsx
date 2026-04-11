@@ -295,6 +295,12 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                       Ứng tuyển lại
                     </Badge>
                   )}
+                  {application.source === 'TALENT_POOL_INVITATION' && (
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs px-2 py-0.5">
+                      <Star className="h-3 w-3 mr-1" />
+                      Từ Talent Pool
+                    </Badge>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">

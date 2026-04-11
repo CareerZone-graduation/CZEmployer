@@ -47,6 +47,8 @@ import SupportRequestDetailPage from '@/pages/support/SupportRequestDetailPage';
 // Settings Page
 import SettingsPage from '@/pages/settings/SettingsPage';
 
+import KnowledgeBaseManagement from '@/pages/KnowledgeBase/KnowledgeBaseManagement';
+
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
   <div className="text-center">
@@ -150,6 +152,7 @@ const AppRouter = () => {
           <Route path="messaging" element={<Messaging />} />
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="knowledge-base" element={<KnowledgeBaseManagement />} />
           <Route path="cv-viewer" element={<CVViewer />} />
 
           {/* Support Request Routes */}

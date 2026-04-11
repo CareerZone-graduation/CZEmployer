@@ -1,10 +1,11 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { CalendarIcon, Sparkles } from 'lucide-react';
+import { CalendarIcon, Sparkles, X, Check } from 'lucide-react';
+import * as diff from 'diff';
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from '@/components/ui/button';
 import {
@@ -29,12 +30,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as jobService from '@/services/jobService';
-import * as aiService from '@/services/aiService';
+import { streamRequest } from '@/services/apiClient';
 import AutoSuggestInput from './AutoSuggestInput';
 import SmartAutocompleteInput from './SmartAutocompleteInput';
 import AutoSuggestTextarea from './AutoSuggestTextarea';
-import { 
-  JOB_TITLE_SUGGESTIONS, 
+import {
+  JOB_TITLE_SUGGESTIONS,
   QUICK_TEMPLATES,
   DESCRIPTION_SUGGESTIONS,
   REQUIREMENTS_SUGGESTIONS,
@@ -61,13 +62,57 @@ import {
   getCommunesForDistrict
 } from '@/utils/locationUtils';
 
+const StreamingDiffView = ({ oldValue = '', newValue = '', isStreaming }) => {
+  const diffContent = React.useMemo(() => {
+    return diff.diffWords(oldValue, newValue);
+  }, [oldValue, newValue]);
+
+  return (
+    <div className="w-full text-sm whitespace-pre-wrap leading-relaxed max-h-[350px] overflow-y-auto font-sans text-left">
+      {diffContent.map((part, index) => {
+        if (part.added) {
+          return <span key={index} className="bg-green-100 text-green-800 px-0.5 rounded-sm">{part.value}</span>;
+        }
+        if (part.removed) {
+          return <span key={index} className="bg-red-100 text-red-800 line-through px-0.5 rounded-sm opacity-60">{part.value}</span>;
+        }
+        return <span key={index} className="text-gray-800">{part.value}</span>;
+      })}
+      {isStreaming && (
+        <span className="inline-block w-2 h-4 ml-1 bg-purple-600 animate-pulse align-middle" />
+      )}
+    </div>
+  );
+};
 
 const JobForm = ({ onSuccess, job }) => {
   const isEditMode = !!job;
   const [showMap, setShowMap] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isGeneratingSuggestions] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false); // Global enhancing state
   const [previousValues, setPreviousValues] = useState(null); // Store previous values for undo
+  const [streamingField, setStreamingField] = useState(null); // Track which field is streaming
+  const [abortController, setAbortController] = useState(null); // For canceling stream
+
+  const titleRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const requirementsRef = useRef(null);
+  const benefitsRef = useRef(null);
+
+  // Scroll to active AI field
+  useEffect(() => {
+    const refs = {
+      title: titleRef,
+      description: descriptionRef,
+      requirements: requirementsRef,
+      benefits: benefitsRef,
+    };
+    if (streamingField && refs[streamingField]?.current) {
+      refs[streamingField].current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [streamingField]);
 
   // State for location dropdowns
   const [provinces, setProvinces] = useState([]);
@@ -122,8 +167,8 @@ const JobForm = ({ onSuccess, job }) => {
   const useCompanyAddress = useWatch({ control, name: 'useCompanyAddress' });
   const watchedProvince = useWatch({ control, name: 'location.province' });
   const watchedDistrict = useWatch({ control, name: 'location.district' });
-  
-  
+
+
 
   // --- Location Logic ---
 
@@ -269,15 +314,15 @@ const JobForm = ({ onSuccess, job }) => {
   const handleEnhanceWithAI = useCallback(async () => {
     try {
       const currentValues = form.getValues();
-      
+
       // Check if there's actual content to enhance (not just empty fields)
       const hasTitle = currentValues.title && currentValues.title.trim().length > 0;
       const hasDescription = currentValues.description && currentValues.description.trim().length > 0;
       const hasRequirements = currentValues.requirements && currentValues.requirements.trim().length > 0;
       const hasBenefits = currentValues.benefits && currentValues.benefits.trim().length > 0;
-      
+
       const hasAnyContent = hasTitle || hasDescription || hasRequirements || hasBenefits;
-      
+
       if (!hasAnyContent) {
         toast.error('Vui lòng nhập nội dung trước khi sử dụng AI', {
           description: 'Ít nhất một trong các trường: Tiêu đề, Mô tả, Yêu cầu, hoặc Quyền lợi cần có nội dung'
@@ -285,62 +330,112 @@ const JobForm = ({ onSuccess, job }) => {
         return;
       }
 
-      // Save current values for undo (only fields that have content)
+      // Save current values for undo (all AI-supported fields)
       setPreviousValues({
-        title: hasTitle ? currentValues.title : undefined,
-        description: hasDescription ? currentValues.description : undefined,
-        requirements: hasRequirements ? currentValues.requirements : undefined,
-        benefits: hasBenefits ? currentValues.benefits : undefined,
+        title: currentValues.title || '',
+        description: currentValues.description || '',
+        requirements: currentValues.requirements || '',
+        benefits: currentValues.benefits || '',
       });
 
       setIsEnhancing(true);
-      toast.info('Đang cải thiện nội dung với AI...', {
-        description: 'Vui lòng đợi trong giây lát'
+      setStreamingField(null);
+
+      // Prepare data for AI enhancement - always send all fields to allow AI to complete a partial job post
+      const dataToEnhance = {
+        title: currentValues.title || '',
+        description: currentValues.description || '',
+        requirements: currentValues.requirements || '',
+        benefits: currentValues.benefits || '',
+      };
+
+      // Create abort controller for cancellation
+      const abortController = new AbortController();
+      setAbortController(abortController);
+
+      // Field content accumulators
+      const fieldContent = {
+        title: '',
+        description: '',
+        requirements: '',
+        benefits: ''
+      };
+
+      // Call streaming API using streamRequest helper
+      const response = await streamRequest('/ai/enhance-job', {
+        method: 'POST',
+        body: JSON.stringify(dataToEnhance),
+        signal: abortController.signal
       });
 
-      // Prepare data for AI enhancement - only send fields with content
-      const dataToEnhance = {};
-      if (hasTitle) dataToEnhance.title = currentValues.title;
-      if (hasDescription) dataToEnhance.description = currentValues.description;
-      if (hasRequirements) dataToEnhance.requirements = currentValues.requirements;
-      if (hasBenefits) dataToEnhance.benefits = currentValues.benefits;
-
-      console.log('Sending data to AI:', dataToEnhance);
-      const response = await aiService.enhanceJobContent(dataToEnhance);
-      console.log('AI response:', response);
-      
-      if (response.success && response.data) {
-        // Safely update form with enhanced content - ensure values are strings
-        if (hasTitle && response.data.title && typeof response.data.title === 'string') {
-          form.setValue('title', response.data.title);
-        }
-        if (hasDescription && response.data.description && typeof response.data.description === 'string') {
-          form.setValue('description', response.data.description);
-        }
-        if (hasRequirements && response.data.requirements && typeof response.data.requirements === 'string') {
-          form.setValue('requirements', response.data.requirements);
-        }
-        if (hasBenefits && response.data.benefits && typeof response.data.benefits === 'string') {
-          form.setValue('benefits', response.data.benefits);
-        }
-        
-        toast.success('Cải thiện nội dung thành công!', {
-          description: 'Nội dung đã được tối ưu hóa bởi AI. Nhấn "Hoàn tác" nếu không hài lòng.'
-        });
-      } else {
-        console.error('Invalid response format:', response);
-        toast.error('Phản hồi không hợp lệ từ server');
-        setPreviousValues(null); // Clear previous values on error
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (error) {
-      console.error('Error enhancing with AI:', error);
-      console.error('Error response:', error.response);
-      toast.error('Không thể cải thiện nội dung', {
-        description: error.response?.data?.message || error.message || 'Vui lòng thử lại sau'
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim() || line.startsWith(':')) continue;
+
+          if (line.startsWith('event:')) {
+            continue;
+          }
+
+          if (line.startsWith('data:')) {
+            const data = JSON.parse(line.substring(5).trim());
+
+            if (data.field && data.delta) {
+              // field_delta event - accumulate and animate
+              fieldContent[data.field] += data.delta;
+              setStreamingField(data.field);
+
+              // Update form with typing animation
+              form.setValue(data.field, fieldContent[data.field]);
+
+              // Add a small delay for typing effect - 30ms for smooth read
+              // await new Promise(resolve => setTimeout(resolve, 30));
+            } else if (data.field && data.content) {
+              // field_complete event
+              fieldContent[data.field] = data.content;
+              form.setValue(data.field, data.content);
+              setStreamingField(null);
+            } else if (data.error) {
+              // error event
+              throw new Error(data.error);
+            }
+          }
+        }
+      }
+
+      setStreamingField(null);
+      toast.success('Cải thiện nội dung thành công!', {
+        description: 'Nội dung đã được tối ưu hóa bởi AI. Nhấn "Hoàn tác" nếu không hài lòng.'
       });
-      setPreviousValues(null); // Clear previous values on error
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        toast.info('Đã hủy cải thiện nội dung');
+      } else {
+        console.error('Error enhancing with AI:', error);
+        toast.error('Không thể cải thiện nội dung', {
+          description: error.message || 'Vui lòng thử lại sau'
+        });
+      }
+      setPreviousValues(null);
     } finally {
       setIsEnhancing(false);
+      setStreamingField(null);
+      setAbortController(null);
     }
   }, [form]);
 
@@ -350,19 +445,53 @@ const JobForm = ({ onSuccess, job }) => {
       return;
     }
 
-    // Restore previous values
+    // Restore all previous values
     if (previousValues.title !== undefined) form.setValue('title', previousValues.title);
     if (previousValues.description !== undefined) form.setValue('description', previousValues.description);
     if (previousValues.requirements !== undefined) form.setValue('requirements', previousValues.requirements);
     if (previousValues.benefits !== undefined) form.setValue('benefits', previousValues.benefits);
-    
-    // Clear previous values
+
     setPreviousValues(null);
-    
-    toast.success('Đã hoàn tác thành công!', {
+
+    toast.success('Đã hoàn tác toàn bộ!', {
       description: 'Nội dung đã được khôi phục về trước khi enhance'
     });
   }, [form, previousValues]);
+
+  const handleUndoField = useCallback((fieldName) => {
+    if (!previousValues || previousValues[fieldName] === undefined) return;
+
+    form.setValue(fieldName, previousValues[fieldName]);
+
+    const remaining = { ...previousValues };
+    delete remaining[fieldName];
+
+    // If no more fields to undo, clear previousValues entirely
+    if (Object.keys(remaining).length === 0) {
+      setPreviousValues(null);
+    } else {
+      setPreviousValues(remaining);
+    }
+
+    const fieldLabel = fieldName === 'title' ? 'Tiêu đề' : fieldName === 'description' ? 'Mô tả' : fieldName === 'requirements' ? 'Yêu cầu' : 'Quyền lợi';
+    toast.success(`Đã hoàn tác "${fieldLabel}"!`);
+  }, [form, previousValues]);
+
+  const handleAcceptField = useCallback((fieldName) => {
+    if (!previousValues || previousValues[fieldName] === undefined) return;
+
+    const remaining = { ...previousValues };
+    delete remaining[fieldName];
+
+    if (Object.keys(remaining).length === 0) {
+      setPreviousValues(null);
+    } else {
+      setPreviousValues(remaining);
+    }
+
+    const fieldLabel = fieldName === 'title' ? 'Tiêu đề' : fieldName === 'description' ? 'Mô tả' : fieldName === 'requirements' ? 'Yêu cầu' : 'Quyền lợi';
+    toast.success(`Đã chấp nhận "${fieldLabel}"!`);
+  }, [previousValues]);
 
   return (
     <Form {...form}>
@@ -411,8 +540,25 @@ const JobForm = ({ onSuccess, job }) => {
                   <p className="mt-1 text-sm text-blue-800">
                     Nhập nội dung vào các trường bên dưới, sau đó nhấn nút để AI tối ưu hóa và viết lại chuyên nghiệp hơn.
                   </p>
+                  {streamingField && (
+                    <p className="mt-2 text-sm text-blue-600 font-medium">
+                      ✨ Đang tạo: {streamingField === 'title' ? 'Tiêu đề' : streamingField === 'description' ? 'Mô tả công việc' : streamingField === 'requirements' ? 'Yêu cầu công việc' : 'Quyền lợi'}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2 ml-4">
+                  {isEnhancing && abortController && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => abortController.abort()}
+                      className="whitespace-nowrap text-red-600 hover:text-red-700"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Hủy
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -424,16 +570,28 @@ const JobForm = ({ onSuccess, job }) => {
                     <Sparkles className="mr-2 h-4 w-4" />
                     {isEnhancing ? 'Đang xử lý...' : 'Enhance with AI'}
                   </Button>
-                  {previousValues && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleUndo}
-                      className="whitespace-nowrap text-orange-600 hover:text-orange-700"
-                    >
-                      ↶ Hoàn tác
-                    </Button>
+                  {previousValues && !isEnhancing && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        onClick={() => { setPreviousValues(null); toast.success('Đã áp dụng toàn bộ nội dung AI!'); }}
+                        className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Áp dụng & Sửa tiếp
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleUndo}
+                        className="whitespace-nowrap text-orange-600 hover:text-orange-700"
+                      >
+                        ↶ Hoàn tác
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -445,13 +603,36 @@ const JobForm = ({ onSuccess, job }) => {
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem>
+            <FormItem ref={titleRef}>
               <FormLabel>Tiêu đề công việc</FormLabel>
               <FormControl>
-                <SmartAutocompleteInput 
-                  placeholder="Gõ 'l' để xem gợi ý: Lập trình viên, Lễ tân..." 
-                  {...field} 
-                />
+                {previousValues && previousValues.title !== undefined ? (
+                  <>
+                    <div className={cn(
+                      "transition-all duration-300",
+                      streamingField === 'title' ? "ai-field-streaming" : "ai-field-done"
+                    )}>
+                      <div className="bg-slate-50 min-h-[40px] p-2 border border-slate-200 rounded-md">
+                        <StreamingDiffView oldValue={previousValues.title} newValue={field.value} isStreaming={streamingField === 'title'} />
+                      </div>
+                    </div>
+                    {!isEnhancing && (
+                      <div className="flex gap-2 mt-2 justify-end">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleAcceptField('title')} className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 text-xs">
+                          <Check className="mr-1 h-3 w-3" /> Chấp nhận
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleUndoField('title')} className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 text-xs">
+                          ↶ Hoàn tác
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <SmartAutocompleteInput
+                    placeholder="Gõ 'l' để xem gợi ý: Lập trình viên, Lễ tân..."
+                    {...field}
+                  />
+                )}
               </FormControl>
               <FormDescription>
                 Gợi ý từ công việc thực tế. Gõ 1 ký tự để xem danh sách công việc phổ biến.
@@ -465,19 +646,42 @@ const JobForm = ({ onSuccess, job }) => {
           control={form.control}
           name="description"
           render={({ field }) => (
-            <FormItem>
+            <FormItem ref={descriptionRef}>
               <div className="flex items-center justify-between">
                 <FormLabel>Mô tả công việc</FormLabel>
-               
+
               </div>
               <FormControl>
-                <AutoSuggestTextarea
-                  placeholder="Gõ 'Chúng' để xem gợi ý..."
-                  className="min-h-[150px]"
-                  suggestions={DESCRIPTION_SUGGESTIONS}
-                  minTriggerLength={3}
-                  {...field}
-                />
+                {previousValues && previousValues.description !== undefined ? (
+                  <>
+                    <div className={cn(
+                      "transition-all duration-300",
+                      streamingField === 'description' ? "ai-field-streaming" : "ai-field-done"
+                    )}>
+                      <div className="bg-slate-50 min-h-[150px] p-3 border border-slate-200 rounded-md">
+                        <StreamingDiffView oldValue={previousValues.description} newValue={field.value} isStreaming={streamingField === 'description'} />
+                      </div>
+                    </div>
+                    {!isEnhancing && (
+                      <div className="flex gap-2 mt-2 justify-end">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleAcceptField('description')} className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 text-xs">
+                          <Check className="mr-1 h-3 w-3" /> Chấp nhận
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleUndoField('description')} className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 text-xs">
+                          ↶ Hoàn tác
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <AutoSuggestTextarea
+                    placeholder="Gõ 'Chúng' để xem gợi ý..."
+                    className="min-h-[150px]"
+                    suggestions={DESCRIPTION_SUGGESTIONS}
+                    minTriggerLength={3}
+                    {...field}
+                  />
+                )}
               </FormControl>
               <FormDescription>Mô tả chi tiết về công việc và trách nhiệm. Gõ vài từ và nhấn Tab để chấp nhận gợi ý.</FormDescription>
               <FormMessage />
@@ -489,19 +693,42 @@ const JobForm = ({ onSuccess, job }) => {
           control={form.control}
           name="requirements"
           render={({ field }) => (
-            <FormItem>
+            <FormItem ref={requirementsRef}>
               <div className="flex items-center justify-between">
                 <FormLabel>Yêu cầu công việc</FormLabel>
-               
+
               </div>
               <FormControl>
-                <AutoSuggestTextarea
-                  placeholder="Gõ 'Yêu' để xem gợi ý..."
-                  className="min-h-[150px]"
-                  suggestions={REQUIREMENTS_SUGGESTIONS}
-                  minTriggerLength={3}
-                  {...field}
-                />
+                {previousValues && previousValues.requirements !== undefined ? (
+                  <>
+                    <div className={cn(
+                      "transition-all duration-300",
+                      streamingField === 'requirements' ? "ai-field-streaming" : "ai-field-done"
+                    )}>
+                      <div className="bg-slate-50 min-h-[150px] p-3 border border-slate-200 rounded-md">
+                        <StreamingDiffView oldValue={previousValues.requirements} newValue={field.value} isStreaming={streamingField === 'requirements'} />
+                      </div>
+                    </div>
+                    {!isEnhancing && (
+                      <div className="flex gap-2 mt-2 justify-end">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleAcceptField('requirements')} className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 text-xs">
+                          <Check className="mr-1 h-3 w-3" /> Chấp nhận
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleUndoField('requirements')} className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 text-xs">
+                          ↶ Hoàn tác
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <AutoSuggestTextarea
+                    placeholder="Gõ 'Yêu' để xem gợi ý..."
+                    className="min-h-[150px]"
+                    suggestions={REQUIREMENTS_SUGGESTIONS}
+                    minTriggerLength={3}
+                    {...field}
+                  />
+                )}
               </FormControl>
               <FormDescription>Các kỹ năng và kinh nghiệm cần thiết cho vị trí. Gõ vài từ và nhấn Tab để chấp nhận gợi ý.</FormDescription>
               <FormMessage />
@@ -513,19 +740,42 @@ const JobForm = ({ onSuccess, job }) => {
           control={form.control}
           name="benefits"
           render={({ field }) => (
-            <FormItem>
+            <FormItem ref={benefitsRef}>
               <div className="flex items-center justify-between">
                 <FormLabel>Quyền lợi</FormLabel>
-              
+
               </div>
               <FormControl>
-                <AutoSuggestTextarea
-                  placeholder="Gõ '- Lương' để xem gợi ý..."
-                  className="min-h-[150px]"
-                  suggestions={BENEFITS_SUGGESTIONS}
-                  minTriggerLength={3}
-                  {...field}
-                />
+                {previousValues && previousValues.benefits !== undefined ? (
+                  <>
+                    <div className={cn(
+                      "transition-all duration-300",
+                      streamingField === 'benefits' ? "ai-field-streaming" : "ai-field-done"
+                    )}>
+                      <div className="bg-slate-50 min-h-[150px] p-3 border border-slate-200 rounded-md">
+                        <StreamingDiffView oldValue={previousValues.benefits} newValue={field.value} isStreaming={streamingField === 'benefits'} />
+                      </div>
+                    </div>
+                    {!isEnhancing && (
+                      <div className="flex gap-2 mt-2 justify-end">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleAcceptField('benefits')} className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 text-xs">
+                          <Check className="mr-1 h-3 w-3" /> Chấp nhận
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleUndoField('benefits')} className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 text-xs">
+                          ↶ Hoàn tác
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <AutoSuggestTextarea
+                    placeholder="Gõ '- Lương' để xem gợi ý..."
+                    className="min-h-[150px]"
+                    suggestions={BENEFITS_SUGGESTIONS}
+                    minTriggerLength={3}
+                    {...field}
+                  />
+                )}
               </FormControl>
               <FormDescription>Các phúc lợi mà ứng viên sẽ nhận được. Gõ vài từ và nhấn Tab để chấp nhận gợi ý.</FormDescription>
               <FormMessage />

@@ -33,6 +33,15 @@ export const removeFromTalentPool = async (talentPoolId) => {
 };
 
 /**
+ * Mời ứng viên từ talent pool
+ * @param {object} data - Dữ liệu mời ứng viên (jobId, talentPoolIds)
+ * @returns {Promise<object>}
+ */
+export const inviteCandidates = async (data) => {
+  return apiClient.post('/talent-pool/invite', data);
+};
+
+/**
  * Lấy danh sách talent pool
  * @param {object} params - Query params (page, limit, search, sort, tags)
  * @returns {Promise<object>}

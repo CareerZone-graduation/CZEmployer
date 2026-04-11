@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const CreateJob = () => {
   const navigate = useNavigate();
 
-  const handleSuccess = () => {
+  const handleSuccess = (jobData) => {
     navigate('/jobs');
   };
 
