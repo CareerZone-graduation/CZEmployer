@@ -14,6 +14,7 @@ import CompanyProfile from '@/pages/CompanyProfile';
 import Jobs from '@/pages/Jobs';
 import JobList from '@/pages/jobs/JobList';
 import CreateJob from '@/pages/jobs/CreateJob';
+import EditJob from '@/pages/jobs/EditJob';
 import ArchivedJobs from '@/pages/jobs/ArchivedJobs';
 import RecruiterJobDetail from '@/pages/jobs/RecruiterJobDetail';
 import JobApplications from '@/pages/jobs/JobApplications';
@@ -140,6 +141,7 @@ const AppRouter = () => {
             <Route path="archived" element={<ArchivedJobs />} />
           </Route>
           <Route path="jobs/recruiter/:jobId" element={<RecruiterJobDetail />} />
+          <Route path="jobs/recruiter/:jobId/edit" element={<EditJob />} />
           <Route path="jobs/:jobId/applications" element={<JobApplications />} />
           <Route path="jobs/:jobId/applications/:applicationId" element={<ApplicationDetail />} />
           <Route path="applications/:applicationId" element={<ApplicationDetail />} />

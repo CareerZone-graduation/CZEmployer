@@ -25,9 +25,22 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const getNotificationLink = (notification) => {
-  const { type, entity, metadata } = notification;
+  const { type, entity, metadata, relatedJob } = notification;
 
   switch (type) {
+    case 'JOB_APPROVED':
+    case 'JOB_REJECTED':
+      // Sử dụng relatedJob field từ backend
+      const jobId = relatedJob || metadata?.jobId;
+      if (!jobId) return '/jobs';
+      
+      // Nếu job bị từ chối → dẫn đến trang edit để sửa
+      // Nếu job được duyệt → dẫn đến trang view
+      if (type === 'JOB_REJECTED' || metadata?.moderationStatus === 'REJECTED') {
+        return `/jobs/recruiter/${jobId}/edit`;
+      }
+      return `/jobs/recruiter/${jobId}`;
+      
     case 'job_applicants_rollup':
       // Link to: /jobs/recruiter/:jobId?tab=candidates
       return metadata?.jobId ? `/jobs/recruiter/${metadata.jobId}?tab=candidates` : '/jobs';

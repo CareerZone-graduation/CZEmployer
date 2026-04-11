@@ -92,6 +92,7 @@ const JobForm = ({ onSuccess, job }) => {
   const [previousValues, setPreviousValues] = useState(null); // Store previous values for undo
   const [streamingField, setStreamingField] = useState(null); // Track which field is streaming
   const [abortController, setAbortController] = useState(null); // For canceling stream
+  const [isAIEnhanced, setIsAIEnhanced] = useState(job?.isAIEnhanced || false); // Track if job was AI enhanced
 
   const titleRef = useRef(null);
   const descriptionRef = useRef(null);
@@ -291,6 +292,10 @@ const JobForm = ({ onSuccess, job }) => {
           delete payload.address;
         }
 
+        // Add AI enhancement flag to payload
+        if (isAIEnhanced) {
+          payload.isAIEnhanced = true;
+        }
 
         if (isEditMode) {
           response = await jobService.updateJob(job._id, payload);
@@ -308,7 +313,7 @@ const JobForm = ({ onSuccess, job }) => {
         });
       }
     },
-    [isEditMode, job, onSuccess],
+    [isEditMode, job, onSuccess, isAIEnhanced],
   );
 
   const handleEnhanceWithAI = useCallback(async () => {
@@ -419,6 +424,7 @@ const JobForm = ({ onSuccess, job }) => {
       }
 
       setStreamingField(null);
+      setIsAIEnhanced(true); // Mark job as AI enhanced
       toast.success('Cải thiện nội dung thành công!', {
         description: 'Nội dung đã được tối ưu hóa bởi AI. Nhấn "Hoàn tác" nếu không hài lòng.'
       });
@@ -452,6 +458,7 @@ const JobForm = ({ onSuccess, job }) => {
     if (previousValues.benefits !== undefined) form.setValue('benefits', previousValues.benefits);
 
     setPreviousValues(null);
+    setIsAIEnhanced(false); // Reset AI enhanced flag when undoing
 
     toast.success('Đã hoàn tác toàn bộ!', {
       description: 'Nội dung đã được khôi phục về trước khi enhance'
