@@ -404,7 +404,7 @@ const JobForm = ({ onSuccess, job }) => {
               form.setValue(data.field, fieldContent[data.field]);
 
               // Add a small delay for typing effect - 30ms for smooth read
-              await new Promise(resolve => setTimeout(resolve, 30));
+              // await new Promise(resolve => setTimeout(resolve, 30));
             } else if (data.field && data.content) {
               // field_complete event
               fieldContent[data.field] = data.content;
