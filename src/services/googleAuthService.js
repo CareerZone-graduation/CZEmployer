@@ -51,6 +51,9 @@ export const initiateGoogleLogin = async (role = 'recruiter') => {
   // Build redirect URI based on role
   const redirectUri = `${window.location.origin}/auth/login`;
 
+  // Store redirectUri for later use in callback
+  localStorage.setItem('google_redirect_uri', redirectUri);
+
   // Build authorization URL
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -94,13 +97,15 @@ export const handleGoogleCallback = async (code, state) => {
   // Retrieve stored PKCE state (không xóa ngay)
   const { codeVerifier, state: storedState } = retrievePKCEState();
   const role = localStorage.getItem('google_auth_role') || 'recruiter';
+  const redirectUri = localStorage.getItem('google_redirect_uri');
 
   console.log('=== PKCE Debug ===', {
     receivedState: state?.substring(0, 20) + '...',
     storedState: storedState?.substring(0, 20) + '...',
     statesMatch: state === storedState,
     codeVerifier: codeVerifier ? 'exists (' + codeVerifier.length + ' chars)' : 'MISSING',
-    role
+    role,
+    redirectUri
   });
 
   // Verify state to prevent CSRF
@@ -119,13 +124,19 @@ export const handleGoogleCallback = async (code, state) => {
     throw new Error('Code verifier not found - session may have expired');
   }
 
+  if (!redirectUri) {
+    console.error('No redirect URI found in localStorage');
+    throw new Error('Redirect URI not found - session may have expired');
+  }
+
   try {
-    // BƯỚC 5: Gửi code + code_verifier lên Backend
+    // BƯỚC 5: Gửi code + code_verifier + redirect_uri lên Backend
     // Backend sẽ đổi code với Google (dùng client_secret an toàn)
     const response = await apiClient.post('/auth/google/callback', {
       code,
       code_verifier: codeVerifier,
       role,
+      redirect_uri: redirectUri, // ← GỬI REDIRECT_URI LÊN BACKEND
     }, {
       withCredentials: true
     });
@@ -133,12 +144,14 @@ export const handleGoogleCallback = async (code, state) => {
     // Xóa state sau khi thành công
     clearPKCEState();
     localStorage.removeItem('google_auth_role');
+    localStorage.removeItem('google_redirect_uri');
 
     return response.data;
   } catch (error) {
     // Xóa state nếu lỗi
     clearPKCEState();
     localStorage.removeItem('google_auth_role');
+    localStorage.removeItem('google_redirect_uri');
     throw error;
   }
 };
