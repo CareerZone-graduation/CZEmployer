@@ -614,7 +614,7 @@ const JobForm = ({ onSuccess, job }) => {
               <FormLabel>Tiêu đề công việc</FormLabel>
               <FormControl>
                 {previousValues && previousValues.title !== undefined ? (
-                  <>
+                  <div className="w-full">
                     <div className={cn(
                       "transition-all duration-300",
                       streamingField === 'title' ? "ai-field-streaming" : "ai-field-done"
@@ -633,7 +633,7 @@ const JobForm = ({ onSuccess, job }) => {
                         </Button>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <SmartAutocompleteInput
                     placeholder="Gõ 'l' để xem gợi ý: Lập trình viên, Lễ tân..."
@@ -660,7 +660,7 @@ const JobForm = ({ onSuccess, job }) => {
               </div>
               <FormControl>
                 {previousValues && previousValues.description !== undefined ? (
-                  <>
+                  <div className="w-full">
                     <div className={cn(
                       "transition-all duration-300",
                       streamingField === 'description' ? "ai-field-streaming" : "ai-field-done"
@@ -679,7 +679,7 @@ const JobForm = ({ onSuccess, job }) => {
                         </Button>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <AutoSuggestTextarea
                     placeholder="Gõ 'Chúng' để xem gợi ý..."
@@ -707,7 +707,7 @@ const JobForm = ({ onSuccess, job }) => {
               </div>
               <FormControl>
                 {previousValues && previousValues.requirements !== undefined ? (
-                  <>
+                  <div className="w-full">
                     <div className={cn(
                       "transition-all duration-300",
                       streamingField === 'requirements' ? "ai-field-streaming" : "ai-field-done"
@@ -726,7 +726,7 @@ const JobForm = ({ onSuccess, job }) => {
                         </Button>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <AutoSuggestTextarea
                     placeholder="Gõ 'Yêu' để xem gợi ý..."
@@ -754,7 +754,7 @@ const JobForm = ({ onSuccess, job }) => {
               </div>
               <FormControl>
                 {previousValues && previousValues.benefits !== undefined ? (
-                  <>
+                  <div className="w-full">
                     <div className={cn(
                       "transition-all duration-300",
                       streamingField === 'benefits' ? "ai-field-streaming" : "ai-field-done"
@@ -773,7 +773,7 @@ const JobForm = ({ onSuccess, job }) => {
                         </Button>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <AutoSuggestTextarea
                     placeholder="Gõ '- Lương' để xem gợi ý..."
