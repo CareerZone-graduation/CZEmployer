@@ -114,6 +114,13 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                             </Badge>
                         </div>
                     )}
+                    {application.status === 'SCHEDULED_INTERVIEW' && !application.interview && !application.interviewInfo && (
+                        <div className="mt-2">
+                            <Badge variant="outline" className="w-full justify-center bg-indigo-50 text-indigo-700 border-indigo-200 shadow-none">
+                                Chờ xếp lịch PV
+                            </Badge>
+                        </div>
+                    )}
 
                     {application.notes && (
                         <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded text-xs text-gray-600">

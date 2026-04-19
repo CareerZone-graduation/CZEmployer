@@ -81,4 +81,12 @@ export const compareWithAI = async (applicationIds) => {
   );
 };
 
-
+/**
+ * Đánh giá kết quả phỏng vấn tự động (dùng cho Workflow)
+ * @param {string} applicationId - ID của đơn ứng tuyển
+ * @param {object} data - Object chứa result (PASSED/FAILED) và feedback
+ * @returns {Promise<object>}
+ */
+export const evaluateInterviewResult = async (applicationId, data) => {
+  return await apiClient.post(`/applications/${applicationId}/interview-result`, data);
+};

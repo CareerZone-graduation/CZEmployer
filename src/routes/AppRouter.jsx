@@ -49,6 +49,12 @@ import SupportRequestDetailPage from '@/pages/support/SupportRequestDetailPage';
 import SettingsPage from '@/pages/settings/SettingsPage';
 
 import KnowledgeBaseManagement from '@/pages/KnowledgeBase/KnowledgeBaseManagement';
+import WorkflowList from '@/pages/workflows/WorkflowList';
+import WorkflowBuilder from '@/pages/workflows/WorkflowBuilder';
+import WorkflowTemplates from '@/pages/workflows/WorkflowTemplates';
+import TestList from '@/pages/tests/TestList';
+import TestEditor from '@/pages/tests/TestEditor';
+import TestPreview from '@/pages/tests/TestPreview';
 
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
@@ -156,6 +162,17 @@ const AppRouter = () => {
           <Route path="notifications" element={<Notifications />} />
           <Route path="knowledge-base" element={<KnowledgeBaseManagement />} />
           <Route path="cv-viewer" element={<CVViewer />} />
+
+          {/* Workflow Routes */}
+          <Route path="workflows" element={<WorkflowList />} />
+          <Route path="workflows/templates" element={<WorkflowTemplates />} />
+          <Route path="workflows/:workflowId/builder" element={<WorkflowBuilder />} />
+
+          {/* Test Routes */}
+          <Route path="tests" element={<TestList />} />
+          <Route path="tests/new" element={<TestEditor />} />
+          <Route path="tests/:testId/edit" element={<TestEditor />} />
+          <Route path="tests/:testId/preview" element={<TestPreview />} />
 
           {/* Support Request Routes */}
           <Route path="support" element={<SupportRequestsPage />} />

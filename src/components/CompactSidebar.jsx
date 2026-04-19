@@ -20,7 +20,9 @@ import {
   LifeBuoy,
   Settings,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Workflow,
+  ClipboardList
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,6 +52,8 @@ const sidebarItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
   { href: '/company-profile', label: 'Công ty', icon: Building2, description: 'Hồ sơ và thông tin công ty' },
   { href: '/jobs', label: 'Việc làm', icon: Briefcase, description: 'Quản lý tin tuyển dụng' },
+  { href: '/workflows', label: 'Quy trình', icon: Workflow, description: 'Quy trình tuyển dụng tự động' },
+  { href: '/tests', label: 'Bài test', icon: ClipboardList, description: 'Quản lý bài test tuyển dụng' },
   { href: '/talent-pool', label: 'Talent Pool', icon: Users, description: 'Quản lý hồ sơ đã lưu' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },

@@ -43,6 +43,10 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
 
+  const [isInterviewEvaluateModalOpen, setIsInterviewEvaluateModalOpen] = useState(false);
+  const [interviewEvaluateResult, setInterviewEvaluateResult] = useState('PASSED');
+  const [interviewEvaluateFeedback, setInterviewEvaluateFeedback] = useState('');
+
   const handleDownloadTemplateCV = async () => {
     // Không cần check cvId nữa vì chúng ta sẽ dùng application snapshot để generate PDF
     if (!application?._id) {
@@ -154,6 +158,23 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   const handleConfirmInterviewFailed = () => {
     updateStatus('INTERVIEW_FAILED', { feedback: interviewFeedback });
+  };
+
+  const handleEvaluateInterview = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await applicationService.evaluateInterviewResult(applicationId, {
+        result: interviewEvaluateResult,
+        feedback: interviewEvaluateFeedback
+      });
+      setApplication(response.data);
+      toast.success('Đánh giá phỏng vấn thành công');
+      setIsInterviewEvaluateModalOpen(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi khi đánh giá phỏng vấn');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ... (fetchApplication and other methods remain same)
@@ -357,23 +378,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                     Đánh giá phù hợp
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleStatusUpdate('INTERVIEW_FAILED')}
-                    disabled={
-                      application.status !== 'SCHEDULED_INTERVIEW' ||
-                      !application.interviewInfo ||
-                      !['COMPLETED', 'ENDED'].includes(application.interviewInfo.status)
-                    }
-                    className={
-                      (application.status !== 'SCHEDULED_INTERVIEW' || !application.interviewInfo || !['COMPLETED', 'ENDED'].includes(application.interviewInfo.status))
-                        ? "opacity-50 cursor-not-allowed"
-                        : "text-orange-700 focus:text-orange-800"
-                    }
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Phỏng vấn không đạt
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
                     onClick={() => handleStatusUpdate('OFFER_SENT')}
                     disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status)}
                     className={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
@@ -414,12 +418,23 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
               <Button
                 size="sm"
                 className="flex-1 md:flex-none"
-                disabled={!!application.interviewInfo || application.status !== 'SUITABLE'}
+                disabled={!!application.interviewInfo || !['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status)}
                 onClick={() => setIsInterviewModalOpen(true)}
               >
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {application.interviewInfo ? 'Đã lên lịch' : 'Phỏng vấn'}
+                {application.interviewInfo ? 'Đã lên lịch' : 'Xếp lịch PV'}
               </Button>
+              {application.status === 'SCHEDULED_INTERVIEW' && application.interviewInfo && ['COMPLETED', 'ENDED'].includes(application.interviewInfo.status) && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white"
+                  onClick={() => setIsInterviewEvaluateModalOpen(true)}
+                >
+                  <CheckCircle className="mr-2 h-3.5 w-3.5" />
+                  Đánh giá PV
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -713,6 +728,55 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
           </div>
         </div>
       </Modal>
+
+      <Modal
+        isOpen={isInterviewEvaluateModalOpen}
+        onClose={() => setIsInterviewEvaluateModalOpen(false)}
+        title="Đánh giá Kết quả Phỏng vấn"
+        size="md"
+      >
+        <div className="space-y-4 p-1">
+          <p className="text-sm text-gray-600">
+            Hành động này sẽ cập nhật kết quả phỏng vấn. {application.workflowData?.isWorkflowPaused ? <b>Hệ thống sẽ kích hoạt Workflow tiếp tục chạy tự động.</b> : <b>Bạn có thể gửi Offer thủ công sau khi đánh giá ĐẠT.</b>}
+          </p>
+          <div className="flex gap-4 mb-4">
+            <Button
+              type="button"
+              variant={interviewEvaluateResult === 'PASSED' ? 'default' : 'outline'}
+              className={interviewEvaluateResult === 'PASSED' ? 'bg-green-600 hover:bg-green-700 text-white w-full' : 'w-full'}
+              onClick={() => setInterviewEvaluateResult('PASSED')}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" /> ĐẠT
+            </Button>
+            <Button
+              type="button"
+              variant={interviewEvaluateResult === 'FAILED' ? 'destructive' : 'outline'}
+              className="w-full"
+              onClick={() => setInterviewEvaluateResult('FAILED')}
+            >
+              <XCircle className="mr-2 h-4 w-4" /> KHÔNG ĐẠT
+            </Button>
+          </div>
+          <div>
+            <Label htmlFor="workflow-evaluate-feedback" className="mb-2 block">Ghi chú / Phản hồi (sẽ hiển thị cho ứng viên)</Label>
+            <Textarea
+              id="workflow-evaluate-feedback"
+              value={interviewEvaluateFeedback}
+              onChange={(e) => setInterviewEvaluateFeedback(e.target.value)}
+              placeholder="Nhập nhận xét phỏng vấn..."
+              maxLength={1000}
+              rows={4}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsInterviewEvaluateModalOpen(false)} disabled={isSubmitting}>Hủy</Button>
+            <Button variant="default" className="bg-indigo-600 hover:bg-indigo-700" onClick={handleEvaluateInterview} disabled={isSubmitting}>
+              {isSubmitting ? 'Đang xử lý...' : (application.workflowData?.isWorkflowPaused ? 'Lưu & Chạy tiếp Workflow' : 'Lưu Kết Quả')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
     </div >
   );
 };
