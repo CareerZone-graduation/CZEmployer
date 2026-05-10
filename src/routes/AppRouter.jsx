@@ -56,6 +56,8 @@ import TestList from '@/pages/tests/TestList';
 import TestEditor from '@/pages/tests/TestEditor';
 import TestPreview from '@/pages/tests/TestPreview';
 
+import EmailTemplateManagement from '@/pages/email-templates/EmailTemplateManagement';
+
 // Placeholder cho các trang chưa được tạo
 const PlaceholderPage = ({ title }) => (
   <div className="text-center">
@@ -173,6 +175,9 @@ const AppRouter = () => {
           <Route path="tests/new" element={<TestEditor />} />
           <Route path="tests/:testId/edit" element={<TestEditor />} />
           <Route path="tests/:testId/preview" element={<TestPreview />} />
+
+          {/* Email Templates Route */}
+          <Route path="email-templates" element={<EmailTemplateManagement />} />
 
           {/* Support Request Routes */}
           <Route path="support" element={<SupportRequestsPage />} />

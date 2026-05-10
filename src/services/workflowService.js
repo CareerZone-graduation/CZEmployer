@@ -15,3 +15,6 @@ export const getWorkflowTemplateById = (templateId) => apiClient.get(`/workflow-
 export const applyWorkflowTemplate = (templateId, payload) => apiClient.post(`/workflow-templates/${templateId}/apply`, payload);
 
 export const getWorkflowExecutions = (workflowId, params = {}) => apiClient.get(`/workflows/${workflowId}/executions`, { params });
+export const retryExecution = (executionId) => apiClient.post(`/workflows/executions/${executionId}/retry`);
+export const getFailedExecutionsByApplication = (applicationId) => apiClient.get(`/applications/${applicationId}/failed-executions`);
+export const getWorkflowTracking = (workflowId, params = {}) => apiClient.get(`/workflows/${workflowId}/tracking`, { params });

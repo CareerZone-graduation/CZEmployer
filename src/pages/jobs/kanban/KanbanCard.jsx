@@ -121,6 +121,27 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                             </Badge>
                         </div>
                     )}
+                    {application.status === 'SCHEDULED_INTERVIEW' && application.interview_result === 'PASSED' && (
+                        <div className="mt-2">
+                            <Badge variant="outline" className="w-full justify-center bg-green-50 text-green-700 border-green-200 shadow-none">
+                                Phỏng vấn Đạt
+                            </Badge>
+                        </div>
+                    )}
+                    {application.status === 'SCHEDULED_INTERVIEW' && application.interview_result === 'FAILED' && (
+                        <div className="mt-2">
+                            <Badge variant="outline" className="w-full justify-center bg-red-50 text-red-700 border-red-200 shadow-none">
+                                Phỏng vấn Không Đạt
+                            </Badge>
+                        </div>
+                    )}
+                    {application.status === 'SCHEDULED_INTERVIEW' && !application.interview_result && (application.interview || application.interviewInfo) && ['COMPLETED', 'ENDED'].includes((application.interview || application.interviewInfo).status) && (
+                        <div className="mt-2">
+                            <Badge variant="outline" className="w-full justify-center bg-teal-50 text-teal-700 border-teal-200 shadow-none">
+                                Chờ đánh giá PV
+                            </Badge>
+                        </div>
+                    )}
 
                     {application.notes && (
                         <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded text-xs text-gray-600">

@@ -42,6 +42,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
+  const [failedExecutions, setFailedExecutions] = useState([]);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const [isInterviewEvaluateModalOpen, setIsInterviewEvaluateModalOpen] = useState(false);
   const [interviewEvaluateResult, setInterviewEvaluateResult] = useState('PASSED');
@@ -201,9 +203,39 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   }, [applicationId]);
 
+  const fetchFailedExecutions = useCallback(async () => {
+    if (!applicationId) return;
+    try {
+      const response = await workflowService.getFailedExecutionsByApplication(applicationId);
+      setFailedExecutions(response.data || []);
+    } catch (err) {
+      console.error("Error fetching failed executions:", err);
+    }
+  }, [applicationId]);
+
   useEffect(() => {
     fetchApplication();
-  }, [fetchApplication]);
+    fetchFailedExecutions();
+  }, [fetchApplication, fetchFailedExecutions]);
+
+  const handleRetryExecution = async (executionId) => {
+    setIsRetrying(true);
+    try {
+      await workflowService.retryExecution(executionId);
+      toast.success('Đã gửi yêu cầu thử lại task!');
+      // Xoá tạm thời khỏi danh sách FAILED (bởi vì backend đang xử lý RETRYING)
+      setFailedExecutions(prev => prev.filter(ex => ex._id !== executionId));
+      // Optionally reload after a few seconds
+      setTimeout(() => {
+        fetchApplication(false);
+        fetchFailedExecutions();
+      }, 5000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi khi thử lại task.');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
 
 
@@ -243,7 +275,19 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     };
 
 
-    const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+    let config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+
+    if (status === 'SCHEDULED_INTERVIEW') {
+      if (application?.interview_result === 'PASSED') {
+        config = { label: 'Phỏng vấn Đạt', className: 'bg-green-100 text-green-800' };
+      } else if (application?.interview_result === 'FAILED') {
+        config = { label: 'Phỏng vấn Không Đạt', className: 'bg-red-100 text-red-800' };
+      } else if (interview && (interview.status === 'COMPLETED' || interview.status === 'ENDED')) {
+        config = { label: 'Chờ đánh giá PV', className: 'bg-teal-100 text-teal-800' };
+      } else if (!interview) {
+        config = { label: 'Chờ xếp lịch PV', className: 'bg-indigo-100 text-indigo-800' };
+      }
+    }
 
     const badge = <Badge className={config.className}>{config.label}</Badge>;
 
@@ -285,6 +329,37 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
   return (
     <div className={isModal ? "h-full p-4 space-y-4" : "container mx-auto max-w-6xl p-4 lg:p-6 space-y-6"}>
+      {failedExecutions.length > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-sm mb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-red-800 font-semibold flex items-center gap-2">
+                <XCircle className="h-5 w-5" />
+                Cảnh báo: Có lỗi trong tiến trình tự động (Workflow)
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {failedExecutions.map(exec => (
+                  <li key={exec._id} className="text-sm text-red-700 flex items-center gap-2">
+                    <span className="font-medium">Bước "{exec.nodeName}":</span> 
+                    {exec.result?.errorMessage || 'Không rõ lỗi'}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRetryExecution(exec._id)}
+                      disabled={isRetrying}
+                      className="ml-3 h-7 bg-white text-red-700 hover:bg-red-50 hover:text-red-800 border-red-200"
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${isRetrying ? 'animate-spin' : ''}`} />
+                      Thử lại ngay
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         {!isModal && jobId && (
           <Button asChild variant="outline" size="sm">
@@ -379,8 +454,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('OFFER_SENT')}
-                    disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status)}
-                    className={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) ? "opacity-50 cursor-not-allowed" : ""}
+                    disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) || application.interview_result === 'FAILED'}
+                    className={(!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) || application.interview_result === 'FAILED') ? "opacity-50 cursor-not-allowed" : ""}
                   >
                     <Gift className="mr-2 h-4 w-4 text-purple-600" />
                     Gửi đề nghị (Offer)
@@ -424,7 +499,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                 {application.interviewInfo ? 'Đã lên lịch' : 'Xếp lịch PV'}
               </Button>
-              {application.status === 'SCHEDULED_INTERVIEW' && application.interviewInfo && ['COMPLETED', 'ENDED'].includes(application.interviewInfo.status) && (
+              {application.status === 'SCHEDULED_INTERVIEW' && application.interviewInfo && ['COMPLETED', 'ENDED'].includes(application.interviewInfo.status) && !application.interview_result && (
                 <Button
                   size="sm"
                   variant="default"

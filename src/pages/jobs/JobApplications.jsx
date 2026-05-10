@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as jobService from '@/services/jobService';
+import * as workflowService from '@/services/workflowService';
 import * as utils from '@/utils';
 
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar, Bot, Star } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar, Bot, Star, GitMerge } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCopilot } from '@/contexts/CopilotContext';
 
@@ -30,6 +31,8 @@ import ApplicationDetail from './ApplicationDetail';
 import CandidateCompareModal from '@/components/candidates/CandidateCompareModal';
 import KanbanBoard from './kanban/KanbanBoard';
 import ScheduleInterview from '@/components/interviews/ScheduleInterview';
+import WorkflowCanvas from '@/components/workflow/WorkflowCanvas';
+import NodeApplicationsModal from '@/components/workflow/NodeApplicationsModal';
 import { cn } from '@/lib/utils';
 
 const JobApplications = ({ isEmbedded = false }) => {
@@ -42,7 +45,9 @@ const JobApplications = ({ isEmbedded = false }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplications, setSelectedApplications] = useState([]);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban' or 'workflow'
+  const [workflowData, setWorkflowData] = useState(null);
+  const [isWorkflowLoading, setIsWorkflowLoading] = useState(false);
 
   const [viewingApplicationId, setViewingApplicationId] = useState(null);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
@@ -50,6 +55,10 @@ const JobApplications = ({ isEmbedded = false }) => {
   // Schedule Interview State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [schedulingApplication, setSchedulingApplication] = useState(null);
+
+  // Workflow Tracking State
+  const [selectedWorkflowNode, setSelectedWorkflowNode] = useState(null);
+  const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
 
   const [filters, setFilters] = useState({
     page: 1,
@@ -113,6 +122,53 @@ const JobApplications = ({ isEmbedded = false }) => {
   useEffect(() => {
     fetchApplications();
   }, [fetchApplications]);
+
+  const fetchWorkflowTracking = useCallback(async () => {
+    if (!job?.workflowId) return;
+    setIsWorkflowLoading(true);
+    try {
+      const [wfRes, trackingRes] = await Promise.all([
+        workflowService.getWorkflowById(job.workflowId),
+        workflowService.getWorkflowTracking(job.workflowId, { jobId })
+      ]);
+      
+      const wf = wfRes.data;
+      const tracking = trackingRes.data;
+      
+      const trackingMap = {};
+      tracking.forEach(t => { trackingMap[t.nodeId] = t.count; });
+      
+      const nodes = (wf.nodes || []).map(n => ({
+        id: n._id,
+        type: n.type,
+        position: n.position,
+        data: { ...n, applicantCount: trackingMap[n._id] || 0 }
+      }));
+      
+      const edges = (wf.connections || []).map(c => ({
+        id: c._id,
+        source: c.sourceNodeId,
+        sourceHandle: c.sourcePort,
+        target: c.targetNodeId,
+        targetHandle: c.targetPort,
+        animated: true,
+        style: { stroke: '#94a3b8', strokeWidth: 2 }
+      }));
+      
+      setWorkflowData({ nodes, edges });
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi tải thông tin luồng ứng viên');
+    } finally {
+      setIsWorkflowLoading(false);
+    }
+  }, [job, jobId]);
+
+  useEffect(() => {
+    if (viewMode === 'workflow' && job?.workflowId) {
+      fetchWorkflowTracking();
+    }
+  }, [viewMode, job, fetchWorkflowTracking]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
@@ -222,7 +278,8 @@ const JobApplications = ({ isEmbedded = false }) => {
     ));
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (app) => {
+    const status = app.status;
     const statusConfig = {
       PENDING: { label: 'Chờ xem xét', className: 'bg-yellow-100 text-yellow-800' },
       SUITABLE: { label: 'Phù hợp', className: 'bg-green-100 text-green-800' },
@@ -233,7 +290,21 @@ const JobApplications = ({ isEmbedded = false }) => {
       REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-800' },
       INTERVIEW_FAILED: { label: 'PV không đạt', className: 'bg-gray-600 text-white' },
     };
-    const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+    let config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+
+    if (status === 'SCHEDULED_INTERVIEW') {
+      const interviewObj = app.interview || app.interviewInfo;
+      if (app.interview_result === 'PASSED') {
+        config = { label: 'Phỏng vấn Đạt', className: 'bg-green-100 text-green-800' };
+      } else if (app.interview_result === 'FAILED') {
+        config = { label: 'Phỏng vấn Không Đạt', className: 'bg-red-100 text-red-800' };
+      } else if (!interviewObj) {
+        config = { label: 'Chờ xếp lịch PV', className: 'bg-indigo-100 text-indigo-800' };
+      } else if (['COMPLETED', 'ENDED'].includes(interviewObj.status)) {
+        config = { label: 'Chờ đánh giá PV', className: 'bg-teal-100 text-teal-800' };
+      }
+    }
+
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
@@ -270,6 +341,17 @@ const JobApplications = ({ isEmbedded = false }) => {
           >
             <LayoutGrid className="h-4 w-4 inline-block mr-1" /> Kanban
           </button>
+          {job?.workflowId && (
+            <button
+              onClick={() => setViewMode('workflow')}
+              className={`p-2 rounded-md text-sm font-medium transition-all ${viewMode === 'workflow'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              <GitMerge className="h-4 w-4 inline-block mr-1" /> Luồng Workflow
+            </button>
+          )}
         </div>
       </div>
 
@@ -455,6 +537,24 @@ const JobApplications = ({ isEmbedded = false }) => {
                   onScheduleInterview={handleOpenScheduleModal}
                   isLoading={isAppsLoading}
                 />
+              ) : viewMode === 'workflow' ? (
+                <div className="h-[600px] border rounded-lg overflow-hidden bg-slate-50 relative">
+                  {isWorkflowLoading ? (
+                    <div className="flex items-center justify-center h-full text-slate-500">Đang tải luồng quy trình...</div>
+                  ) : workflowData ? (
+                    <WorkflowCanvas
+                      nodes={workflowData.nodes}
+                      edges={workflowData.edges}
+                      readOnly={true}
+                      onNodeClick={(node) => {
+                        setSelectedWorkflowNode(node);
+                        setIsNodeModalOpen(true);
+                      }}
+                    />
+                  ) : (
+                    <EmptyState message="Không thể tải luồng quy trình." />
+                  )}
+                </div>
               ) : (
                 <Card>
                   <CardContent className="p-0">
@@ -589,7 +689,7 @@ const JobApplications = ({ isEmbedded = false }) => {
                                 <TableCell
                                   onClick={() => setViewingApplicationId(app._id)}
                                   className="cursor-pointer"
-                                >{getStatusBadge(app.status)}</TableCell>
+                                >{getStatusBadge(app)}</TableCell>
 
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                   <div className="flex items-center justify-end gap-2">
@@ -613,6 +713,13 @@ const JobApplications = ({ isEmbedded = false }) => {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleOpenScheduleModal(app);
+                                        }}>
+                                          <Calendar className="mr-2 h-4 w-4" />
+                                          Lên lịch phỏng vấn
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
                                           <a href={app.submittedCV.path} target="_blank" rel="noopener noreferrer">
                                             <Eye className="mr-2 h-4 w-4" />
@@ -701,6 +808,21 @@ const JobApplications = ({ isEmbedded = false }) => {
           />
         </>
       )}
+
+      {/* Node Applications Modal */}
+      <NodeApplicationsModal
+        isOpen={isNodeModalOpen}
+        onClose={() => {
+          setIsNodeModalOpen(false);
+          setSelectedWorkflowNode(null);
+        }}
+        node={selectedWorkflowNode}
+        jobId={jobId}
+        onViewApplication={(appId) => {
+          setViewingApplicationId(appId);
+          setIsNodeModalOpen(false);
+        }}
+      />
     </div>
   );
 };

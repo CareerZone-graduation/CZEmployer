@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import * as emailTemplateService from '../../services/emailTemplateService';
 
 const STATUS_OPTIONS = ['PENDING', 'SUITABLE', 'SCHEDULED_INTERVIEW', 'OFFER_SENT', 'ACCEPTED', 'REJECTED'];
 
@@ -8,6 +10,7 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
     : null;
     
   const isTestParent = parentNode?.data?.type === 'ACTION_TEST';
+  const isAIParent = parentNode?.data?.type === 'ACTION_AI';
   const isInterviewParent = parentNode?.data?.type === 'STAGE' && 
     (parentNode.data?.config?.statusMapping === 'SCHEDULED_INTERVIEW' || 
      (parentNode.data?.name || '').toLowerCase().includes('phỏng vấn'));
@@ -15,6 +18,8 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
   useEffect(() => {
     if (isTestParent && cfg.field !== 'test_score') {
       updateConfig('field', 'test_score');
+    } else if (isAIParent && cfg.field !== 'cv_score') {
+      updateConfig('field', 'cv_score');
     } else if (isInterviewParent) {
       if (cfg.field !== 'interview_result') {
         updateConfig('field', 'interview_result');
@@ -25,7 +30,7 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTestParent, isInterviewParent, cfg.field, cfg.operator, cfg.value]);
+  }, [isTestParent, isAIParent, isInterviewParent, cfg.field, cfg.operator, cfg.value]);
 
   return (
     <>
@@ -35,14 +40,13 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
           className="w-full border rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-400" 
           value={cfg.field || 'test_score'} 
           onChange={(e) => updateConfig('field', e.target.value)}
-          disabled={isTestParent || isInterviewParent}
+          disabled={isTestParent || isAIParent || isInterviewParent}
         >
           <option value="test_score">Điểm Bài Test (test_score)</option>
           <option value="cv_score">Điểm CV AI đánh giá (cv_score)</option>
-          <option value="interview_score">Điểm Phỏng Vấn (interview_score)</option>
           <option value="interview_result">Kết quả Phỏng Vấn (interview_result)</option>
         </select>
-        {(isTestParent || isInterviewParent) && (
+        {(isTestParent || isAIParent || isInterviewParent) && (
           <p className="text-[10px] text-blue-500 italic mt-1">Trường này bị khóa do node trước đó quyết định.</p>
         )}
       </div>
@@ -81,6 +85,87 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
   );
 };
 
+const EmailNodeConfig = ({ cfg, templates, handleTemplateSelect, updateConfig }) => {
+  const selectedTemplate = templates.find(t => t._id === cfg.templateId);
+
+  const parsePreviewVars = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/{{candidateName}}/g, '<Tên Ứng Viên>')
+      .replace(/{{jobTitle}}/g, '<Tên Công Việc>')
+      .replace(/{{companyName}}/g, '<Tên Công Ty>');
+  };
+
+  return (
+    <>
+      <div className="space-y-1">
+        <label className="text-xs text-slate-500 font-medium">Chọn mẫu Email <span className="text-red-400">*</span></label>
+        <select 
+          className="w-full border rounded px-2 py-1.5 text-sm bg-blue-50 font-medium"
+          value={cfg.templateId || ''} 
+          onChange={(e) => handleTemplateSelect(e.target.value)}
+        >
+          <option value="">-- Chọn một mẫu có sẵn --</option>
+          {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+        </select>
+        {!cfg.templateId && (
+          <p className="text-[10px] text-amber-600 italic mt-1">⚠ Vui lòng chọn một mẫu email để sử dụng.</p>
+        )}
+      </div>
+
+      {/* Read-only preview of selected template */}
+      {selectedTemplate && (
+        <div className="mt-3">
+          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1.5 flex justify-between items-center">
+            <span>Xem trước Email</span>
+            <span className="text-[9px] text-blue-500 italic font-normal normal-case">Chỉnh sửa ở Quản lý Mẫu</span>
+          </p>
+          <div className="rounded border border-slate-200 overflow-hidden shadow-sm">
+            {/* Mock Email Header */}
+            <div className="bg-slate-800 px-2 py-1.5 flex items-center gap-2">
+              <div className="flex gap-1 shrink-0">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+              </div>
+              <div className="text-[10px] text-slate-200 font-medium truncate">
+                Chủ đề: {parsePreviewVars(selectedTemplate.subject)}
+              </div>
+            </div>
+            
+            {/* Mock Email Body */}
+            <div style={{ backgroundColor: '#f6f6f6', width: '100%', fontFamily: 'sans-serif', padding: '10px 0' }}>
+              <div style={{ display: 'block', margin: '0 auto', maxWidth: '100%', padding: '0 10px', boxSizing: 'border-box' }}>
+                <div style={{ background: '#ffffff', borderRadius: '3px', border: '1px solid #eaebed', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <div style={{ padding: '15px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'normal', margin: '0 0 10px 0', whiteSpace: 'pre-wrap', color: '#333333', lineHeight: '1.5' }}>
+                      {parsePreviewVars(selectedTemplate.body)}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ color: '#999999', fontSize: '9px', textAlign: 'center', marginTop: '10px' }}>
+                  Gửi từ hệ thống tuyển dụng CareerZone
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-1 mt-2">
+        <label className="text-xs text-slate-500">Người nhận</label>
+        <select className="w-full border rounded px-2 py-1 text-sm" value={cfg.recipient || 'CANDIDATE'} onChange={(e) => updateConfig('recipient', e.target.value)}>
+          <option value="CANDIDATE">Gửi cho Ứng viên</option>
+          <option value="CUSTOM">Email tùy chỉnh</option>
+        </select>
+        {cfg.recipient === 'CUSTOM' && (
+          <input className="w-full border rounded px-2 py-1 text-sm mt-1" placeholder="Nhập địa chỉ email..." value={cfg.customEmail || ''} onChange={(e) => updateConfig('customEmail', e.target.value)} />
+        )}
+      </div>
+    </>
+  );
+};
+
 const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, onClose }) => {
   if (!node) {
     return (
@@ -91,6 +176,31 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
   }
 
   const cfg = node.data?.config || {};
+
+  const { data: templatesRes } = useQuery({
+    queryKey: ['emailTemplates'],
+    queryFn: () => emailTemplateService.getTemplates(),
+    enabled: node.data?.type === 'ACTION_EMAIL'
+  });
+  const templates = templatesRes?.data || [];
+
+  const handleTemplateSelect = (templateId) => {
+    const template = templates.find(t => t._id === templateId);
+    if (template) {
+      onChange({
+        ...node,
+        data: {
+          ...node.data,
+          config: {
+            ...cfg,
+            templateId: template._id,
+            subject: template.subject,
+            body: template.body
+          }
+        }
+      });
+    }
+  };
 
   const updateConfig = (key, value) => {
     onChange({
@@ -131,12 +241,16 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
           <div>
             <label className="text-xs text-slate-500">Map status</label>
             <select
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="w-full border rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-400"
               value={cfg.statusMapping || 'PENDING'}
               onChange={(e) => updateConfig('statusMapping', e.target.value)}
+              disabled={cfg.isLockedStatus}
             >
               {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+            {cfg.isLockedStatus && (
+              <p className="text-[10px] text-blue-500 italic mt-1">Trạng thái này được cố định cho bước bắt đầu.</p>
+            )}
           </div>
         </>
       )}
@@ -146,21 +260,46 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
       )}
 
       {node.data?.type === 'ACTION_EMAIL' && (
+        <EmailNodeConfig cfg={cfg} templates={templates} handleTemplateSelect={handleTemplateSelect} updateConfig={updateConfig} node={node} onChange={onChange} />
+      )}
+
+      {node.data?.type === 'ACTION_DELAY' && (
         <>
-          <input className="w-full border rounded px-2 py-1 text-sm" placeholder="subject" value={cfg.subject || ''} onChange={(e) => updateConfig('subject', e.target.value)} />
-          <textarea className="w-full border rounded px-2 py-1 text-sm" placeholder="email body" value={cfg.body || ''} onChange={(e) => updateConfig('body', e.target.value)} />
-          <select className="w-full border rounded px-2 py-1 text-sm" value={cfg.recipient || 'CANDIDATE'} onChange={(e) => updateConfig('recipient', e.target.value)}>
-            <option value="CANDIDATE">Gửi cho Ứng viên</option>
-            <option value="CUSTOM">Email tùy chỉnh</option>
-          </select>
-          {cfg.recipient === 'CUSTOM' && (
-            <input className="w-full border rounded px-2 py-1 text-sm" placeholder="Nhập địa chỉ email..." value={cfg.customEmail || ''} onChange={(e) => updateConfig('customEmail', e.target.value)} />
-          )}
+          <div className="space-y-1">
+            <label className="text-xs text-slate-500">Thời gian chờ</label>
+            <input 
+              type="number"
+              min="1"
+              className="w-full border rounded px-2 py-1 text-sm" 
+              placeholder="Ví dụ: 3" 
+              value={cfg.delayValue ?? ''} 
+              onChange={(e) => updateConfig('delayValue', parseInt(e.target.value))} 
+            />
+          </div>
+          <div className="space-y-1 mt-2">
+            <label className="text-xs text-slate-500">Đơn vị</label>
+            <select 
+              className="w-full border rounded px-2 py-1 text-sm" 
+              value={cfg.delayUnit || 'DAYS'} 
+              onChange={(e) => updateConfig('delayUnit', e.target.value)}
+            >
+              <option value="DAYS">Ngày</option>
+              <option value="HOURS">Giờ</option>
+              <option value="MINUTES">Phút (Dùng để test)</option>
+            </select>
+          </div>
+          <p className="text-[10px] text-amber-600 mt-1 italic leading-tight">Tiến trình sẽ tạm dừng tại đây và tự động tiếp tục sau khoảng thời gian này.</p>
         </>
       )}
 
-      {node.data?.type === 'ACTION_NOTIFY' && (
-        <textarea className="w-full border rounded px-2 py-1 text-sm" placeholder="notification message" value={cfg.message || ''} onChange={(e) => updateConfig('message', e.target.value)} />
+      {node.data?.type === 'ACTION_AI' && (
+        <div className="space-y-1">
+          <label className="text-xs text-slate-500">Hành động AI</label>
+          <select className="w-full border rounded px-2 py-1 text-sm bg-slate-50 text-slate-700" value="CV_SCREENING" disabled>
+            <option value="CV_SCREENING">Chấm điểm CV (Khớp với JD)</option>
+          </select>
+          <p className="text-[10px] text-amber-600 mt-1 italic">Hệ thống sẽ giả lập trả về số điểm (0-100) để bạn test.</p>
+        </div>
       )}
 
       {node.data?.type === 'ACTION_TEST' && (
