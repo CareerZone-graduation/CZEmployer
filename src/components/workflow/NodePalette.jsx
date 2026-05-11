@@ -1,4 +1,4 @@
-import { PlayCircle, ArrowRightCircle, GitBranch, Mail, Sparkles, FileText, Clock } from 'lucide-react';
+import { PlayCircle, ArrowRightCircle, GitBranch, Mail, Sparkles, FileText, Clock, Flag } from 'lucide-react';
 
 const NODE_LIBRARY = [
   {
@@ -17,6 +17,13 @@ const NODE_LIBRARY = [
         name: 'Cập nhật trạng thái',
         icon: ArrowRightCircle,
         config: { statusMapping: 'REVIEWING', description: 'Chuyển trạng thái đơn ứng tuyển sang Đang xem xét hoặc khác' }
+      },
+      {
+        type: 'END',
+        label: 'Kết thúc workflow',
+        name: 'Kết thúc',
+        icon: Flag,
+        config: {}
       },
     ]
   },

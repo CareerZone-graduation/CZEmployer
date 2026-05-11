@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, User, Mail, Phone, Download, Search, MoreHorizontal, Eye, Users, MessageCircle, X, LayoutGrid, List, RefreshCcw, History, Calendar, Bot, Star, GitMerge } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useCopilot } from '@/contexts/CopilotContext';
 
 import Modal from '@/components/common/Modal';
 import ApplicationDetail from './ApplicationDetail';
@@ -342,15 +341,18 @@ const JobApplications = ({ isEmbedded = false }) => {
             <LayoutGrid className="h-4 w-4 inline-block mr-1" /> Kanban
           </button>
           {job?.workflowId && (
-            <button
-              onClick={() => setViewMode('workflow')}
-              className={`p-2 rounded-md text-sm font-medium transition-all ${viewMode === 'workflow'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              <GitMerge className="h-4 w-4 inline-block mr-1" /> Luồng Workflow
-            </button>
+            <>
+              <button
+                onClick={() => setViewMode('workflow')}
+                className={`p-2 rounded-md text-sm font-medium transition-all ${viewMode === 'workflow'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <GitMerge className="h-4 w-4 inline-block mr-1" /> Luồng Workflow
+              </button>
+
+            </>
           )}
         </div>
       </div>

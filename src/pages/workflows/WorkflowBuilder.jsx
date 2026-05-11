@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { addEdge, useEdgesState, useNodesState } from 'reactflow';
@@ -54,6 +54,8 @@ const WorkflowBuilder = () => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [workflowName, setWorkflowName] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const wrapperRef = React.useRef(null);
@@ -74,6 +76,7 @@ const WorkflowBuilder = () => {
         ]);
 
         const workflowData = workflowRes.data;
+        setWorkflowName(workflowData?.name || '');
         const initialNodes = (workflowData?.nodes || []).map((n) => ({
           id: n._id,
           type: n.type,
@@ -114,7 +117,7 @@ const WorkflowBuilder = () => {
         setNodes(initialNodes);
         setEdges(initialEdges);
         setTests(testsRes.data || []);
-      } catch (error) {
+      } catch {
         toast.error('Không thể tải workflow');
       } finally {
         setLoading(false);
@@ -127,6 +130,29 @@ const WorkflowBuilder = () => {
         setLoading(false);
     }
   }, [workflowId, setNodes, setEdges]);
+
+  const handleRenameWorkflow = async () => {
+    const trimmedName = workflowName.trim();
+    if (!trimmedName) {
+      toast.error('Tên workflow không được để trống');
+      return;
+    }
+    if (trimmedName.length > 200) {
+      toast.error('Tên workflow không được vượt quá 200 ký tự');
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      await workflowService.updateWorkflow(workflowId, { name: trimmedName });
+      setWorkflowName(trimmedName);
+      toast.success('Đã cập nhật tên workflow');
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Không thể cập nhật tên workflow');
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   const handleSave = async (silent = false, currentNodes = nodes, currentEdges = edges) => {
     // Auto-save (silent) skips validation to avoid spamming toasts
@@ -175,8 +201,10 @@ const WorkflowBuilder = () => {
       }
 
       if (!silent) toast.success('Lưu workflow thành công');
-    } catch {
-      if (!silent) toast.error('Không thể lưu workflow');
+    } catch (error) {
+      if (!silent) {
+        toast.error(error?.response?.data?.message || 'Không thể lưu workflow');
+      }
     } finally {
       setSaving(false);
     }
@@ -191,7 +219,13 @@ const WorkflowBuilder = () => {
       errors.push('Workflow phải có ít nhất 1 giai đoạn (Stage).');
     }
 
-    // 2. Phải có node bắt đầu (STAGE không có đường vào)
+    // 2. Phải có ít nhất 1 END
+    const endNodes = nodesToValidate.filter(n => n.data.type === 'END');
+    if (endNodes.length === 0) {
+      errors.push('Workflow phải có ít nhất 1 node END.');
+    }
+
+    // 3. Phải có node bắt đầu (STAGE không có đường vào)
     const targetIds = new Set(edgesToValidate.map(e => e.target));
     const startNodes = stageNodes.filter(n => !targetIds.has(n.id));
     if (stageNodes.length > 0 && startNodes.length === 0) {
@@ -272,7 +306,54 @@ const WorkflowBuilder = () => {
       }
     });
 
-    // 9. Node "cô lập" (không có đường vào lẫn đường ra, trừ start node)
+    // 9. END không được có đường ra
+    endNodes.forEach(n => {
+      if (sourceIds.has(n.id)) {
+        errors.push(`Node END "${n.data.name}" không được có kết nối đi ra.`);
+      }
+    });
+
+    // 10. Mọi nhánh đều phải đi tới END
+    if (nodesToValidate.length > 0 && endNodes.length > 0) {
+      const adjacency = new Map(nodesToValidate.map(n => [n.id, []]));
+      edgesToValidate.forEach(e => {
+        const list = adjacency.get(e.source);
+        if (list) list.push(e.target);
+      });
+
+      const endIdSet = new Set(endNodes.map(n => n.id));
+      const memo = new Map();
+      const visiting = new Set();
+
+      const canReachEnd = (nodeId) => {
+        if (endIdSet.has(nodeId)) return true;
+        if (memo.has(nodeId)) return memo.get(nodeId);
+        if (visiting.has(nodeId)) return false;
+
+        visiting.add(nodeId);
+        const nextNodes = adjacency.get(nodeId) || [];
+        let result = false;
+
+        for (const nextId of nextNodes) {
+          if (canReachEnd(nextId)) {
+            result = true;
+            break;
+          }
+        }
+
+        visiting.delete(nodeId);
+        memo.set(nodeId, result);
+        return result;
+      };
+
+      nodesToValidate.forEach(n => {
+        if (!canReachEnd(n.id)) {
+          errors.push(`Node "${n.data.name}" không có đường đi tới END.`);
+        }
+      });
+    }
+
+    // 11. Node "cô lập" (không có đường vào lẫn đường ra, trừ start node)
     nodesToValidate.forEach(n => {
       const hasIn = targetIds.has(n.id);
       const hasOut = sourceIds.has(n.id);
@@ -371,13 +452,18 @@ const WorkflowBuilder = () => {
   const onConnect = useCallback(
     (params) => {
       // Logic 1: Mỗi node chỉ được 1 luồng đi vào
+      const targetNode = nodes.find(n => n.id === params.target);
       const targetHasIncoming = edges.some(e => e.target === params.target);
-      if (targetHasIncoming) {
+      if (targetHasIncoming && targetNode?.type !== 'END') {
         return;
       }
 
       // Logic 2: Số luồng đi ra của source node
       const sourceNode = nodes.find(n => n.id === params.source);
+      if (sourceNode?.type === 'END') {
+        return;
+      }
+
       if (sourceNode?.type === 'CONDITION') {
         const portHasOutgoing = edges.some(e => e.source === params.source && e.sourceHandle === params.sourceHandle);
         if (portHasOutgoing) {
@@ -441,6 +527,16 @@ const WorkflowBuilder = () => {
       <NodePalette onAddNode={addNode} />
       <div className="flex-1 flex flex-col">
         <div className="h-12 border-b bg-white px-3 flex items-center gap-2">
+          <input
+            className="h-8 px-2 border rounded w-72"
+            value={workflowName}
+            onChange={(e) => setWorkflowName(e.target.value)}
+            placeholder="Tên workflow"
+            maxLength={200}
+          />
+          <button className="px-3 py-1 border rounded" onClick={handleRenameWorkflow} disabled={renaming}>
+            {renaming ? 'Đang lưu tên...' : 'Lưu tên'}
+          </button>
           <button className="px-3 py-1 border rounded" onClick={() => handleSave(false)} disabled={saving}>Lưu</button>
           <button className="px-3 py-1 border rounded bg-slate-900 text-white" onClick={handleActivate}>Kích hoạt</button>
           <button className="px-3 py-1 border rounded" onClick={() => navigate('/workflows')}>Quay lại</button>

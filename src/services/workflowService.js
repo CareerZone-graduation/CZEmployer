@@ -5,6 +5,8 @@ export const getWorkflowById = (workflowId) => apiClient.get(`/workflows/${workf
 export const createWorkflow = (payload) => apiClient.post('/workflows', payload);
 export const updateWorkflow = (workflowId, payload) => apiClient.put(`/workflows/${workflowId}`, payload);
 export const deleteWorkflow = (workflowId) => apiClient.delete(`/workflows/${workflowId}`);
+export const unarchiveWorkflow = (workflowId) => apiClient.post(`/workflows/${workflowId}/unarchive`);
+export const cloneWorkflow = (workflowId, payload = {}) => apiClient.post(`/workflows/${workflowId}/clone`, payload);
 export const activateWorkflow = (workflowId) => apiClient.post(`/workflows/${workflowId}/activate`);
 
 export const saveNodesBatch = (workflowId, nodes) => apiClient.post(`/workflows/${workflowId}/nodes/batch`, { nodes });

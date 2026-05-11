@@ -13,9 +13,11 @@ import ActionEmailNode from './nodes/ActionEmailNode';
 import ActionAINode from './nodes/ActionAINode';
 import ActionTestNode from './nodes/ActionTestNode';
 import ActionDelayNode from './nodes/ActionDelayNode';
+import EndNode from './nodes/EndNode';
 
 const nodeTypes = {
   STAGE: StageNode,
+  END: EndNode,
   CONDITION: ConditionNode,
   ACTION_EMAIL: ActionEmailNode,
   ACTION_AI: ActionAINode,
