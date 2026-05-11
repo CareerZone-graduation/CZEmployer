@@ -57,6 +57,13 @@ const WorkflowBuilder = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const wrapperRef = React.useRef(null);
+  const nodesRef = React.useRef(nodes);
+  const edgesRef = React.useRef(edges);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+    edgesRef.current = edges;
+  }, [nodes, edges]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -284,13 +291,7 @@ const WorkflowBuilder = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (workflowId) {
-        setNodes((currentNodes) => {
-          setEdges((currentEdges) => {
-            handleSave(true, currentNodes, currentEdges);
-            return currentEdges;
-          });
-          return currentNodes;
-        });
+        handleSave(true, nodesRef.current, edgesRef.current);
       }
     }, 30000);
     return () => clearInterval(interval);

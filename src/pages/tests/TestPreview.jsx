@@ -25,7 +25,7 @@ const TestPreview = () => {
         {(test.questions || []).map((q, idx) => (
           <div key={q._id || idx} className="bg-white border rounded-lg p-3">
             <p className="font-medium">Câu {idx + 1}: {q.question}</p>
-            <p className="text-xs text-slate-500">Loại: {q.type} | Điểm: {q.score}</p>
+            <p className="text-xs text-slate-500">Loại: {q.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' : q.type} | Điểm: {q.score}</p>
             <ul className="mt-2 space-y-1 text-sm">
               {(q.options || []).map((o, i) => (
                 <li key={i} className={o.isCorrect ? 'text-emerald-600' : ''}>- {o.text}</li>

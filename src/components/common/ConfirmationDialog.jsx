@@ -13,6 +13,15 @@ import {
 
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import * as emailTemplateService from '@/services/emailTemplateService';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ConfirmationDialog = ({
     open,
@@ -25,15 +34,43 @@ const ConfirmationDialog = ({
     variant = 'default', // 'default' | 'destructive'
     isLoading = false,
     showOfferInputs = false,
+    templateVariables = {},
 }) => {
     const [offerLetter, setOfferLetter] = useState('');
     const [offerFile, setOfferFile] = useState(null);
+
+    // Fetch email templates
+    const { data: templatesRes, isLoading: isLoadingTemplates } = useQuery({
+        queryKey: ['emailTemplates'],
+        queryFn: emailTemplateService.getTemplates,
+        enabled: showOfferInputs && open,
+    });
+    
+    const templates = templatesRes?.data || [];
 
     const handleConfirm = () => {
         if (showOfferInputs) {
             onConfirm({ offerLetter, offerFile });
         } else {
             onConfirm();
+        }
+    };
+
+    const handleTemplateSelect = (templateId) => {
+        const template = templates.find(t => t._id === templateId);
+        if (template) {
+            let text = template.body || '';
+            // Replace template variables
+            if (templateVariables.candidateName) {
+                text = text.replace(/\{\{candidateName\}\}/g, templateVariables.candidateName);
+            }
+            if (templateVariables.jobTitle) {
+                text = text.replace(/\{\{jobTitle\}\}/g, templateVariables.jobTitle);
+            }
+            if (templateVariables.companyName) {
+                text = text.replace(/\{\{companyName\}\}/g, templateVariables.companyName);
+            }
+            setOfferLetter(text);
         }
     };
 
@@ -47,6 +84,19 @@ const ConfirmationDialog = ({
 
                 {showOfferInputs && (
                     <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label>Chọn mẫu email (tùy chọn)</Label>
+                            <Select onValueChange={handleTemplateSelect} disabled={isLoadingTemplates}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={isLoadingTemplates ? "Đang tải..." : "Chọn mẫu email..."} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {templates.map(t => (
+                                        <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="offerLetter">Thư mời (Offer Letter)</Label>
                             <Textarea

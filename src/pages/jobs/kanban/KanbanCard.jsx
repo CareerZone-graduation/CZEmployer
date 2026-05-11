@@ -16,6 +16,7 @@ import {
     Download,
     RefreshCcw,
     Star,
+    Lock,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -23,6 +24,12 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import * as utils from '@/utils';
 
 const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) => {
@@ -39,10 +46,10 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
 
     return (
         <div
-            draggable
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            className={`mb-3 cursor-grab active:cursor-grabbing touch-none`}
+            draggable={!application.workflowId}
+            onDragStart={!application.workflowId ? handleDragStart : undefined}
+            onDragEnd={!application.workflowId ? handleDragEnd : undefined}
+            className={`mb-3 ${application.workflowId ? 'cursor-default' : 'cursor-grab active:cursor-grabbing touch-none'}`}
             onClick={() => onClick(application)}
         >
             <Card className={`hover:shadow-lg transition-all duration-200 group ${
@@ -62,6 +69,20 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                                     <h4 className="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-blue-600 transition-colors leading-tight">{application.candidateName}</h4>
                                     {application.isReapplied && (
                                         <RefreshCcw className="h-3 w-3 text-orange-500 shrink-0" title="Ứng tuyển lại" />
+                                    )}
+                                    {application.workflowId && (
+                                        <TooltipProvider>
+                                            <Tooltip delayDuration={200}>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center justify-center p-0.5 rounded bg-gray-100 hover:bg-gray-200 transition-colors cursor-help">
+                                                        <Lock className="h-3 w-3 text-gray-500 shrink-0" />
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                                    <p className="max-w-[220px] text-[11px] font-medium text-center">Đang chạy bằng Workflow tự động.<br/>Không thể chuyển vòng bằng kéo thả.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     )}
                                 </div>
                                 <span className="text-[10px] text-gray-400 block mt-0.5">

@@ -170,10 +170,16 @@ const KanbanBoard = ({
                 description={confirmConfig.newStatus === 'REJECTED'
                     ? 'Bạn có chắc chắn muốn từ chối ứng viên này? Hành động này sẽ gửi email thông báo cho ứng viên và không thể hoàn tác.'
                     : 'Bạn có chắc chắn muốn gửi đề nghị làm việc cho ứng viên này?'}
-                onConfirm={() => executeStatusChange(confirmConfig.applicationId, confirmConfig.newStatus, confirmConfig.oldStatus)}
+                onConfirm={(data) => executeStatusChange(confirmConfig.applicationId, confirmConfig.newStatus, confirmConfig.oldStatus, data)}
                 confirmText={confirmConfig.newStatus === 'REJECTED' ? 'Từ chối' : 'Gửi Offer'}
                 cancelText="Hủy bỏ"
                 variant={confirmConfig.newStatus === 'REJECTED' ? 'destructive' : 'default'}
+                showOfferInputs={confirmConfig.newStatus === 'OFFER_SENT'}
+                templateVariables={{
+                    candidateName: applications.find(a => a._id === confirmConfig.applicationId)?.candidateName || '',
+                    jobTitle: applications.find(a => a._id === confirmConfig.applicationId)?.jobSnapshot?.title || '',
+                    companyName: applications.find(a => a._id === confirmConfig.applicationId)?.jobSnapshot?.company || '',
+                }}
             />
         </div>
     );

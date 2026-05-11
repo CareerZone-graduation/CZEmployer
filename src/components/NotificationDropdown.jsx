@@ -53,6 +53,11 @@ const getNotificationLink = (notification) => {
       return `/jobs/recruiter/${entity?.id || metadata?.jobId}`;
     case 'support_request':
       return `/support/${entity?.id || metadata?.supportRequestId}`;
+    case 'workflow':
+      if (metadata?.applicationId || entity?.id) {
+        return `/applications/${metadata?.applicationId || entity.id}`;
+      }
+      return '/jobs';
     default:
       return '/notifications';
   }

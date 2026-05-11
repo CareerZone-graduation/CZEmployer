@@ -44,6 +44,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const [isIframeLoading, setIsIframeLoading] = useState(true);
   const [failedExecutions, setFailedExecutions] = useState([]);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isTestDetailModalOpen, setIsTestDetailModalOpen] = useState(false);
 
   const [isInterviewEvaluateModalOpen, setIsInterviewEvaluateModalOpen] = useState(false);
   const [interviewEvaluateResult, setInterviewEvaluateResult] = useState('PASSED');
@@ -609,6 +610,132 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             </CardContent>
           </Card>
 
+          {application.testAssignment && (
+            <Card className="border-blue-200 bg-blue-50/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-blue-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Kết quả bài test: {application.testAssignment.testName}
+                </CardTitle>
+                {application.testAssignment.testDescription && (
+                  <p className="text-xs text-blue-700 mt-1">{application.testAssignment.testDescription}</p>
+                )}
+              </CardHeader>
+              <CardContent>
+                {application.testAssignment.status === 'COMPLETED' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Điểm số:</span>
+                        <span className={`text-lg font-bold ${application.testAssignment.passed ? 'text-green-600' : 'text-red-600'}`}>
+                          {application.testAssignment.score}/{application.testAssignment.totalScore}
+                        </span>
+                      </div>
+                      <Badge className={application.testAssignment.passed ? 'bg-green-100 text-green-800 hover:bg-green-100' : 'bg-red-100 text-red-800 hover:bg-red-100'}>
+                        {application.testAssignment.passed ? (
+                          <><CheckCircle className="h-3 w-3 mr-1" /> Đạt</>
+                        ) : (
+                          <><XCircle className="h-3 w-3 mr-1" /> Không đạt</>
+                        )}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Điểm đạt yêu cầu: {application.testAssignment.passingScore}/{application.testAssignment.totalScore}
+                    </div>
+                    {application.testAssignment.timeSpent > 0 && (
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <Clock className="h-3 w-3" />
+                        Thời gian làm bài: {Math.floor(application.testAssignment.timeSpent / 60)} phút {application.testAssignment.timeSpent % 60} giây
+                      </div>
+                    )}
+                    {application.testAssignment.questionDetails && application.testAssignment.questionDetails.length > 0 && (
+                      <div className="mt-2 pt-3 border-t border-blue-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">
+                            {application.testAssignment.questionDetails.filter(q => q.isCorrect).length}/{application.testAssignment.questionDetails.length} câu đúng
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                            onClick={() => setIsTestDetailModalOpen(true)}
+                          >
+                            Xem chi tiết
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {application.testAssignment.completedAt && (
+                      <div className="text-xs text-gray-400">
+                        Hoàn thành lúc: {utils.formatDate(application.testAssignment.completedAt)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Clock className="h-4 w-4" />
+                    {application.testAssignment.status === 'PENDING' && 'Bài test chưa được bắt đầu'}
+                    {application.testAssignment.status === 'IN_PROGRESS' && 'Ứng viên đang làm bài test'}
+                    {application.testAssignment.status === 'EXPIRED' && 'Bài test đã hết hạn'}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {application.testAssignment?.questionDetails && application.testAssignment.questionDetails.length > 0 && (
+            <Modal
+              isOpen={isTestDetailModalOpen}
+              onClose={() => setIsTestDetailModalOpen(false)}
+              title={`Chi tiết bài test: ${application.testAssignment.testName}`}
+              size="lg"
+            >
+              <div className="space-y-3 max-h-[70vh] overflow-y-auto p-1">
+                <p className="text-xs text-gray-500 mb-2">
+                  {application.testAssignment.questionDetails.filter(q => q.isCorrect).length}/{application.testAssignment.questionDetails.length} câu đúng — Tổng điểm: {application.testAssignment.score}/{application.testAssignment.totalScore}
+                </p>
+                {application.testAssignment.questionDetails.map((q, idx) => (
+                  <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800">
+                          <span className="text-xs text-gray-400 mr-1">Câu {idx + 1}:</span>
+                          {q.questionText}
+                        </p>
+                        <div className="mt-2 space-y-1">
+                          {q.options.map((opt, optIdx) => (
+                            <div key={optIdx} className={`text-xs px-2 py-1 rounded flex items-center gap-1.5 ${
+                              opt.isCorrect && opt.isSelected ? 'bg-green-50 text-green-700' :
+                              opt.isCorrect && !opt.isSelected ? 'bg-green-50 text-green-600' :
+                              !opt.isCorrect && opt.isSelected ? 'bg-red-50 text-red-600' :
+                              'bg-gray-50 text-gray-500'
+                            }`}>
+                              {opt.isCorrect && <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />}
+                              {!opt.isCorrect && opt.isSelected && <XCircle className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                              {!opt.isCorrect && !opt.isSelected && <span className="w-3 h-3 flex-shrink-0" />}
+                              <span className="truncate">{opt.text}</span>
+                              {opt.isSelected && <span className="text-[10px] ml-auto flex-shrink-0 italic">(đã chọn)</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className={`text-sm font-bold ${q.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                          {q.scoreEarned}/{q.maxScore}
+                        </div>
+                        {q.isCorrect ? (
+                          <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500 ml-auto" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Modal>
+          )}
+
           <Card className="flex-1 flex flex-col">
             <CardHeader className="pb-3 border-b">
               <div className="flex justify-between items-center">
@@ -723,6 +850,11 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
         variant={pendingStatus === 'REJECTED' ? 'destructive' : 'default'}
         isLoading={isSubmitting}
         showOfferInputs={pendingStatus === 'OFFER_SENT'}
+        templateVariables={{
+          candidateName: application?.candidateName || '',
+          jobTitle: application?.jobSnapshot?.title || '',
+          companyName: application?.jobSnapshot?.company || '',
+        }}
       />
 
       {/* Offer Details Section */}
@@ -818,7 +950,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             <Button
               type="button"
               variant={interviewEvaluateResult === 'PASSED' ? 'default' : 'outline'}
-              className={interviewEvaluateResult === 'PASSED' ? 'bg-green-600 hover:bg-green-700 text-white w-full' : 'w-full'}
+              className={interviewEvaluateResult === 'PASSED' ? 'bg-green-600 hover:bg-green-700 text-white flex-1' : 'flex-1'}
               onClick={() => setInterviewEvaluateResult('PASSED')}
             >
               <CheckCircle className="mr-2 h-4 w-4" /> ĐẠT
@@ -826,7 +958,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             <Button
               type="button"
               variant={interviewEvaluateResult === 'FAILED' ? 'destructive' : 'outline'}
-              className="w-full"
+              className="flex-1"
               onClick={() => setInterviewEvaluateResult('FAILED')}
             >
               <XCircle className="mr-2 h-4 w-4" /> KHÔNG ĐẠT
@@ -846,7 +978,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setIsInterviewEvaluateModalOpen(false)} disabled={isSubmitting}>Hủy</Button>
             <Button variant="default" className="bg-indigo-600 hover:bg-indigo-700" onClick={handleEvaluateInterview} disabled={isSubmitting}>
-              {isSubmitting ? 'Đang xử lý...' : (application.workflowData?.isWorkflowPaused ? 'Lưu & Chạy tiếp Workflow' : 'Lưu Kết Quả')}
+              {isSubmitting ? 'Đang xử lý...' : (application.workflowData?.isWorkflowPaused ? 'Lưu (chạy tiếp workflow)' : 'Lưu Kết Quả')}
             </Button>
           </div>
         </div>

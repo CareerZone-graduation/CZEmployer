@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
@@ -23,7 +23,8 @@ import {
   BookOpen,
   Workflow,
   ClipboardList,
-  Mail
+  Mail,
+  Wrench
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -53,9 +54,14 @@ const sidebarItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, description: 'Tổng quan hệ thống' },
   { href: '/company-profile', label: 'Công ty', icon: Building2, description: 'Hồ sơ và thông tin công ty' },
   { href: '/jobs', label: 'Việc làm', icon: Briefcase, description: 'Quản lý tin tuyển dụng' },
-  { href: '/workflows', label: 'Quy trình', icon: Workflow, description: 'Quy trình tuyển dụng tự động' },
-  { href: '/email-templates', label: 'Mẫu Email', icon: Mail, description: 'Quản lý mẫu email' },
-  { href: '/tests', label: 'Bài test', icon: ClipboardList, description: 'Quản lý bài test tuyển dụng' },
+  {
+    label: 'Công cụ', icon: Wrench, description: 'Công cụ tuyển dụng',
+    subItems: [
+      { href: '/workflows', label: 'Quy trình', icon: Workflow, description: 'Quy trình tuyển dụng tự động' },
+      { href: '/email-templates', label: 'Mẫu Email', icon: Mail, description: 'Quản lý mẫu email' },
+      { href: '/tests', label: 'Bài test', icon: ClipboardList, description: 'Quản lý bài test tuyển dụng' },
+    ]
+  },
   { href: '/talent-pool', label: 'Talent Pool', icon: Users, description: 'Quản lý hồ sơ đã lưu' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
@@ -63,6 +69,57 @@ const sidebarItems = [
   { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
 ];
+
+const HoverableDropdownMenu = ({ item, shouldShowExpanded, TriggerContent }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const timeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 150); // delay before closing
+  };
+
+  return (
+    <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
+        <DropdownMenuTrigger asChild>
+          {TriggerContent}
+        </DropdownMenuTrigger>
+        
+        <DropdownMenuContent 
+          side="right" 
+          align="start" 
+          className="w-56" 
+          sideOffset={10}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className="px-2 py-1.5 text-sm font-semibold text-gray-500">
+            {item.label}
+          </div>
+          <DropdownMenuSeparator />
+          {item.subItems.map((sub, subIdx) => {
+            const SubIcon = sub.icon;
+            return (
+              <DropdownMenuItem key={subIdx} asChild>
+                <Link to={sub.href} className="cursor-pointer w-full flex items-center">
+                  <SubIcon className="mr-2 h-4 w-4" />
+                  <span>{sub.label}</span>
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+};
 
 const CompactSidebar = ({ isPinned, onTogglePin }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -241,12 +298,58 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
         )}
 
         <nav className="flex-1 p-2 space-y-2 mt-4">
-          {sidebarItems.map((item) => {
+          {sidebarItems.map((item, index) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.href ||
-              (item.href !== '/' && location.pathname.startsWith(item.href));
-
             const isMessageItem = item.href === '/messaging';
+
+            if (item.subItems) {
+              const isActive = item.subItems.some(sub => location.pathname === sub.href || (sub.href !== '/' && location.pathname.startsWith(sub.href)));
+              
+              const TriggerContent = (
+                <button
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full group relative",
+                    isActive
+                      ? "bg-emerald-700 text-white"
+                      : "text-gray-700 hover:bg-gray-100",
+                    !shouldShowExpanded && "justify-center px-0 w-12 h-12"
+                  )}
+                >
+                  <Icon className={cn(
+                    "h-5 w-5 flex-shrink-0",
+                    isActive ? "text-white" : "text-gray-600"
+                  )} />
+                  {shouldShowExpanded && (
+                    <>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="truncate">{item.label}</div>
+                        <div className={cn(
+                          "text-xs truncate mt-0.5",
+                          isActive ? "text-emerald-100" : "text-gray-500"
+                        )}>
+                          {item.description}
+                        </div>
+                      </div>
+                      <ChevronRight className={cn(
+                        "h-4 w-4 ml-auto",
+                        isActive ? "text-white" : "text-gray-400"
+                      )} />
+                    </>
+                  )}
+                </button>
+              );
+
+              return (
+                <HoverableDropdownMenu
+                  key={`group-${index}`}
+                  item={item}
+                  shouldShowExpanded={shouldShowExpanded}
+                  TriggerContent={TriggerContent}
+                />
+              );
+            }
+
+            const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
 
             if (shouldShowExpanded) {
               return (

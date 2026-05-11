@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as emailTemplateService from '../../services/emailTemplateService';
 
-const STATUS_OPTIONS = ['PENDING', 'SUITABLE', 'SCHEDULED_INTERVIEW', 'OFFER_SENT', 'ACCEPTED', 'REJECTED'];
+const STATUS_OPTIONS = ['PENDING', 'SUITABLE', 'SCHEDULED_INTERVIEW', 'REJECTED'];
 
 const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
   const parentNode = edges.find(e => e.target === node.id)

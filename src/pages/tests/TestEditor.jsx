@@ -114,10 +114,22 @@ const TestEditor = () => {
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-1 bg-white border rounded-lg p-4 space-y-3">
         <h2 className="font-semibold">Thông tin test</h2>
-        <input className="w-full border rounded px-2 py-1" placeholder="Tên test" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <textarea className="w-full border rounded px-2 py-1" placeholder="Mô tả" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <input type="number" className="w-full border rounded px-2 py-1" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })} />
-        <input type="number" className="w-full border rounded px-2 py-1" value={form.passingScore} onChange={(e) => setForm({ ...form, passingScore: Number(e.target.value) })} />
+        <div>
+          <label className="block text-sm font-medium mb-1">Tên test</label>
+          <input className="w-full border rounded px-2 py-1" placeholder="Nhập tên test" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Mô tả</label>
+          <textarea className="w-full border rounded px-2 py-1" placeholder="Nhập mô tả" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Thời lượng (phút)</label>
+          <input type="number" className="w-full border rounded px-2 py-1" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Điểm đạt</label>
+          <input type="number" className="w-full border rounded px-2 py-1" min="0" value={form.passingScore} onChange={(e) => setForm({ ...form, passingScore: Number(e.target.value) })} />
+        </div>
         <p className="text-sm text-slate-600">Tổng điểm: {totalScore}</p>
 
         <div className="flex gap-2">
@@ -134,7 +146,7 @@ const TestEditor = () => {
         {form.questions.map((q, idx) => (
           <div key={idx} className="border rounded-lg p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <p className="font-medium text-sm">Câu {idx + 1} - {q.type}</p>
+              <p className="font-medium text-sm">Câu {idx + 1} - {q.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' : q.type}</p>
               <div className="flex gap-1">
                 <button className="px-2 py-1 border rounded text-xs" disabled={idx === 0} onClick={() => moveQuestion(idx, idx - 1)}>↑</button>
                 <button className="px-2 py-1 border rounded text-xs" disabled={idx === form.questions.length - 1} onClick={() => moveQuestion(idx, idx + 1)}>↓</button>
@@ -142,10 +154,17 @@ const TestEditor = () => {
               </div>
             </div>
 
-            <input className="w-full border rounded px-2 py-1" value={q.question} onChange={(e) => updateQuestion(idx, { question: e.target.value })} placeholder="Nội dung câu hỏi" />
-            <input type="number" className="w-32 border rounded px-2 py-1" value={q.score} onChange={(e) => updateQuestion(idx, { score: Number(e.target.value) })} />
+            <div>
+              <label className="block text-sm font-medium mb-1">Nội dung câu hỏi</label>
+              <input className="w-full border rounded px-2 py-1" value={q.question} onChange={(e) => updateQuestion(idx, { question: e.target.value })} placeholder="Nhập nội dung câu hỏi" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Điểm</label>
+              <input type="number" className="w-32 border rounded px-2 py-1" min="1" value={q.score} onChange={(e) => updateQuestion(idx, { score: Number(e.target.value) })} />
+            </div>
 
             <div className="space-y-2">
+              <label className="block text-sm font-medium">Đáp án (chọn đáp án đúng)</label>
               {(q.options || []).map((opt, optIdx) => (
                 <div key={optIdx} className="flex items-center gap-2">
                   <input
@@ -159,6 +178,7 @@ const TestEditor = () => {
                   <input
                     className="flex-1 border rounded px-2 py-1"
                     value={opt.text}
+                    placeholder="Nhập nội dung đáp án"
                     onChange={(e) => {
                       const nextOpts = [...(q.options || [])];
                       nextOpts[optIdx] = { ...nextOpts[optIdx], text: e.target.value };
