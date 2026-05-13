@@ -44,8 +44,7 @@ export const initiateGoogleLogin = async (role = 'recruiter') => {
 
   if (!verifyStorage.codeVerifier || !verifyStorage.state) {
     console.error('❌ CRITICAL: localStorage save failed!');
-    alert('Lỗi: Không thể lưu trạng thái. Vui lòng kiểm tra cài đặt trình duyệt.');
-    return;
+    throw new Error('Không thể lưu trạng thái xác thực. Vui lòng kiểm tra cài đặt trình duyệt.');
   }
 
   // Build redirect URI based on role

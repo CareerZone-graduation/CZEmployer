@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Mail, Plus, Edit, Trash2, X, GripVertical, User, Briefcase, Building2 } from 'lucide-react';
 import * as emailTemplateService from '../../services/emailTemplateService';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { toast } from 'sonner';
 
 const TEMPLATE_VARIABLES = [
@@ -40,6 +41,7 @@ const EmailTemplateManagement = () => {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [formData, setFormData] = useState({ name: '', subject: '', body: '' });
   const [activeField, setActiveField] = useState('body'); // 'subject' or 'body'
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
 
   const parsePreviewVars = (text) => {
     if (!text) return '';
@@ -191,9 +193,14 @@ const EmailTemplateManagement = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa mẫu email này?')) {
-      deleteMutation.mutate(id);
-    }
+    setDeleteConfirm({ open: true, id });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirm.id) return;
+    const id = deleteConfirm.id;
+    setDeleteConfirm({ open: false, id: null });
+    deleteMutation.mutate(id);
   };
 
   return (
@@ -393,6 +400,22 @@ const EmailTemplateManagement = () => {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) {
+            setDeleteConfirm({ open: false, id: null });
+          }
+        }}
+        title="Xóa mẫu email?"
+        description="Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa mẫu email này không?"
+        onConfirm={confirmDelete}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 };

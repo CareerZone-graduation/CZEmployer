@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { CircleHelp } from 'lucide-react';
 import * as workflowService from '@/services/workflowService';
 import * as jobService from '@/services/jobService';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const WorkflowList = () => {
   const navigate = useNavigate();
@@ -16,6 +19,12 @@ const WorkflowList = () => {
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [assigning, setAssigning] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveConfirm, setArchiveConfirm] = useState({
+    open: false,
+    workflowId: null,
+    hasLinkedJob: false,
+  });
 
   const fetchWorkflows = useCallback(async () => {
     try {
@@ -52,19 +61,26 @@ const WorkflowList = () => {
     }
   };
 
-  const handleArchive = async (workflowId, hasLinkedJob) => {
-    const confirmMessage = hasLinkedJob
-      ? 'Workflow đã có job liên kết. Bạn có chắc chắn muốn archive workflow này không?'
-      : 'Workflow chưa có job liên kết. Bạn có chắc chắn muốn xóa vĩnh viễn workflow này không?';
+  const handleArchive = (workflowId, hasLinkedJob) => {
+    setArchiveConfirm({
+      open: true,
+      workflowId,
+      hasLinkedJob,
+    });
+  };
 
-    if (!window.confirm(confirmMessage)) return;
-
+  const confirmArchive = async () => {
+    if (!archiveConfirm.workflowId) return;
+    setArchiving(true);
     try {
-      const res = await workflowService.deleteWorkflow(workflowId);
+      const res = await workflowService.deleteWorkflow(archiveConfirm.workflowId);
       toast.success(res.message || 'Thao tác thành công');
+      setArchiveConfirm({ open: false, workflowId: null, hasLinkedJob: false });
       fetchWorkflows();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Không thể thực hiện thao tác này');
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -144,105 +160,150 @@ const WorkflowList = () => {
   if (loading) return <div className="p-6">Đang tải...</div>;
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Workflow Management</h1>
-        <div className="flex gap-2">
-          <button className="px-3 py-2 border rounded" onClick={() => navigate('/workflows/templates')}>Templates</button>
-          <button className="px-3 py-2 border rounded" onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? 'Đang xem Archived' : 'Xem Archived'}
-          </button>
-          <button className="px-3 py-2 border rounded bg-slate-900 text-white" onClick={createBlank}>Tạo workflow</button>
+    <TooltipProvider>
+      <div className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Workflow Management</h1>
+          <div className="flex gap-2">
+            <button className="px-3 py-2 border rounded" onClick={() => navigate('/workflows/templates')}>Templates</button>
+            <button className="px-3 py-2 border rounded" onClick={() => setShowArchived(!showArchived)}>
+              {showArchived ? 'Đang xem Archived' : 'Xem Archived'}
+            </button>
+            <button className="px-3 py-2 border rounded bg-slate-900 text-white" onClick={createBlank}>Tạo workflow</button>
+          </div>
         </div>
-      </div>
 
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="text-left p-3">Tên</th>
-              <th className="text-left p-3 w-48">Trạng thái</th>
-              <th className="text-left p-3">Jobs áp dụng</th>
-              <th className="text-left p-3">Cập nhật</th>
-              <th className="text-right p-3">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {workflows.map((w) => (
-              <tr key={w._id} className="border-t">
-                <td className="p-3">
-                  <div className="font-medium">{w.name}</div>
-                  {w.description && <div className="text-xs text-slate-500 mt-1">{w.description}</div>}
-                </td>
-                <td className="p-3">
-                  <button
-                    onClick={() => handleToggleStatus(w)}
-                    disabled={showArchived}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                      w.status === 'ACTIVE' ? 'bg-green-500' : 'bg-slate-300'
-                    } ${showArchived ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <span
-                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                        w.status === 'ACTIVE' ? 'translate-x-5' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                  <span className="ml-2 text-xs font-medium text-slate-600">
-                    {w.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'}
-                  </span>
-                </td>
-                <td className="p-3 text-sm text-slate-600">
-                  {w.attachedJobs && w.attachedJobs.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {w.attachedJobs.map((job) => (
-                        <div key={job._id} className="inline-flex items-center bg-blue-50 text-blue-700 border border-blue-200 rounded-md px-2 py-1 text-xs">
-                          <span className="truncate max-w-[150px]" title={job.title}>{job.title}</span>
+        <div className="bg-white border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="text-left p-3">Tên</th>
+                <th className="text-left p-3 w-48">
+                  <div className="inline-flex items-center gap-1.5">
+                    <span>Trạng thái</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-slate-400 hover:text-slate-600 transition-colors"
+                          aria-label="Giải thích điều kiện active/deactive"
+                        >
+                          <CircleHelp className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-left">
+                        <div className="space-y-1.5 leading-relaxed">
+                          <p className="font-medium">Điều kiện ACTIVE/INACTIVE</p>
+                          <p>Workflow chỉ đổi trạng thái khi chưa có ứng viên ứng tuyển và workflow chưa bị archive.</p>
+                          <p>Để ACTIVE còn cần workflow hợp lệ (có END, nhánh điều kiện đầy đủ và mọi nhánh dẫn tới END).</p>
                         </div>
-                      ))}
-                    </div>
-                  ) : w.attachedJobTitles && w.attachedJobTitles.length > 0 ? (
-                    <ul className="list-disc pl-4">
-                      {w.attachedJobTitles.map((title, idx) => (
-                        <li key={idx} className="truncate max-w-[200px]" title={title}>{title}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-slate-400 italic">Chưa áp dụng</span>
-                  )}
-                </td>
-                <td className="p-3">{new Date(w.updatedAt).toLocaleString('vi-VN')}</td>
-                <td className="p-3 text-right space-x-2">
-                  {!showArchived ? (
-                    <>
-                      <button className="px-2 py-1 border rounded hover:bg-slate-50" onClick={() => navigate(`/workflows/${w._id}/builder`)}>Chỉnh sửa</button>
-                      <button className="px-2 py-1 border rounded hover:bg-slate-50" onClick={() => handleClone(w)}>Nhân bản</button>
-                      <button
-                        className="px-2 py-1 border rounded text-blue-600 hover:bg-blue-50 disabled:opacity-50"
-                        onClick={() => openConfigJobsModal(w)}
-                        disabled={w.attachedJobs && w.attachedJobs.length > 0}
-                      >
-                        Gán vào Job
-                      </button>
-                      <button
-                        className={`px-2 py-1 border rounded ${w.attachedJobs && w.attachedJobs.length > 0 ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
-                        onClick={() => handleArchive(w._id, !!(w.attachedJobs && w.attachedJobs.length > 0))}
-                      >
-                        {w.attachedJobs && w.attachedJobs.length > 0 ? 'Archive' : 'Xóa vĩnh viễn'}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="px-2 py-1 border rounded hover:bg-slate-50" onClick={() => handleClone(w)}>Nhân bản</button>
-                      <button className="px-2 py-1 border border-green-200 rounded text-green-700 hover:bg-green-50" onClick={() => handleUnarchive(w._id)}>Unarchive</button>
-                    </>
-                  )}
-                </td>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </th>
+                <th className="text-left p-3">Jobs áp dụng</th>
+                <th className="text-left p-3">Cập nhật</th>
+                <th className="text-right p-3">
+                  <div className="inline-flex items-center justify-end gap-1.5">
+                    <span>Hành động</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-slate-400 hover:text-slate-600 transition-colors"
+                          aria-label="Giải thích điều kiện archive"
+                        >
+                          <CircleHelp className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-left">
+                        <div className="space-y-1.5 leading-relaxed">
+                          <p className="font-medium">Điều kiện archive</p>
+                          <p>Nếu workflow đang liên kết job: chỉ archive khi tất cả job liên kết đã hết hạn ứng tuyển (status EXPIRED hoặc đã quá deadline).</p>
+                          <p>Nếu workflow chưa liên kết job: thao tác sẽ là xóa vĩnh viễn và bị chặn nếu đã có ứng viên ứng tuyển.</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {workflows.map((w) => (
+                <tr key={w._id} className="border-t">
+                  <td className="p-3">
+                    <div className="font-medium">{w.name}</div>
+                    {w.description && <div className="text-xs text-slate-500 mt-1">{w.description}</div>}
+                  </td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => handleToggleStatus(w)}
+                      disabled={showArchived}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        w.status === 'ACTIVE' ? 'bg-green-500' : 'bg-slate-300'
+                      } ${showArchived ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                          w.status === 'ACTIVE' ? 'translate-x-5' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className="ml-2 text-xs font-medium text-slate-600">
+                      {w.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </td>
+                  <td className="p-3 text-sm text-slate-600">
+                    {w.attachedJobs && w.attachedJobs.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {w.attachedJobs.map((job) => (
+                          <div key={job._id} className="inline-flex items-center bg-blue-50 text-blue-700 border border-blue-200 rounded-md px-2 py-1 text-xs">
+                            <span className="truncate max-w-[150px]" title={job.title}>{job.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : w.attachedJobTitles && w.attachedJobTitles.length > 0 ? (
+                      <ul className="list-disc pl-4">
+                        {w.attachedJobTitles.map((title, idx) => (
+                          <li key={idx} className="truncate max-w-[200px]" title={title}>{title}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-slate-400 italic">Chưa áp dụng</span>
+                    )}
+                  </td>
+                  <td className="p-3">{new Date(w.updatedAt).toLocaleString('vi-VN')}</td>
+                  <td className="p-3 text-right space-x-2">
+                    {!showArchived ? (
+                      <>
+                        <button className="px-2 py-1 border rounded hover:bg-slate-50" onClick={() => navigate(`/workflows/${w._id}/builder`)}>Chỉnh sửa</button>
+                        <button className="px-2 py-1 border rounded hover:bg-slate-50" onClick={() => handleClone(w)}>Nhân bản</button>
+                        <button
+                          className="px-2 py-1 border rounded text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                          onClick={() => openConfigJobsModal(w)}
+                          disabled={w.attachedJobs && w.attachedJobs.length > 0}
+                        >
+                          Gán vào Job
+                        </button>
+                        <button
+                          className={`px-2 py-1 border rounded ${w.attachedJobs && w.attachedJobs.length > 0 ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
+                          onClick={() => handleArchive(w._id, !!(w.attachedJobs && w.attachedJobs.length > 0))}
+                        >
+                          {w.attachedJobs && w.attachedJobs.length > 0 ? 'Archive' : 'Xóa vĩnh viễn'}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="px-2 py-1 border rounded hover:bg-slate-50" onClick={() => handleClone(w)}>Nhân bản</button>
+                        <button className="px-2 py-1 border border-green-200 rounded text-green-700 hover:bg-green-50" onClick={() => handleUnarchive(w._id)}>Unarchive</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
       {/* Config Jobs Modal */}
       {isConfigJobsModalOpen && (
@@ -293,7 +354,28 @@ const WorkflowList = () => {
           </div>
         </div>
       )}
-    </div>
+
+      <ConfirmationDialog
+        open={archiveConfirm.open}
+        onOpenChange={(open) => {
+          if (!open && !archiving) {
+            setArchiveConfirm({ open: false, workflowId: null, hasLinkedJob: false });
+          }
+        }}
+        title={archiveConfirm.hasLinkedJob ? 'Archive workflow?' : 'Xóa vĩnh viễn workflow?'}
+        description={
+          archiveConfirm.hasLinkedJob
+            ? 'Workflow đã có job liên kết. Bạn có chắc chắn muốn archive workflow này không?'
+            : 'Workflow chưa có job liên kết. Sau khi xóa vĩnh viễn bạn sẽ không thể khôi phục.'
+        }
+        onConfirm={confirmArchive}
+        confirmText={archiveConfirm.hasLinkedJob ? 'Archive' : 'Xóa vĩnh viễn'}
+        cancelText="Hủy"
+        variant="destructive"
+        isLoading={archiving}
+      />
+      </div>
+    </TooltipProvider>
   );
 };
 
