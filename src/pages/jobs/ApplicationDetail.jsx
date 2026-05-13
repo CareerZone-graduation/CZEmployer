@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as applicationService from '@/services/applicationService';
 import * as talentPoolService from '@/services/talentPoolService';
+import * as workflowService from '@/services/workflowService';
 import { getAccessToken } from '@/utils/token';
 import * as utils from '@/utils';
 import apiClient from '@/services/apiClient';
@@ -29,6 +30,11 @@ import ScheduleInterview from '@/components/interviews/ScheduleInterview';
 import Modal from '@/components/common/Modal';
 import ConfirmationDialog from '@/components/common/ConfirmationDialog';
 import AddToTalentPoolDialog from '@/components/company/talent-pool/AddToTalentPoolDialog';
+import {
+  getApplicationInterview,
+  getInterviewEvaluationNote,
+  getInterviewResult,
+} from '@/components/workflow/interviewSubStatus';
 
 const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal = false, onViewPreviousApplication }) => {
   const { applicationId: paramAppId, jobId: paramJobId } = useParams();
@@ -263,6 +269,13 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
 
 
+  const interviewHistory = application?.interviewHistory || [];
+  const latestInterviewInfo = getApplicationInterview(application) || null;
+  const latestInterviewResult = getInterviewResult(application);
+  const latestInterviewEvaluationNote = getInterviewEvaluationNote(application);
+  const isWorkflowLocked = application?.isWorkflowLocked ?? !!application?.workflowId;
+  const hasCompletedInterviewWaitingEvaluation = latestInterviewInfo && ['COMPLETED', 'ENDED'].includes(latestInterviewInfo.status) && !latestInterviewResult;
+
   const getStatusBadge = (status, interview = null) => {
     const statusConfig = {
       PENDING: { label: 'Chờ xem xét', className: 'bg-yellow-100 text-yellow-800' },
@@ -275,13 +288,12 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       INTERVIEW_FAILED: { label: 'Phỏng vấn không đạt', className: 'bg-gray-600 text-white' },
     };
 
-
     let config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
 
     if (status === 'SCHEDULED_INTERVIEW') {
-      if (application?.interview_result === 'PASSED') {
+      if (latestInterviewResult === 'PASSED') {
         config = { label: 'Phỏng vấn Đạt', className: 'bg-green-100 text-green-800' };
-      } else if (application?.interview_result === 'FAILED') {
+      } else if (latestInterviewResult === 'FAILED') {
         config = { label: 'Phỏng vấn Không Đạt', className: 'bg-red-100 text-red-800' };
       } else if (interview && (interview.status === 'COMPLETED' || interview.status === 'ENDED')) {
         config = { label: 'Chờ đánh giá PV', className: 'bg-teal-100 text-teal-800' };
@@ -312,6 +324,79 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
 
     return badge;
+  };
+
+  const renderInterviewHistory = () => {
+    if (!interviewHistory.length) {
+      return null;
+    }
+
+    return (
+      <Card>
+        <CardHeader className="pb-3 border-b">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-primary" />
+            Lịch sử phỏng vấn
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-3">
+          {interviewHistory.map((interview) => (
+            <div key={interview.interviewId || interview._id} className="rounded-lg border border-gray-200 p-3 bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {interview.roundName || `Vòng ${interview.sequence || '?'} `}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {interview.scheduledTime ? utils.formatDate(interview.scheduledTime) : 'Chưa có lịch'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className={interview.result === 'PASSED'
+                    ? 'bg-green-100 text-green-800'
+                    : interview.result === 'FAILED'
+                      ? 'bg-red-100 text-red-800'
+                      : ['COMPLETED', 'ENDED'].includes(interview.status)
+                        ? 'bg-teal-100 text-teal-800'
+                        : 'bg-cyan-100 text-cyan-800'}>
+                    {interview.result === 'PASSED'
+                      ? 'Đạt'
+                      : interview.result === 'FAILED'
+                        ? 'Không đạt'
+                        : ['COMPLETED', 'ENDED'].includes(interview.status)
+                          ? 'Chờ đánh giá'
+                          : 'Đã lên lịch'}
+                  </Badge>
+                  {['COMPLETED', 'ENDED'].includes(interview.status) && !interview.result && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-indigo-500 text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        setIsInterviewEvaluateModalOpen(true);
+                      }}
+                    >
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      Đánh giá
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                <span>Trạng thái: {interview.status}</span>
+                {interview.evaluatedAt && <span>Đánh giá: {utils.formatDate(interview.evaluatedAt)}</span>}
+              </div>
+              {interview.evaluationNote && (
+                <div className="mt-3 rounded-md border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700">
+                  <span className="font-medium text-slate-900">Nhận xét:</span>{' '}
+                  <span className="whitespace-pre-wrap">{interview.evaluationNote}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
   };
 
 
@@ -406,7 +491,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 </div>
                 {/* Mobile Status Badge */}
                 <div className="md:hidden">
-                  {getStatusBadge(application.status, application.interviewInfo)}
+                  {getStatusBadge(application.status, latestInterviewInfo)}
                 </div>
               </div>
 
@@ -431,7 +516,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
           <div className="flex flex-col items-end gap-3 min-w-max w-full md:w-auto">
             <div className="hidden md:block">
-              {getStatusBadge(application.status, application.interviewInfo)}
+              {getStatusBadge(application.status, latestInterviewInfo)}
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <DropdownMenu>
@@ -439,7 +524,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   <Button
                     variant="outline"
                     className="flex-1 md:flex-none"
-                    disabled={isSubmitting || ['OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status)}
+                    disabled={isSubmitting || ['OFFER_SENT', 'ACCEPTED', 'OFFER_DECLINED', 'REJECTED'].includes(application.status) || isWorkflowLocked}
+                    title={isWorkflowLocked ? 'Không thể cập nhật thủ công khi đang chạy workflow' : ''}
                   >
                     Cập nhật <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
@@ -447,16 +533,16 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('SUITABLE')}
-                    disabled={application.status !== 'PENDING'}
-                    className={application.status !== 'PENDING' ? "opacity-50 cursor-not-allowed" : ""}
+                    disabled={application.status !== 'PENDING' || isWorkflowLocked}
+                    className={(application.status !== 'PENDING' || isWorkflowLocked) ? "opacity-50 cursor-not-allowed" : ""}
                   >
                     <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                     Đánh giá phù hợp
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('OFFER_SENT')}
-                    disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) || application.interview_result === 'FAILED'}
-                    className={(!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) || application.interview_result === 'FAILED') ? "opacity-50 cursor-not-allowed" : ""}
+                    disabled={!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) || latestInterviewResult === 'FAILED' || isWorkflowLocked}
+                    className={(!['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) || latestInterviewResult === 'FAILED' || isWorkflowLocked) ? "opacity-50 cursor-not-allowed" : ""}
                   >
                     <Gift className="mr-2 h-4 w-4 text-purple-600" />
                     Gửi đề nghị (Offer)
@@ -464,7 +550,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   <DropdownMenuItem
                     onClick={() => handleStatusUpdate('REJECTED')}
                     className="text-red-600 focus:text-red-600"
-                    disabled={application.status !== 'PENDING'}
+                    disabled={application.status !== 'PENDING' || isWorkflowLocked}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Từ chối ứng viên
@@ -494,13 +580,18 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
               <Button
                 size="sm"
                 className="flex-1 md:flex-none"
-                disabled={!!application.interviewInfo || !['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status)}
+                disabled={
+                  (!!latestInterviewInfo && !['COMPLETED', 'ENDED', 'CANCELLED'].includes(latestInterviewInfo.status)) ||
+                  !['SUITABLE', 'SCHEDULED_INTERVIEW'].includes(application.status) ||
+                  hasCompletedInterviewWaitingEvaluation
+                }
                 onClick={() => setIsInterviewModalOpen(true)}
+                title={hasCompletedInterviewWaitingEvaluation ? 'Vui lòng đánh giá vòng phỏng vấn trước' : ''}
               >
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {application.interviewInfo ? 'Đã lên lịch' : 'Xếp lịch PV'}
+                {!!latestInterviewInfo && !['COMPLETED', 'ENDED', 'CANCELLED'].includes(latestInterviewInfo.status) ? 'Đã lên lịch' : 'Xếp lịch PV'}
               </Button>
-              {application.status === 'SCHEDULED_INTERVIEW' && application.interviewInfo && ['COMPLETED', 'ENDED'].includes(application.interviewInfo.status) && !application.interview_result && (
+              {application.status === 'SCHEDULED_INTERVIEW' && hasCompletedInterviewWaitingEvaluation && (
                 <Button
                   size="sm"
                   variant="default"
@@ -512,9 +603,20 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 </Button>
               )}
             </div>
+            </div>
           </div>
-        </div>
-      </Card >
+        </Card >
+
+      {latestInterviewEvaluationNote && (
+        <Card className="border-emerald-200 bg-emerald-50/40">
+          <CardContent className="py-4">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-emerald-900">Nhận xét phỏng vấn mới nhất</p>
+              <p className="text-sm text-emerald-800 whitespace-pre-wrap">{latestInterviewEvaluationNote}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Previous Application History - chỉ hiển thị nếu đây là đơn ứng tuyển lại */}
       {application.previousApplicationId && (
@@ -609,6 +711,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
               )}
             </CardContent>
           </Card>
+
+          {renderInterviewHistory()}
 
           {application.testAssignment && (
             <Card className="border-blue-200 bg-blue-50/30">

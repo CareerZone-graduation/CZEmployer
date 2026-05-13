@@ -1,36 +1,15 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as emailTemplateService from '../../services/emailTemplateService';
+import { getConditionParentKind, getConditionParentNode } from './conditionConfigSync';
 
 const STATUS_OPTIONS = ['PENDING', 'SUITABLE', 'SCHEDULED_INTERVIEW', 'REJECTED'];
 
 const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
-  const parentNode = edges.find(e => e.target === node.id)
-    ? nodes.find(n => n.id === edges.find(e => e.target === node.id).source)
-    : null;
-    
-  const isTestParent = parentNode?.data?.type === 'ACTION_TEST';
-  const isAIParent = parentNode?.data?.type === 'ACTION_AI';
-  const isInterviewParent = parentNode?.data?.type === 'STAGE' && 
-    (parentNode.data?.config?.statusMapping === 'SCHEDULED_INTERVIEW' || 
-     (parentNode.data?.name || '').toLowerCase().includes('phỏng vấn'));
-
-  useEffect(() => {
-    if (isTestParent && cfg.field !== 'test_score') {
-      updateConfig('field', 'test_score');
-    } else if (isAIParent && cfg.field !== 'cv_score') {
-      updateConfig('field', 'cv_score');
-    } else if (isInterviewParent) {
-      if (cfg.field !== 'interview_result') {
-        updateConfig('field', 'interview_result');
-      } else if (cfg.operator !== '==') {
-        updateConfig('operator', '==');
-      } else if (cfg.value !== 'PASSED' && cfg.value !== 'FAILED') {
-        updateConfig('value', 'PASSED');
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTestParent, isAIParent, isInterviewParent, cfg.field, cfg.operator, cfg.value]);
+  const parentNode = getConditionParentNode(node, nodes, edges);
+  const parentKind = getConditionParentKind(parentNode);
+  const isTestParent = parentKind === 'TEST';
+  const isAIParent = parentKind === 'AI';
+  const isInterviewParent = parentKind === 'INTERVIEW';
 
   return (
     <>
@@ -167,6 +146,13 @@ const EmailNodeConfig = ({ cfg, templates, handleTemplateSelect, updateConfig })
 };
 
 const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, onClose }) => {
+  const { data: templatesRes } = useQuery({
+    queryKey: ['emailTemplates'],
+    queryFn: () => emailTemplateService.getTemplates(),
+    enabled: node?.data?.type === 'ACTION_EMAIL'
+  });
+  const templates = templatesRes?.data || [];
+
   if (!node) {
     return (
       <div className="w-80 border-l bg-white p-3 text-sm text-slate-500">
@@ -176,13 +162,6 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
   }
 
   const cfg = node.data?.config || {};
-
-  const { data: templatesRes } = useQuery({
-    queryKey: ['emailTemplates'],
-    queryFn: () => emailTemplateService.getTemplates(),
-    enabled: node.data?.type === 'ACTION_EMAIL'
-  });
-  const templates = templatesRes?.data || [];
 
   const handleTemplateSelect = (templateId) => {
     const template = templates.find(t => t._id === templateId);

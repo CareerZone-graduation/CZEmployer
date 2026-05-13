@@ -16,7 +16,7 @@ const NODE_LIBRARY = [
         label: 'Cập nhật trạng thái', 
         name: 'Cập nhật trạng thái',
         icon: ArrowRightCircle,
-        config: { statusMapping: 'REVIEWING', description: 'Chuyển trạng thái đơn ứng tuyển sang Đang xem xét hoặc khác' }
+        config: { statusMapping: 'SUITABLE', description: 'Chuyển trạng thái đơn ứng tuyển sang Phù hợp hoặc trạng thái hợp lệ khác' }
       },
       {
         type: 'END',

@@ -33,6 +33,8 @@ import {
 import * as utils from '@/utils';
 
 const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) => {
+    const isWorkflowLocked = application.isWorkflowLocked ?? !!application.workflowId;
+
     const handleDragStart = (e) => {
         e.dataTransfer.setData('applicationId', application._id);
         e.dataTransfer.setData('sourceStatus', application.status);
@@ -44,12 +46,12 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
         if (onDragEnd) onDragEnd();
     };
 
-    return (
+        return (
         <div
-            draggable={!application.workflowId}
-            onDragStart={!application.workflowId ? handleDragStart : undefined}
-            onDragEnd={!application.workflowId ? handleDragEnd : undefined}
-            className={`mb-3 ${application.workflowId ? 'cursor-default' : 'cursor-grab active:cursor-grabbing touch-none'}`}
+            draggable={!isWorkflowLocked}
+            onDragStart={!isWorkflowLocked ? handleDragStart : undefined}
+            onDragEnd={!isWorkflowLocked ? handleDragEnd : undefined}
+            className={`mb-3 ${isWorkflowLocked ? 'cursor-default' : 'cursor-grab active:cursor-grabbing touch-none'}`}
             onClick={() => onClick(application)}
         >
             <Card className={`hover:shadow-lg transition-all duration-200 group ${
@@ -70,7 +72,7 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                                     {application.isReapplied && (
                                         <RefreshCcw className="h-3 w-3 text-orange-500 shrink-0" title="Ứng tuyển lại" />
                                     )}
-                                    {application.workflowId && (
+                                    {isWorkflowLocked && (
                                         <TooltipProvider>
                                             <Tooltip delayDuration={200}>
                                                 <TooltipTrigger asChild>
@@ -135,34 +137,54 @@ const KanbanCard = ({ application, onDragStart, onDragEnd, onClick, onAction }) 
                             </Badge>
                         </div>
                     )}
-                    {application.status === 'SCHEDULED_INTERVIEW' && !application.interview && !application.interviewInfo && (
-                        <div className="mt-2">
-                            <Badge variant="outline" className="w-full justify-center bg-indigo-50 text-indigo-700 border-indigo-200 shadow-none">
-                                Chờ xếp lịch PV
-                            </Badge>
-                        </div>
-                    )}
-                    {application.status === 'SCHEDULED_INTERVIEW' && application.interview_result === 'PASSED' && (
-                        <div className="mt-2">
-                            <Badge variant="outline" className="w-full justify-center bg-green-50 text-green-700 border-green-200 shadow-none">
-                                Phỏng vấn Đạt
-                            </Badge>
-                        </div>
-                    )}
-                    {application.status === 'SCHEDULED_INTERVIEW' && application.interview_result === 'FAILED' && (
-                        <div className="mt-2">
-                            <Badge variant="outline" className="w-full justify-center bg-red-50 text-red-700 border-red-200 shadow-none">
-                                Phỏng vấn Không Đạt
-                            </Badge>
-                        </div>
-                    )}
-                    {application.status === 'SCHEDULED_INTERVIEW' && !application.interview_result && (application.interview || application.interviewInfo) && ['COMPLETED', 'ENDED'].includes((application.interview || application.interviewInfo).status) && (
-                        <div className="mt-2">
-                            <Badge variant="outline" className="w-full justify-center bg-teal-50 text-teal-700 border-teal-200 shadow-none">
-                                Chờ đánh giá PV
-                            </Badge>
-                        </div>
-                    )}
+                    {(() => {
+                        const latestInterview = application.latestInterviewInfo || application.interview || application.interviewInfo;
+                        const latestInterviewResult = latestInterview?.result || application.interview_result;
+
+                        if (application.status !== 'SCHEDULED_INTERVIEW') return null;
+
+                        if (!latestInterview) {
+                            return (
+                                <div className="mt-2">
+                                    <Badge variant="outline" className="w-full justify-center bg-indigo-50 text-indigo-700 border-indigo-200 shadow-none">
+                                        Chờ xếp lịch PV
+                                    </Badge>
+                                </div>
+                            );
+                        }
+
+                        if (latestInterviewResult === 'PASSED') {
+                            return (
+                                <div className="mt-2">
+                                    <Badge variant="outline" className="w-full justify-center bg-green-50 text-green-700 border-green-200 shadow-none">
+                                        Phỏng vấn Đạt
+                                    </Badge>
+                                </div>
+                            );
+                        }
+
+                        if (latestInterviewResult === 'FAILED') {
+                            return (
+                                <div className="mt-2">
+                                    <Badge variant="outline" className="w-full justify-center bg-red-50 text-red-700 border-red-200 shadow-none">
+                                        Phỏng vấn Không Đạt
+                                    </Badge>
+                                </div>
+                            );
+                        }
+
+                        if (['COMPLETED', 'ENDED'].includes(latestInterview.status)) {
+                            return (
+                                <div className="mt-2">
+                                    <Badge variant="outline" className="w-full justify-center bg-teal-50 text-teal-700 border-teal-200 shadow-none">
+                                        Chờ đánh giá PV
+                                    </Badge>
+                                </div>
+                            );
+                        }
+
+                        return null;
+                    })()}
 
                     {application.notes && (
                         <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded text-xs text-gray-600">

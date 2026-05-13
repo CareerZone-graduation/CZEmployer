@@ -108,7 +108,11 @@ const WorkflowList = () => {
   const handleToggleStatus = async (workflow) => {
     const newStatus = workflow.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
-      await workflowService.updateWorkflow(workflow._id, { status: newStatus });
+      if (newStatus === 'ACTIVE') {
+        await workflowService.activateWorkflow(workflow._id);
+      } else {
+        await workflowService.updateWorkflow(workflow._id, { status: newStatus });
+      }
       toast.success(`Đã chuyển sang trạng thái ${newStatus}`);
       fetchWorkflows();
     } catch (error) {

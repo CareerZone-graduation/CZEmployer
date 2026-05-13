@@ -292,10 +292,11 @@ const JobApplications = ({ isEmbedded = false }) => {
     let config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
 
     if (status === 'SCHEDULED_INTERVIEW') {
-      const interviewObj = app.interview || app.interviewInfo;
-      if (app.interview_result === 'PASSED') {
+      const interviewObj = app.latestInterviewInfo || app.interview || app.interviewInfo;
+      const interviewResult = interviewObj?.result || app.interview_result;
+      if (interviewResult === 'PASSED') {
         config = { label: 'Phỏng vấn Đạt', className: 'bg-green-100 text-green-800' };
-      } else if (app.interview_result === 'FAILED') {
+      } else if (interviewResult === 'FAILED') {
         config = { label: 'Phỏng vấn Không Đạt', className: 'bg-red-100 text-red-800' };
       } else if (!interviewObj) {
         config = { label: 'Chờ xếp lịch PV', className: 'bg-indigo-100 text-indigo-800' };
@@ -820,6 +821,7 @@ const JobApplications = ({ isEmbedded = false }) => {
         }}
         node={selectedWorkflowNode}
         jobId={jobId}
+        workflowNodes={workflowData?.nodes || []}
         onViewApplication={(appId) => {
           setViewingApplicationId(appId);
           setIsNodeModalOpen(false);

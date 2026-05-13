@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as interviewService from '@/services/interviewService';
+import * as applicationService from '@/services/applicationService';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -125,6 +126,9 @@ const InterviewDetail = () => {
   const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [viewingApplicationId, setViewingApplicationId] = useState(null);
+  const [evaluateModalOpen, setEvaluateModalOpen] = useState(false);
+  const [evaluateResult, setEvaluateResult] = useState('PASSED');
+  const [evaluateFeedback, setEvaluateFeedback] = useState('');
 
   const fetchInterviewDetail = useCallback(async () => {
     setLoading(true);
@@ -206,6 +210,29 @@ const InterviewDetail = () => {
       fetchInterviewDetail(); // Refresh details
     } catch (error) {
       toast.error(error.response?.data?.message || 'Không thể hủy phỏng vấn.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmEvaluate = async () => {
+    if (!interview?.application?.id) {
+      toast.error('Không tìm thấy thông tin đơn ứng tuyển.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await applicationService.evaluateInterviewResult(interview.application.id, {
+        result: evaluateResult,
+        feedback: evaluateFeedback
+      });
+      toast.success('Đánh giá phỏng vấn thành công!');
+      setEvaluateModalOpen(false);
+      setEvaluateFeedback('');
+      fetchInterviewDetail();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Không thể đánh giá phỏng vấn.');
     } finally {
       setActionLoading(false);
     }
@@ -328,6 +355,45 @@ const InterviewDetail = () => {
             })()
           )}
 
+          {/* Evaluation Result Section */}
+          {interview.result && (
+            <div className={`mb-6 p-4 rounded-lg border-2 ${
+              interview.result === 'PASSED' 
+                ? 'bg-green-50 border-green-500 dark:bg-green-900/20' 
+                : 'bg-red-50 border-red-500 dark:bg-red-900/20'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-full ${
+                  interview.result === 'PASSED' ? 'bg-green-500' : 'bg-red-500'
+                }`}>
+                  {interview.result === 'PASSED' ? (
+                    <CheckCircle2 className="h-5 w-5 text-white" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-white" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className={`font-semibold text-lg ${
+                    interview.result === 'PASSED' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
+                  }`}>
+                    Kết quả đánh giá: {interview.result === 'PASSED' ? 'ĐẠT' : 'KHÔNG ĐẠT'}
+                  </h3>
+                  {interview.evaluatedAt && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Đánh giá lúc: {formatDateTime(interview.evaluatedAt)}
+                    </p>
+                  )}
+                  {interview.evaluationNote && (
+                    <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nhận xét:</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{interview.evaluationNote}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <DetailItem label="Lịch sử thay đổi" className="mb-6">
             <div>
               {(interview.changeHistory && interview.changeHistory.length > 0) ? (
@@ -383,6 +449,16 @@ const InterviewDetail = () => {
           </DetailItem>
 
           <div className="flex items-center justify-end space-x-2 border-t border-gray-200 dark:border-gray-700 pt-6">
+            {(interview.status === 'COMPLETED' || interview.status === 'ENDED') && !interview.result && (
+              <Button
+                variant="default"
+                className="bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => setEvaluateModalOpen(true)}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Đánh giá kết quả
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => setRescheduleModalOpen(true)}
@@ -439,6 +515,61 @@ const InterviewDetail = () => {
               disabled={actionLoading || !cancelReason.trim()}
             >
               {actionLoading ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={evaluateModalOpen} onOpenChange={setEvaluateModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Đánh giá kết quả phỏng vấn</DialogTitle>
+            <DialogDescription>
+              Đánh giá kết quả phỏng vấn này. Hệ thống sẽ cập nhật trạng thái đơn ứng tuyển và thông báo cho ứng viên.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant={evaluateResult === 'PASSED' ? 'default' : 'outline'}
+                className={evaluateResult === 'PASSED' ? 'bg-green-600 hover:bg-green-700 text-white flex-1' : 'flex-1'}
+                onClick={() => setEvaluateResult('PASSED')}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" /> ĐẠT
+              </Button>
+              <Button
+                type="button"
+                variant={evaluateResult === 'FAILED' ? 'destructive' : 'outline'}
+                className="flex-1"
+                onClick={() => setEvaluateResult('FAILED')}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> KHÔNG ĐẠT
+              </Button>
+            </div>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="evaluate-feedback">Ghi chú / Phản hồi (sẽ hiển thị cho ứng viên)</Label>
+              <Textarea
+                id="evaluate-feedback"
+                value={evaluateFeedback}
+                onChange={(e) => setEvaluateFeedback(e.target.value)}
+                placeholder="Nhập nhận xét phỏng vấn..."
+                maxLength={1000}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEvaluateModalOpen(false)} disabled={actionLoading}>
+              Hủy
+            </Button>
+            <Button
+              variant="default"
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={confirmEvaluate}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Đang xử lý...' : 'Lưu kết quả'}
             </Button>
           </DialogFooter>
         </DialogContent>

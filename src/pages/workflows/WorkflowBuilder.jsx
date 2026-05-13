@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import WorkflowCanvas from '@/components/workflow/WorkflowCanvas';
 import NodePalette from '@/components/workflow/NodePalette';
 import NodeConfigPanel from '@/components/workflow/NodeConfigPanel';
+import { syncConditionNodesWithParents } from '@/components/workflow/conditionConfigSync';
 import * as workflowService from '@/services/workflowService';
 import * as testService from '@/services/testService';
 import { useCallback } from 'react';
@@ -66,6 +67,19 @@ const WorkflowBuilder = () => {
     nodesRef.current = nodes;
     edgesRef.current = edges;
   }, [nodes, edges]);
+
+  useEffect(() => {
+    setNodes((currentNodes) => syncConditionNodesWithParents(currentNodes, edges));
+  }, [edges, nodes, setNodes]);
+
+  useEffect(() => {
+    if (!selectedNode) return;
+
+    const latestSelectedNode = nodes.find((node) => node.id === selectedNode.id);
+    if (latestSelectedNode && latestSelectedNode !== selectedNode) {
+      setSelectedNode(latestSelectedNode);
+    }
+  }, [nodes, selectedNode]);
 
   useEffect(() => {
     const loadData = async () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,61 +7,24 @@ import * as applicationService from '@/services/applicationService';
 import * as workflowService from '@/services/workflowService';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { format, isPast } from 'date-fns';
+import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { getApplicationInterview, getInterviewEvaluationNote, getInterviewSubStatus } from './interviewSubStatus';
 
-/**
- * Xác định trạng thái chi tiết của ứng viên trong bước phỏng vấn (SCHEDULED_INTERVIEW).
- * Trả về { label, className }
- */
-const getInterviewSubStatus = (app) => {
-  if (app.status !== 'SCHEDULED_INTERVIEW') return null;
+const isInterviewWorkflowNode = (node) => {
+  const nodeType = node?.data?.type || node?.type;
+  const statusMapping = node?.data?.config?.statusMapping;
+  const nodeName = `${node?.data?.name || ''} ${node?.data?.label || ''}`.toLowerCase();
 
-  const interview = app.interview;
-
-  if (app.interview_result === 'PASSED') {
-    return { label: 'PV Đạt', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
-  }
-  
-  if (app.interview_result === 'FAILED') {
-    return { label: 'PV Không Đạt', className: 'bg-rose-100 text-rose-800 border-rose-200' };
-  }
-
-  if (!interview) {
-    return { label: 'Chờ lên lịch', className: 'bg-amber-100 text-amber-800 border-amber-200' };
-  }
-
-  switch (interview.status) {
-    case 'SCHEDULED': {
-      // Đã lên lịch — kiểm tra giờ đã qua chưa
-      const isPastTime = interview.scheduledTime && isPast(new Date(interview.scheduledTime));
-      if (isPastTime) {
-        return { label: 'Chờ phỏng vấn', className: 'bg-orange-100 text-orange-800 border-orange-200' };
-      }
-      return { label: 'Đã lên lịch', className: 'bg-blue-100 text-blue-800 border-blue-200' };
-    }
-    case 'IN_PROGRESS':
-      return { label: 'Đang phỏng vấn', className: 'bg-green-100 text-green-800 border-green-200' };
-    case 'COMPLETED':
-    case 'ENDED':
-      return { label: 'Chờ đánh giá', className: 'bg-purple-100 text-purple-800 border-purple-200' };
-    default:
-      return { label: 'Chờ phỏng vấn', className: 'bg-amber-100 text-amber-800 border-amber-200' };
-  }
+  return nodeType === 'STAGE' && (statusMapping === 'SCHEDULED_INTERVIEW' || nodeName.includes('phỏng vấn'));
 };
 
-const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication }) => {
+const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication, workflowNodes = [] }) => {
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [retryingId, setRetryingId] = useState(null);
 
-  useEffect(() => {
-    if (isOpen && node && jobId) {
-      fetchApplications();
-    }
-  }, [isOpen, node, jobId]);
-
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await applicationService.getJobApplications(jobId, {
@@ -75,7 +38,13 @@ const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [jobId, node]);
+
+  useEffect(() => {
+    if (isOpen && node && jobId) {
+      fetchApplications();
+    }
+  }, [fetchApplications, isOpen, jobId, node]);
 
   const handleRetry = async (app) => {
     const executionId = app.latestExecution?._id;
@@ -95,6 +64,7 @@ const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication
   };
 
   if (!node) return null;
+  const hasInterviewNodeInWorkflow = workflowNodes.some(isInterviewWorkflowNode);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -124,7 +94,11 @@ const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication
             applications.map((app) => {
               const hasError = app.latestExecution?.status === 'FAILED';
               const errorMessage = app.latestExecution?.result?.errorMessage;
-              const interviewSub = getInterviewSubStatus(app);
+              const isInterviewNode = isInterviewWorkflowNode(node);
+              const interviewContext = { workflowNodeId: node.id, isInterviewNode, hasInterviewNodeInWorkflow };
+              const interviewInfo = isInterviewNode ? getApplicationInterview(app, interviewContext) : null;
+              const interviewSub = getInterviewSubStatus(app, interviewContext);
+              const evaluationNote = isInterviewNode ? getInterviewEvaluationNote(app, interviewContext) : null;
 
               return (
                 <div
@@ -153,10 +127,10 @@ const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication
                           Ứng tuyển: {format(new Date(app.appliedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
                         </p>
                         {/* Hiển thị thời gian phỏng vấn nếu đã lên lịch */}
-                        {app.interview?.scheduledTime && (
+                        {interviewInfo?.scheduledTime && (
                           <p className="flex items-center gap-1 text-blue-600">
                             <Calendar className="h-3 w-3 shrink-0" />
-                            Phỏng vấn: {format(new Date(app.interview.scheduledTime), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                            Phỏng vấn: {format(new Date(interviewInfo.scheduledTime), 'dd/MM/yyyy HH:mm', { locale: vi })}
                           </p>
                         )}
                       </div>
@@ -170,6 +144,13 @@ const NodeApplicationsModal = ({ isOpen, onClose, node, jobId, onViewApplication
                               {errorMessage || 'Lỗi không xác định'}
                             </p>
                           </div>
+                        </div>
+                      )}
+
+                      {evaluationNote && (
+                        <div className="mt-2 text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
+                          <span className="font-medium text-slate-900">Nhận xét:</span>{' '}
+                          <span className="whitespace-pre-wrap">{evaluationNote}</span>
                         </div>
                       )}
                     </div>
