@@ -121,7 +121,7 @@ const RecruiterJobDetail = () => {
 
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', className: 'bg-green-100 text-green-800 hover:bg-green-200' },
-      INACTIVE: { label: 'Đã ẩn', className: 'bg-gray-100 text-gray-800 hover:bg-gray-200' },
+      INACTIVE: { label: 'Ngừng tuyển', className: 'bg-gray-100 text-gray-800 hover:bg-gray-200' },
       EXPIRED: { label: 'Hết hạn', className: 'bg-red-100 text-red-800 hover:bg-red-200' },
     };
     const config = statusConfig[job.status] || statusConfig.INACTIVE;
