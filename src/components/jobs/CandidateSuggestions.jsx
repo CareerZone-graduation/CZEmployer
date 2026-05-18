@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getCandidateSuggestions } from '@/services/recommendationService';
+import { getCandidateSuggestions, retrySuggestionEmbeddings } from '@/services/recommendationService';
 import CandidateCard from './CandidateCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Users } from 'lucide-react';
+import { toast } from 'sonner';
 
-const CandidateSuggestions = ({ jobId }) => {
+const CandidateSuggestions = ({ jobId, embeddingStatus, embeddingError }) => {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['suggestions', jobId, page],
     queryFn: () => getCandidateSuggestions(jobId, { page, limit }),
     staleTime: 0, // Disable caching to ensure fresh data
@@ -28,7 +29,16 @@ const CandidateSuggestions = ({ jobId }) => {
   }
 
   if (error) {
-    return <ErrorState error={error} />;
+    return (
+      <ErrorState
+        error={error}
+        jobId={jobId}
+        embeddingStatus={embeddingStatus}
+        embeddingError={embeddingError}
+        onRetrySuccess={refetch}
+        isRefetching={isFetching}
+      />
+    );
   }
 
   const candidates = data?.data?.candidates || [];
@@ -131,17 +141,49 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const ErrorState = ({ error }) => {
+const ErrorState = ({ error, jobId, embeddingStatus, embeddingError, onRetrySuccess, isRefetching }) => {
   const errorMessage = error?.response?.data?.message || error?.message || 'Không thể tải danh sách ứng viên gợi ý';
+  const isProcessingMessage = embeddingStatus === 'PROCESSING' || embeddingStatus === 'PENDING';
+  const isEmbeddingFailedMessage = embeddingStatus === 'FAILED';
+  const displayMessage = isEmbeddingFailedMessage
+    ? (embeddingError || 'Sinh embedding thất bại. Vui lòng bấm Retry xử lý embedding.')
+    : (isProcessingMessage ? 'Tin tuyển dụng đang được xử lý dữ liệu AI. Vui lòng thử lại sau ít phút.' : errorMessage);
+  const isRetryAllowed = isEmbeddingFailedMessage;
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetryEmbedding = async () => {
+    try {
+      setRetrying(true);
+      const response = await retrySuggestionEmbeddings(jobId);
+      toast.success(response?.data?.message || 'Đã bắt đầu xử lý lại embedding. Vui lòng thử lại sau ít phút.');
+      await onRetrySuccess();
+    } catch (retryError) {
+      const msg = retryError?.response?.data?.message || 'Không thể retry embedding lúc này';
+      toast.error(msg);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   return (
-    <Card className="border-red-200 bg-red-50">
+    <Card className={isProcessingMessage ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'}>
       <CardContent className="p-6">
-        <div className="flex items-center gap-3 text-red-700">
+        <div className={`flex items-center gap-3 ${isProcessingMessage ? 'text-amber-700' : 'text-red-700'}`}>
           <AlertCircle className="h-5 w-5" />
           <div>
-            <p className="font-semibold">Lỗi</p>
-            <p className="text-sm">{errorMessage}</p>
+            <p className="font-semibold">{isProcessingMessage ? 'Đang xử lý' : 'Lỗi'}</p>
+            <p className="text-sm">{displayMessage}</p>
+            {isRetryAllowed && (
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="outline"
+                onClick={handleRetryEmbedding}
+                disabled={retrying || isRefetching}
+              >
+                {retrying ? 'Đang retry...' : 'Retry xử lý embedding'}
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

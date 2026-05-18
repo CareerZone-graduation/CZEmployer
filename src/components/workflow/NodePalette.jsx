@@ -16,7 +16,14 @@ const NODE_LIBRARY = [
         label: 'Cập nhật trạng thái', 
         name: 'Cập nhật trạng thái',
         icon: ArrowRightCircle,
-        config: { statusMapping: 'SUITABLE', description: 'Chuyển trạng thái đơn ứng tuyển sang Phù hợp hoặc trạng thái hợp lệ khác' }
+        config: { statusMapping: 'SUITABLE', description: 'Chuyển trạng thái đơn ứng tuyển sang Phù hợp hoặc Từ chối' }
+      },
+      {
+        type: 'STAGE',
+        label: 'Phỏng vấn (Lên lịch)',
+        name: 'Phỏng vấn',
+        icon: ArrowRightCircle,
+        config: { statusMapping: 'SCHEDULED_INTERVIEW', isLockedStatus: true, description: 'Chuyển hồ sơ sang trạng thái đã lên lịch phỏng vấn' }
       },
       {
         type: 'END',

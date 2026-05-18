@@ -12,3 +12,7 @@ import apiClient from './apiClient';
 export const getCandidateSuggestions = async (jobId, params = {}) => {
   return await apiClient.get(`/jobs/${jobId}/suggestions`, { params });
 };
+
+export const retrySuggestionEmbeddings = async (jobId) => {
+  return await apiClient.post(`/jobs/${jobId}/suggestions/retry-embedding`);
+};

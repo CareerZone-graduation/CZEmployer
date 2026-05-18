@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as emailTemplateService from '../../services/emailTemplateService';
 import { getConditionParentKind, getConditionParentNode } from './conditionConfigSync';
 
-const STATUS_OPTIONS = ['PENDING', 'SUITABLE', 'SCHEDULED_INTERVIEW', 'REJECTED'];
+const EDITABLE_STAGE_STATUS_OPTIONS = ['SUITABLE', 'REJECTED'];
 
 const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
   const parentNode = getConditionParentNode(node, nodes, edges);
@@ -153,6 +154,22 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
   });
   const templates = templatesRes?.data || [];
 
+  useEffect(() => {
+    if (!node || node.data?.type !== 'STAGE') return;
+
+    const currentConfig = node.data?.config || {};
+    if (currentConfig.isLockedStatus) return;
+    if (EDITABLE_STAGE_STATUS_OPTIONS.includes(currentConfig.statusMapping)) return;
+
+    onChange({
+      ...node,
+      data: {
+        ...node.data,
+        config: { ...currentConfig, statusMapping: 'SUITABLE' },
+      },
+    });
+  }, [node, onChange]);
+
   if (!node) {
     return (
       <div className="w-80 border-l bg-white p-3 text-sm text-slate-500">
@@ -162,6 +179,12 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
   }
 
   const cfg = node.data?.config || {};
+  const stageStatusOptions = cfg.isLockedStatus
+    ? [cfg.statusMapping || 'PENDING']
+    : EDITABLE_STAGE_STATUS_OPTIONS;
+  const stageStatusValue = cfg.isLockedStatus
+    ? (cfg.statusMapping || 'PENDING')
+    : (EDITABLE_STAGE_STATUS_OPTIONS.includes(cfg.statusMapping) ? cfg.statusMapping : 'SUITABLE');
 
   const handleTemplateSelect = (templateId) => {
     const template = templates.find(t => t._id === templateId);
@@ -221,14 +244,18 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
             <label className="text-xs text-slate-500">Map status</label>
             <select
               className="w-full border rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-              value={cfg.statusMapping || 'PENDING'}
+              value={stageStatusValue}
               onChange={(e) => updateConfig('statusMapping', e.target.value)}
               disabled={cfg.isLockedStatus}
             >
-              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              {stageStatusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
             {cfg.isLockedStatus && (
-              <p className="text-[10px] text-blue-500 italic mt-1">Trạng thái này được cố định cho bước bắt đầu.</p>
+              <p className="text-[10px] text-blue-500 italic mt-1">
+                {cfg.statusMapping === 'SCHEDULED_INTERVIEW'
+                  ? 'Trạng thái này được cố định cho bước phỏng vấn.'
+                  : 'Trạng thái này được cố định cho bước bắt đầu.'}
+              </p>
             )}
           </div>
         </>

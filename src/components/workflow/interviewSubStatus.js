@@ -95,18 +95,6 @@ export const getInterviewResult = (app, options = {}) => {
   return interview?.result || app.interview_result || null;
 };
 
-const getEvaluatedInterviewStatus = (interviewResult) => {
-  if (interviewResult === 'PASSED') {
-    return { label: 'PV Đạt', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
-  }
-
-  if (interviewResult === 'FAILED') {
-    return { label: 'PV Không Đạt', className: 'bg-rose-100 text-rose-800 border-rose-200' };
-  }
-
-  return null;
-};
-
 /**
  * Xác định trạng thái chi tiết của ứng viên trong bước phỏng vấn (SCHEDULED_INTERVIEW).
  * Trả về { label, className }
@@ -114,15 +102,31 @@ const getEvaluatedInterviewStatus = (interviewResult) => {
 export const getInterviewSubStatus = (app, options = {}) => {
   if (!app) return null;
   if (app.status !== 'SCHEDULED_INTERVIEW') return null;
-  if (options.workflowNodeId && options.isInterviewNode === false) {
-    if (options.hasInterviewNodeInWorkflow === false) return null;
-    return getEvaluatedInterviewStatus(getInterviewResult(app));
+
+  if (options.isInterviewNode === false) {
+    const latestInterviewResult = getInterviewResult(app);
+
+    if (latestInterviewResult === 'PASSED') {
+      return { label: 'PV Đạt', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    }
+
+    if (latestInterviewResult === 'FAILED') {
+      return { label: 'PV Không Đạt', className: 'bg-rose-100 text-rose-800 border-rose-200' };
+    }
+
+    return null;
   }
 
   const interview = getApplicationInterview(app, options);
   const interviewResult = getInterviewResult(app, options);
-  const evaluatedStatus = getEvaluatedInterviewStatus(interviewResult);
-  if (evaluatedStatus) return evaluatedStatus;
+
+  if (interviewResult === 'PASSED') {
+    return { label: 'PV Đạt', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+  }
+
+  if (interviewResult === 'FAILED') {
+    return { label: 'PV Không Đạt', className: 'bg-rose-100 text-rose-800 border-rose-200' };
+  }
 
   if (!interview) {
     return { label: 'Chờ lên lịch', className: 'bg-amber-100 text-amber-800 border-amber-200' };

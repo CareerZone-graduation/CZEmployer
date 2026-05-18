@@ -102,13 +102,29 @@ const RecruiterJobDetail = () => {
     navigate({ search: params.toString() }, { replace: true });
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (job) => {
+    if (job.moderationStatus === 'PENDING') {
+      return (
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+          Chờ phê duyệt
+        </Badge>
+      );
+    }
+
+    if (job.moderationStatus === 'REJECTED') {
+      return (
+        <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+          Đã từ chối
+        </Badge>
+      );
+    }
+
     const statusConfig = {
       ACTIVE: { label: 'Đang tuyển', className: 'bg-green-100 text-green-800 hover:bg-green-200' },
       INACTIVE: { label: 'Đã ẩn', className: 'bg-gray-100 text-gray-800 hover:bg-gray-200' },
       EXPIRED: { label: 'Hết hạn', className: 'bg-red-100 text-red-800 hover:bg-red-200' },
     };
-    const config = statusConfig[status] || statusConfig.INACTIVE;
+    const config = statusConfig[job.status] || statusConfig.INACTIVE;
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
@@ -198,7 +214,7 @@ const RecruiterJobDetail = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{job.title}</h1>
-                {getStatusBadge(job.status)}
+                {getStatusBadge(job)}
               </div>
               <div className="flex items-center gap-4 text-gray-500 text-sm flex-wrap">
                 <div className="flex items-center gap-1.5">
@@ -299,6 +315,8 @@ const RecruiterJobDetail = () => {
                   <CardContent>
                     <CandidateSuggestions
                       jobId={jobId}
+                      embeddingStatus={job.embeddingStatus}
+                      embeddingError={job.embeddingError}
                     />
                   </CardContent>
                 </Card>

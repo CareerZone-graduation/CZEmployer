@@ -11,6 +11,19 @@ import * as workflowService from '@/services/workflowService';
 import * as testService from '@/services/testService';
 import { useCallback } from 'react';
 
+const EDITABLE_STAGE_STATUS_OPTIONS = ['SUITABLE', 'REJECTED'];
+
+const normalizeNodeConfig = (node) => {
+  const config = node.data.config || {};
+
+  if (node.data.type !== 'STAGE' || config.isLockedStatus) return config;
+
+  return {
+    ...config,
+    statusMapping: EDITABLE_STAGE_STATUS_OPTIONS.includes(config.statusMapping) ? config.statusMapping : 'SUITABLE',
+  };
+};
+
 const createNodeSkeleton = (item, index) => {
   const type = item.type || item;
   const name = item.name || type;
@@ -36,7 +49,7 @@ const toApiNodes = (nodes) => nodes.map((n) => ({
   type: n.data.type,
   name: n.data.name,
   position: n.position,
-  config: n.data.config || {},
+  config: normalizeNodeConfig(n),
 }));
 
 const toApiConnections = (edges) => edges.map((e) => ({
