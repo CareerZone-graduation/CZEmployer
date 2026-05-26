@@ -45,7 +45,7 @@ const NODE_LIBRARY = [
     items: [
       { type: 'ACTION_EMAIL', label: 'Gửi Email', name: 'Gửi Email', icon: Mail },
       { type: 'ACTION_DELAY', label: 'Chờ thời gian', name: 'Chờ thời gian', icon: Clock, config: { delayValue: 1, delayUnit: 'DAYS' } },
-      { type: 'ACTION_AI', label: 'Tác vụ AI', name: 'Chấm điểm CV', icon: Sparkles, config: { aiActionType: 'CV_SCREENING' } },
+      { type: 'ACTION_AI', label: 'Quyết định bởi AI', name: 'Quyết định bởi AI', icon: Sparkles, config: { criteria: '' } },
       { type: 'ACTION_TEST', label: 'Giao bài kiểm tra', name: 'Giao bài kiểm tra', icon: FileText },
     ]
   }

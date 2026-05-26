@@ -65,7 +65,6 @@ const sidebarItems = [
   { href: '/talent-pool', label: 'Talent Pool', icon: Users, description: 'Quản lý hồ sơ đã lưu' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
-  { href: '/knowledge-base', label: 'Tài liệu', icon: BookOpen, description: 'Quản lý tài liệu nội bộ' },
   { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
   { href: '/billing', label: 'Thanh toán', icon: CreditCard, description: 'Thanh toán và hóa đơn' },
 ];

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Sparkles } from 'lucide-react';
 import * as emailTemplateService from '../../services/emailTemplateService';
 import { getConditionParentKind, getConditionParentNode } from './conditionConfigSync';
 
@@ -23,7 +24,7 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
           disabled={isTestParent || isAIParent || isInterviewParent}
         >
           <option value="test_score">Điểm Bài Test (test_score)</option>
-          <option value="cv_score">Điểm CV AI đánh giá (cv_score)</option>
+          <option value="ai_result">Kết quả Quyết định bởi AI (ai_result)</option>
           <option value="interview_result">Kết quả Phỏng Vấn (interview_result)</option>
         </select>
         {(isTestParent || isAIParent || isInterviewParent) && (
@@ -36,14 +37,14 @@ const ConditionConfig = ({ node, cfg, nodes, edges, updateConfig }) => {
           className="w-full border rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-400" 
           value={cfg.operator || '>'} 
           onChange={(e) => updateConfig('operator', e.target.value)}
-          disabled={isInterviewParent}
+          disabled={isInterviewParent || isAIParent}
         >
           {['>', '<', '>=', '<=', '==', '!=', 'contains'].map((op) => <option key={op} value={op}>{op}</option>)}
         </select>
       </div>
       <div className="space-y-1 mt-2">
         <label className="text-xs text-slate-500">Giá trị so sánh</label>
-        {isInterviewParent ? (
+        {(isInterviewParent || isAIParent) ? (
           <select 
             className="w-full border rounded px-2 py-1 text-sm" 
             value={cfg.value ?? 'PASSED'} 
@@ -299,12 +300,32 @@ const NodeConfigPanel = ({ node, nodes = [], edges = [], tests = [], onChange, o
       )}
 
       {node.data?.type === 'ACTION_AI' && (
-        <div className="space-y-1">
-          <label className="text-xs text-slate-500">Hành động AI</label>
-          <select className="w-full border rounded px-2 py-1 text-sm bg-slate-50 text-slate-700" value="CV_SCREENING" disabled>
-            <option value="CV_SCREENING">Chấm điểm CV (Khớp với JD)</option>
-          </select>
-          <p className="text-[10px] text-amber-600 mt-1 italic">Hệ thống sẽ giả lập trả về số điểm (0-100) để bạn test.</p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs text-slate-500 font-medium">Hành động AI</label>
+            <div className="text-xs font-semibold text-pink-700 bg-pink-50 border border-pink-100 rounded px-2.5 py-1.5 flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse text-pink-500" /> Sàng lọc & Quyết định CV tự động
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-slate-500 font-medium flex items-center justify-between">
+              <span>Tiêu chí đánh giá của bạn</span>
+              <span className="text-[10px] text-slate-400 italic font-normal">Ngôn ngữ tự nhiên</span>
+            </label>
+            <textarea
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 bg-white"
+              rows={5}
+              placeholder="Nhập tiêu chí ví dụ:
+- Có chứng chỉ tiếng Anh (IELTS > 6.0 hoặc tương đương).
+- GPA lớn hơn 3.0 trên 4.0.
+- Bắt buộc học các trường đào tạo về Công nghệ."
+              value={cfg.criteria || ''}
+              onChange={(e) => updateConfig('criteria', e.target.value)}
+            />
+            <p className="text-[10px] text-slate-400 leading-tight">
+              AI sẽ phân tích CV của ứng viên dựa trên các tiêu chí bạn nhập ở trên để đưa ra quyết định Đạt (PASSED) hoặc Không đạt (FAILED).
+            </p>
+          </div>
         </div>
       )}
 

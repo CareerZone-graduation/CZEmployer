@@ -39,7 +39,9 @@ const createNodeSkeleton = (item, index) => {
         ? { statusMapping: 'PENDING', description: '' }
         : type === 'CONDITION'
           ? { field: 'test_score', operator: '>', value: 70 }
-          : {}),
+          : type === 'ACTION_AI'
+            ? { criteria: '' }
+            : {}),
     },
   };
 };
@@ -116,13 +118,15 @@ const WorkflowBuilder = () => {
         }));
 
         const initialEdges = (workflowData?.connections || []).map((c) => {
+          const sourceNode = workflowData?.nodes?.find(n => n._id === c.sourceNodeId);
+          const isAINode = sourceNode?.type === 'ACTION_AI';
           let label;
           let style;
           if (c.sourcePort === 'true') {
-            label = 'Đúng';
+            label = isAINode ? 'Đạt' : 'Đúng';
             style = { stroke: '#10b981', strokeWidth: 2 };
           } else if (c.sourcePort === 'false') {
-            label = 'Sai';
+            label = isAINode ? 'Không đạt' : 'Sai';
             style = { stroke: '#ef4444', strokeWidth: 2 };
           }
           
@@ -305,9 +309,9 @@ const WorkflowBuilder = () => {
           errors.push(`Node điều kiện "${cn.data.name}" đang kiểm tra điểm bài test, nhưng phía trước không có Node Bài Test nào.`);
         }
       }
-      if (field === 'cv_score') {
+      if (field === 'ai_result') {
         if (!hasAncestorOfType(cn.id, 'ACTION_AI')) {
-          errors.push(`Node điều kiện "${cn.data.name}" đang kiểm tra điểm CV AI, nhưng phía trước không có Node AI nào.`);
+          errors.push(`Node điều kiện "${cn.data.name}" đang kiểm tra kết quả Quyết định bởi AI, nhưng phía trước không có Node Quyết định bởi AI nào.`);
         }
       }
     });
@@ -323,6 +327,13 @@ const WorkflowBuilder = () => {
     nodesToValidate.filter(n => n.data.type === 'ACTION_TEST').forEach(n => {
       if (!n.data.config?.testId) {
         errors.push(`Node bài test "${n.data.name}" chưa chọn bài test.`);
+      }
+    });
+
+    // 7b. ACTION_AI phải có criteria
+    nodesToValidate.filter(n => n.data.type === 'ACTION_AI').forEach(n => {
+      if (!n.data.config?.criteria || !n.data.config.criteria.trim()) {
+        errors.push(`Node quyết định bởi AI "${n.data.name}" chưa nhập tiêu chí đánh giá.`);
       }
     });
 
@@ -448,7 +459,9 @@ const WorkflowBuilder = () => {
           ? { statusMapping: 'PENDING', description: '' }
           : item.type === 'CONDITION'
             ? { field: 'test_score', operator: '>', value: 70 }
-            : {}),
+            : item.type === 'ACTION_AI'
+              ? { criteria: '' }
+              : {}),
       },
     };
 
@@ -491,7 +504,7 @@ const WorkflowBuilder = () => {
         return;
       }
 
-      if (sourceNode?.type === 'CONDITION') {
+      if (sourceNode?.type === 'CONDITION' || sourceNode?.type === 'ACTION_AI') {
         const portHasOutgoing = edges.some(e => e.source === params.source && e.sourceHandle === params.sourceHandle);
         if (portHasOutgoing) {
           return;
@@ -504,13 +517,14 @@ const WorkflowBuilder = () => {
       }
 
       setEdges((eds) => {
+        const isAINode = sourceNode?.type === 'ACTION_AI';
         let label;
         let style;
         if (params.sourceHandle === 'true') {
-          label = 'Đúng';
+          label = isAINode ? 'Đạt' : 'Đúng';
           style = { stroke: '#10b981', strokeWidth: 2 };
         } else if (params.sourceHandle === 'false') {
-          label = 'Sai';
+          label = isAINode ? 'Không đạt' : 'Sai';
           style = { stroke: '#ef4444', strokeWidth: 2 };
         }
         return addEdge({
@@ -584,13 +598,13 @@ const WorkflowBuilder = () => {
         />
       </div>
       <NodeConfigPanel
-        node={selectedNode}
-        nodes={nodes}
-        edges={edges}
-        tests={tests}
-        onChange={updateSelectedNode}
-        onClose={() => setSelectedNode(null)}
-      />
+          node={selectedNode}
+          nodes={nodes}
+          edges={edges}
+          tests={tests}
+          onChange={updateSelectedNode}
+          onClose={() => setSelectedNode(null)}
+        />
       {contextMenu && (
         <>
           <div 

@@ -30,7 +30,22 @@ export const syncConditionConfigForParent = (config = {}, parentNode) => {
   }
 
   if (parentKind === 'AI') {
-    return config.field === 'cv_score' ? config : { ...config, field: 'cv_score' };
+    const nextConfig = {
+      ...config,
+      field: 'ai_result',
+      operator: '==',
+      value: config.value === 'FAILED' ? 'FAILED' : 'PASSED',
+    };
+
+    if (
+      config.field === nextConfig.field &&
+      config.operator === nextConfig.operator &&
+      config.value === nextConfig.value
+    ) {
+      return config;
+    }
+
+    return nextConfig;
   }
 
   if (parentKind === 'INTERVIEW') {

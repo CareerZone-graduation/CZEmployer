@@ -162,7 +162,7 @@ const AppRouter = () => {
           <Route path="messaging" element={<Messaging />} />
           <Route path="reviews" element={<PlaceholderPage title="Đánh giá Ứng viên" />} />
           <Route path="notifications" element={<Notifications />} />
-          <Route path="knowledge-base" element={<KnowledgeBaseManagement />} />
+          <Route path="knowledge-base" element={<Navigate to="/settings?tab=knowledge-base" replace />} />
           <Route path="cv-viewer" element={<CVViewer />} />
 
           {/* Workflow Routes */}
