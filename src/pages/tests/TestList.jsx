@@ -118,23 +118,38 @@ const TestList = () => {
   const stats = getAssignmentStats();
 
   return (
-    <div className="space-y-6 pb-12 p-6">
-      {/* Premium Hero Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Ngân hàng Bài đánh giá</h1>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 font-semibold px-2 py-0.5 rounded-full">
-              {tests.length} Bài test
-            </Badge>
+    <div className="space-y-6 pb-12 p-6 md:p-8 max-w-7xl mx-auto">
+      {/* Premium Hero Header Card with Grid Overlay */}
+      <div className="relative bg-white rounded-3xl border border-emerald-100/40 p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_10px_30px_-10px_rgba(5,150,105,0.03)] overflow-hidden">
+        {/* Subtle grid pattern background decorative */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+          style={{
+            backgroundImage: `radial-gradient(oklch(0.55 0.16 150) 1.5px, transparent 1.5px)`,
+            backgroundSize: '16px 16px',
+          }}
+        ></div>
+        
+        <div className="relative z-10 space-y-2 max-w-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white shadow-sm">
+              <FileText className="w-5 h-5" />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <span>Ngân hàng Bài đánh giá</span>
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100/60 font-bold px-2.5 py-0.5 rounded-full shadow-none text-xs">
+                {tests.length} Bài test
+              </Badge>
+            </h1>
           </div>
-          <p className="text-gray-500 text-sm mt-1">
-            Quản lý các bài kiểm tra trắc nghiệm chuyên môn, xem chi tiết kết quả làm bài của ứng viên và kiểm soát tiến độ tuyển dụng.
+          <p className="text-gray-500 text-sm font-medium leading-relaxed">
+            Quản lý các bài kiểm tra trắc nghiệm chuyên môn, đánh giá khách quan kết quả làm bài của ứng viên và tối ưu hóa các giai đoạn tuyển dụng bằng dữ liệu thực tế.
           </p>
         </div>
+        
         <Button
           onClick={() => navigate('/tests/new')}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm gap-2 font-semibold transition-all px-5"
+          className="bg-premium-gradient hover:opacity-90 active:scale-95 text-white border-0 rounded-xl shadow-md shadow-emerald-100/40 gap-2 font-bold transition-all px-6 h-11 shrink-0 cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           <span>Tạo bài test</span>
@@ -143,114 +158,119 @@ const TestList = () => {
 
       {/* Main Content Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 border border-gray-100 rounded-2xl bg-gray-50 animate-pulse" />
+            <div key={i} className="h-56 border border-emerald-100/20 rounded-3xl bg-white animate-pulse" />
           ))}
         </div>
       ) : tests.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <div className="w-20 h-20 rounded-2xl bg-emerald-50 flex items-center justify-center mb-5 text-emerald-500">
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white border border-emerald-100/30 rounded-3xl shadow-sm">
+          <div className="w-20 h-20 rounded-2xl bg-emerald-50/50 border border-emerald-100/60 flex items-center justify-center mb-5 text-emerald-600 shadow-inner">
             <FileText className="w-9 h-9" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">
+          <h3 className="text-lg font-black text-gray-900 mb-2">
             Chưa có bài test nào
           </h3>
-          <p className="text-sm text-gray-500 max-w-sm mb-6">
-            Bắt đầu tạo các bài test trắc nghiệm chuyên môn để đánh giá năng lực ứng viên.
+          <p className="text-sm font-medium text-gray-500 max-w-sm mb-6">
+            Bắt đầu tạo các bài test trắc nghiệm chuyên môn để kiểm tra toàn diện kiến thức chuyên môn của ứng viên.
           </p>
           <Button
             onClick={() => navigate('/tests/new')}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 rounded-xl"
+            className="bg-premium-gradient hover:opacity-95 text-white border-0 gap-2 rounded-xl px-5 py-2.5 font-bold shadow-md shadow-emerald-100/50 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Tạo bài test đầu tiên
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tests.map((t) => (
-            <Card key={t._id} className="group border border-gray-100 hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-50/40 rounded-2xl transition-all duration-300 overflow-hidden flex flex-col justify-between">
-              <CardContent className="p-5 space-y-4 flex-1">
-                {/* Title & Badge */}
-                <div className="space-y-1">
-                  <h3 className="font-bold text-gray-900 text-base group-hover:text-emerald-600 transition-colors line-clamp-1">
-                    {t.name}
-                  </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 min-h-[32px]">
-                    {t.description || 'Chưa có mô tả ngắn về bài test.'}
-                  </p>
-                </div>
-
-                {/* Metadata details */}
-                <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-gray-50 text-xs">
-                  <div className="bg-gray-50 rounded-xl p-2 text-center">
-                    <p className="text-gray-400 font-medium">Câu hỏi</p>
-                    <p className="font-bold text-gray-800 text-sm mt-0.5">{t.questions?.length || 0}</p>
+            <div key={t._id} className="premium-card group flex flex-col justify-between overflow-hidden">
+              <div className="p-6 space-y-5 flex-1">
+                {/* Title with Premium Circular Icon Box */}
+                <div className="flex items-start gap-4">
+                  <div className="premium-icon-box shrink-0 group-hover:scale-105 group-hover:border-emerald-250 transition-transform">
+                    <FileText className="w-5 h-5 text-emerald-600" />
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-2 text-center">
-                    <p className="text-gray-400 font-medium">Thời gian</p>
-                    <p className="font-bold text-gray-800 text-sm mt-0.5">{t.duration} phút</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-2 text-center">
-                    <p className="text-gray-400 font-medium">Lượt giao</p>
-                    <p className="font-bold text-gray-800 text-sm mt-0.5">{t.usageCount}</p>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <h3 className="font-extrabold text-gray-950 text-base group-hover:text-emerald-700 transition-colors line-clamp-1 tracking-tight">
+                      {t.name}
+                    </h3>
+                    <p className="text-xs text-gray-400 font-medium line-clamp-2 min-h-[34px] leading-relaxed">
+                      {t.description || 'Chưa có mô tả ngắn về nội dung bài kiểm tra này.'}
+                    </p>
                   </div>
                 </div>
-              </CardContent>
 
-              {/* Action Buttons footer */}
-              <div className="bg-gray-50/50 px-5 py-3.5 border-t border-gray-50 flex items-center justify-between gap-2 shrink-0">
+                {/* Metadata details with Soft Tinted Green Background */}
+                <div className="grid grid-cols-3 gap-2 pt-1.5 text-center text-xs">
+                  <div className="bg-emerald-50/20 border border-emerald-100/20 rounded-2xl p-2.5">
+                    <p className="text-gray-400 font-bold text-[10px] uppercase tracking-wider">Câu hỏi</p>
+                    <p className="font-extrabold text-gray-800 text-sm mt-0.5">{t.questions?.length || 0}</p>
+                  </div>
+                  <div className="bg-emerald-50/20 border border-emerald-100/20 rounded-2xl p-2.5">
+                    <p className="text-gray-400 font-bold text-[10px] uppercase tracking-wider">Thời gian</p>
+                    <p className="font-extrabold text-gray-800 text-sm mt-0.5">{t.duration} phút</p>
+                  </div>
+                  <div className="bg-emerald-50/20 border border-emerald-100/20 rounded-2xl p-2.5">
+                    <p className="text-gray-400 font-bold text-[10px] uppercase tracking-wider">Lượt giao</p>
+                    <p className="font-extrabold text-gray-800 text-sm mt-0.5">{t.usageCount}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons footer with cleaner visual hierarchy */}
+              <div className="bg-emerald-50/10 px-6 py-4 border-t border-emerald-100/20 flex items-center justify-between gap-3 shrink-0">
                 <Button
                   onClick={() => handleOpenAssignments(t)}
                   variant="ghost"
-                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl gap-1 px-2.5 h-8"
+                  className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-xl gap-1.5 px-3 h-8.5 border border-emerald-100/40 bg-white shadow-sm cursor-pointer"
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span>Xem ứng viên làm bài</span>
+                  <span>Ứng viên làm bài</span>
                 </Button>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   <Button
                     onClick={() => navigate(`/tests/${t._id}/preview`)}
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-gray-900 rounded-lg"
+                    className="h-8.5 w-8.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg cursor-pointer transition-colors"
                     title="Xem trước"
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-4.5 h-4.5" />
                   </Button>
                   <Button
                     onClick={() => navigate(`/tests/${t._id}/edit`)}
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-gray-900 rounded-lg"
+                    className="h-8.5 w-8.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg cursor-pointer transition-colors"
                     title="Chỉnh sửa"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-4.5 h-4.5" />
                   </Button>
                   <Button
                     onClick={() => handleDuplicate(t._id)}
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-gray-900 rounded-lg"
+                    className="h-8.5 w-8.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg cursor-pointer transition-colors"
                     title="Nhân bản"
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-4.5 h-4.5" />
                   </Button>
                   <Button
                     onClick={() => handleDelete(t._id)}
                     variant="ghost"
                     size="icon"
                     disabled={t.usageCount > 0}
-                    className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="h-8.5 w-8.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     title={t.usageCount > 0 ? "Bài test đang được sử dụng trong quy trình tuyển dụng" : "Xóa"}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4.5 h-4.5" />
                   </Button>
                 </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}

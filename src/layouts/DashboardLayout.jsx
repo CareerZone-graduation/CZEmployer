@@ -55,7 +55,7 @@ const DashboardLayout = () => {
 
 
   return (
-    <div className="min-h-screen w-full bg-gray-50">
+    <div className="min-h-screen w-full bg-background text-foreground">
       <CompactSidebar isPinned={isSidebarPinned} onTogglePin={toggleSidebarPin} />
       <div className={cn(
         "flex flex-col min-h-screen transition-all duration-300",

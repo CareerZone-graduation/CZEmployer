@@ -252,27 +252,27 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
     <TooltipProvider>
       <div
         className={cn(
-          "fixed top-0 left-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 hidden md:flex flex-col",
+          "fixed top-0 left-0 h-full bg-white/90 backdrop-blur-md border-r border-emerald-100/40 shadow-[4px_0_30px_rgba(5,150,105,0.03)] transition-all duration-300 z-40 hidden md:flex flex-col",
           shouldShowExpanded ? "w-64" : "w-16"
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         <div className={cn(
-          "flex items-center h-16 px-4 border-b border-gray-100",
+          "flex items-center h-16 px-4 border-b border-emerald-50/30",
           shouldShowExpanded ? "justify-start" : "justify-center"
         )}>
           <Link to="/" className="flex items-center gap-2.5 group select-none">
             {/* Styled Logo Icon with Premium Gradient */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center shadow-sm shadow-emerald-100/50 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center shadow-md shadow-emerald-200/50 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
               <Briefcase className="h-4.5 w-4.5 text-white" />
             </div>
             
             {shouldShowExpanded && (
               <span className="font-extrabold text-gray-900 text-lg tracking-tight flex items-center gap-0.5 animate-in fade-in duration-300">
                 <span>Career</span>
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent font-black">Zone</span>
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 mt-2.5 animate-pulse"></span>
+                <span className="bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent font-black">Zone</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mt-2.5 animate-pulse"></span>
               </span>
             )}
           </Link>
@@ -288,10 +288,10 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-8 w-8 p-0 transition-colors",
+                    "h-8 w-8 p-0 transition-all rounded-lg",
                     isPinned
-                      ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
-                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                      ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                   )}
                 >
                   {isPinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
@@ -304,7 +304,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           </div>
         )}
 
-        <nav className="flex-1 p-2 space-y-2 mt-4">
+        <nav className="flex-1 p-2.5 space-y-2 mt-4">
           {sidebarItems.map((item, index) => {
             const Icon = item.icon;
             const isMessageItem = item.href === '/messaging';
@@ -315,31 +315,31 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
               const TriggerContent = (
                 <button
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full group relative",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all w-full group relative cursor-pointer",
                     isActive
-                      ? "bg-emerald-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100",
-                    !shouldShowExpanded && "justify-center px-0 w-12 h-12"
+                      ? "bg-premium-gradient text-white shadow-md shadow-emerald-200/40"
+                      : "text-gray-600 hover:text-emerald-700 hover:bg-emerald-50/50",
+                    !shouldShowExpanded && "justify-center px-0 w-11 h-11"
                   )}
                 >
                   <Icon className={cn(
-                    "h-5 w-5 flex-shrink-0",
-                    isActive ? "text-white" : "text-gray-600"
+                    "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-105",
+                    isActive ? "text-white" : "text-gray-500"
                   )} />
                   {shouldShowExpanded && (
                     <>
                       <div className="flex-1 min-w-0 text-left">
                         <div className="truncate">{item.label}</div>
                         <div className={cn(
-                          "text-xs truncate mt-0.5",
-                          isActive ? "text-emerald-100" : "text-gray-500"
+                          "text-[10px] truncate mt-0.5 font-normal leading-none",
+                          isActive ? "text-white/80" : "text-gray-400"
                         )}>
                           {item.description}
                         </div>
                       </div>
                       <ChevronRight className={cn(
-                        "h-4 w-4 ml-auto",
-                        isActive ? "text-white" : "text-gray-400"
+                        "h-4 w-4 ml-auto transition-transform group-hover:translate-x-0.5",
+                        isActive ? "text-white" : "text-gray-450"
                       )} />
                     </>
                   )}
@@ -364,37 +364,37 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group relative",
                     isActive
-                      ? "bg-emerald-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-premium-gradient text-white shadow-md shadow-emerald-200/40"
+                      : "text-gray-600 hover:text-emerald-700 hover:bg-emerald-50/50"
                   )}
                 >
                   <Icon className={cn(
-                    "h-5 w-5 flex-shrink-0",
-                    isActive ? "text-white" : "text-gray-600"
+                    "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-105",
+                    isActive ? "text-white" : "text-gray-550"
                   )} />
                   <div className="flex-1 min-w-0">
                     <div className="truncate">{item.label}</div>
                     <div className={cn(
-                      "text-xs truncate mt-0.5",
-                      isActive ? "text-emerald-100" : "text-gray-500"
+                      "text-[10px] truncate mt-0.5 font-normal leading-none",
+                      isActive ? "text-white/80" : "text-gray-400"
                     )}>
                       {item.description}
                     </div>
                   </div>
                   {isMessageItem && unreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center text-white">
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center text-white border-0">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Badge>
                   )}
                   {item.href === '/notifications' && notificationUnreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center text-white">
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center text-white border-0">
                       {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                     </Badge>
                   )}
                   {!isMessageItem && isActive && (
-                    <ChevronRight className="h-4 w-4 text-white ml-auto" />
+                    <ChevronRight className="h-4 w-4 text-white/90 ml-auto transition-transform group-hover:translate-x-0.5" />
                   )}
                 </Link>
               );
@@ -406,17 +406,17 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   <Link
                     to={item.href}
                     className={cn(
-                      "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
+                      "flex items-center justify-center w-11 h-11 rounded-xl transition-all relative mx-auto",
                       isActive
-                        ? "bg-emerald-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-premium-gradient text-white shadow-md shadow-emerald-200/40"
+                        : "text-gray-550 hover:text-emerald-700 hover:bg-emerald-50/50"
                     )}
                   >
                     <Icon className="h-5 w-5" />
                     {isMessageItem && unreadCount > 0 && (
                       <Badge
                         variant="destructive"
-                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] text-white"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] text-white border-0"
                       >
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </Badge>
@@ -424,17 +424,17 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                     {item.href === '/notifications' && notificationUnreadCount > 0 && (
                       <Badge
                         variant="destructive"
-                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] text-white"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] text-white border-0"
                       >
                         {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                       </Badge>
                     )}
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="ml-2">
+                <TooltipContent side="right" className="ml-2 bg-gray-900 border-0 text-white rounded-lg shadow-lg">
                   <div>
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{item.description}</div>
+                    <div className="font-bold">{item.label}</div>
+                    <div className="text-[10px] text-gray-350 mt-0.5">{item.description}</div>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -447,7 +447,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
           {shouldShowExpanded ? (
             <Button
               onClick={() => openCopilot()}
-              className="copilot-glow-btn w-full justify-start gap-3 text-indigo-700 transition-all duration-300 border-none shadow-sm hover:translate-x-1 active:scale-95 group"
+              className="copilot-glow-btn w-full justify-start gap-3 text-indigo-700 transition-all duration-300 border-none shadow-sm hover:translate-x-1 active:scale-95 group rounded-xl"
               variant="outline"
             >
               <Sparkles className="h-4 w-4 text-indigo-600 relative z-10" />
@@ -458,13 +458,13 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
               <TooltipTrigger asChild>
                 <Button
                   onClick={() => openCopilot()}
-                  className="copilot-glow-btn w-12 h-12 p-0 rounded-xl text-indigo-700 transition-all duration-300 border-none shadow-sm mx-auto flex items-center justify-center hover:scale-110 active:scale-95"
+                  className="copilot-glow-btn w-11 h-11 p-0 rounded-xl text-indigo-700 transition-all duration-300 border-none shadow-sm mx-auto flex items-center justify-center hover:scale-110 active:scale-95"
                   variant="outline"
                 >
                   <Sparkles className="h-5 w-5 text-indigo-600 relative z-10" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="right" className="bg-gray-900 border-0 text-white rounded-lg">
                 CareerZone Copilot AI
               </TooltipContent>
             </Tooltip>
@@ -472,21 +472,21 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
         </div>
 
         {/* Bottom Section: System Menu (Settings, Support, Logout) */}
-        <div className="p-2 mt-auto border-t border-gray-200">
+        <div className="p-2.5 mt-auto border-t border-emerald-50/30">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full group relative",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all w-full group relative cursor-pointer",
                   (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support'))
-                    ? "bg-emerald-600 text-white"
-                    : "text-gray-700 hover:bg-gray-100",
-                  !shouldShowExpanded && "justify-center px-0 w-12 h-12"
+                    ? "bg-premium-gradient text-white shadow-md shadow-emerald-200/40"
+                    : "text-gray-600 hover:text-emerald-700 hover:bg-emerald-50/50",
+                  !shouldShowExpanded && "justify-center px-0 w-11 h-11"
                 )}
               >
                 <Settings className={cn(
                   "h-5 w-5 flex-shrink-0",
-                  (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white" : "text-gray-600"
+                  (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white" : "text-gray-500"
                 )} />
 
                 {shouldShowExpanded && (
@@ -494,35 +494,35 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                     <div className="flex-1 min-w-0 text-left">
                       <div className="truncate">Hệ thống</div>
                       <div className={cn(
-                        "text-xs truncate mt-0.5",
-                        (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-emerald-100" : "text-gray-500"
+                        "text-[10px] truncate mt-0.5 font-normal leading-none",
+                        (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white/80" : "text-gray-400"
                       )}>
                         Cài đặt & Hỗ trợ
                       </div>
                     </div>
                     <ChevronRight className={cn(
-                      "h-4 w-4 ml-auto",
-                      (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white" : "text-gray-400"
+                      "h-4 w-4 ml-auto transition-transform group-hover:translate-x-0.5",
+                      (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support')) ? "text-white" : "text-gray-450"
                     )} />
                   </>
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" className="w-56" sideOffset={10}>
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer w-full flex items-center">
+            <DropdownMenuContent side="right" align="end" className="w-56 bg-white border border-emerald-50 rounded-xl shadow-xl" sideOffset={10}>
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">
+                <Link to="/settings" className="w-full flex items-center">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Cài đặt</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/support" className="cursor-pointer w-full flex items-center">
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">
+                <Link to="/support" className="w-full flex items-center">
                   <LifeBuoy className="mr-2 h-4 w-4" />
                   <span>Hỗ trợ</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer w-full flex items-center">
+              <DropdownMenuSeparator className="bg-emerald-50" />
+              <DropdownMenuItem onClick={handleLogout} className="rounded-lg text-red-650 focus:bg-red-50 focus:text-red-700 cursor-pointer w-full flex items-center">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Đăng xuất</span>
               </DropdownMenuItem>
