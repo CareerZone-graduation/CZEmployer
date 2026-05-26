@@ -58,11 +58,10 @@ const sidebarItems = [
     label: 'Công cụ', icon: Wrench, description: 'Công cụ tuyển dụng',
     subItems: [
       { href: '/workflows', label: 'Quy trình', icon: Workflow, description: 'Quy trình tuyển dụng tự động' },
-      { href: '/email-templates', label: 'Mẫu Email', icon: Mail, description: 'Quản lý mẫu email' },
+      { href: '/talent-pool', label: 'Talent Pool', icon: Users, description: 'Quản lý hồ sơ đã lưu' },
       { href: '/tests', label: 'Bài test', icon: ClipboardList, description: 'Quản lý bài test tuyển dụng' },
     ]
   },
-  { href: '/talent-pool', label: 'Talent Pool', icon: Users, description: 'Quản lý hồ sơ đã lưu' },
   { href: '/interviews', label: 'Phỏng vấn', icon: CalendarCheck, description: 'Lịch phỏng vấn' },
   { href: '/messaging', label: 'Tin nhắn', icon: MessageCircle, description: 'Trò chuyện với ứng viên' },
   { href: '/notifications', label: 'Thông báo', icon: Bell, description: 'Thông báo hệ thống' },
@@ -260,12 +259,21 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
         onMouseLeave={handleMouseLeave}
       >
         <div className={cn(
-          "flex items-center h-16 px-4",
+          "flex items-center h-16 px-4 border-b border-gray-100",
           shouldShowExpanded ? "justify-start" : "justify-center"
         )}>
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2.5 group select-none">
+            {/* Styled Logo Icon with Premium Gradient */}
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center shadow-sm shadow-emerald-100/50 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
+              <Briefcase className="h-4.5 w-4.5 text-white" />
+            </div>
+            
             {shouldShowExpanded && (
-              <span className="font-bold text-emerald-700 text-lg">CareerZone</span>
+              <span className="font-extrabold text-gray-900 text-lg tracking-tight flex items-center gap-0.5 animate-in fade-in duration-300">
+                <span>Career</span>
+                <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent font-black">Zone</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 mt-2.5 animate-pulse"></span>
+              </span>
             )}
           </Link>
         </div>
@@ -282,7 +290,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   className={cn(
                     "h-8 w-8 p-0 transition-colors",
                     isPinned
-                      ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                      ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                   )}
                 >
@@ -309,7 +317,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full group relative",
                     isActive
-                      ? "bg-emerald-700 text-white"
+                      ? "bg-emerald-600 text-white"
                       : "text-gray-700 hover:bg-gray-100",
                     !shouldShowExpanded && "justify-center px-0 w-12 h-12"
                   )}
@@ -358,7 +366,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
                     isActive
-                      ? "bg-emerald-700 text-white"
+                      ? "bg-emerald-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   )}
                 >
@@ -400,7 +408,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                     className={cn(
                       "flex items-center justify-center w-12 h-12 rounded-lg transition-colors relative",
                       isActive
-                        ? "bg-emerald-700 text-white"
+                        ? "bg-emerald-600 text-white"
                         : "text-gray-600 hover:bg-gray-100"
                     )}
                   >
@@ -471,7 +479,7 @@ const CompactSidebar = ({ isPinned, onTogglePin }) => {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full group relative",
                   (location.pathname.startsWith('/settings') || location.pathname.startsWith('/support'))
-                    ? "bg-emerald-700 text-white"
+                    ? "bg-emerald-600 text-white"
                     : "text-gray-700 hover:bg-gray-100",
                   !shouldShowExpanded && "justify-center px-0 w-12 h-12"
                 )}

@@ -177,7 +177,7 @@ const AppRouter = () => {
           <Route path="tests/:testId/preview" element={<TestPreview />} />
 
           {/* Email Templates Route */}
-          <Route path="email-templates" element={<EmailTemplateManagement />} />
+          <Route path="email-templates" element={<Navigate to="/settings?tab=email-templates" replace />} />
 
           {/* Support Request Routes */}
           <Route path="support" element={<SupportRequestsPage />} />

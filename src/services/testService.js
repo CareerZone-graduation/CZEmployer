@@ -11,3 +11,4 @@ export const addQuestion = (testId, payload) => apiClient.post(`/tests/${testId}
 export const updateQuestion = (testId, questionId, payload) => apiClient.put(`/tests/${testId}/questions/${questionId}`, payload);
 export const deleteQuestion = (testId, questionId) => apiClient.delete(`/tests/${testId}/questions/${questionId}`);
 export const reorderQuestions = (testId, questionIds) => apiClient.post(`/tests/${testId}/questions/reorder`, { questionIds });
+export const getTestAssignments = (testId, params = {}) => apiClient.get(`/tests/${testId}/assignments`, { params });

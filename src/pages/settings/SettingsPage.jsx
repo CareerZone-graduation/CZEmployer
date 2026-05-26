@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { changePassword } from '@/services/userService';
 import { cn } from '@/lib/utils';
 import KnowledgeBaseManagement from '@/pages/KnowledgeBase/KnowledgeBaseManagement';
+import EmailTemplateManagement from '@/pages/email-templates/EmailTemplateManagement';
 
 const SettingsPage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -154,7 +155,7 @@ const SettingsPage = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Cài đặt hệ thống</h1>
         </div>
         <p className="text-gray-600 text-sm">
-          Quản lý tài khoản bảo mật và các tài liệu huấn luyện AI chatbot nội bộ của doanh nghiệp.
+          Quản lý tài khoản bảo mật, cấu hình mẫu email tự động và các tài liệu huấn luyện AI chatbot nội bộ của doanh nghiệp.
         </p>
       </div>
 
@@ -166,11 +167,11 @@ const SettingsPage = () => {
             className={cn(
               "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border-l-4 text-left",
               activeTab === 'account'
-                ? "bg-emerald-50 text-emerald-700 border-emerald-600 font-semibold"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-500 font-semibold"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-transparent"
             )}
           >
-            <User className={cn("h-5 w-5", activeTab === 'account' ? "text-emerald-700" : "text-gray-400")} />
+            <User className={cn("h-5 w-5", activeTab === 'account' ? "text-emerald-600" : "text-gray-400")} />
             <div>
               <div className="text-sm font-semibold">Tài khoản & Bảo mật</div>
               <div className="text-xs text-gray-400 font-normal mt-0.5">Thông tin chung & Mật khẩu</div>
@@ -182,21 +183,37 @@ const SettingsPage = () => {
             className={cn(
               "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border-l-4 text-left",
               activeTab === 'knowledge-base'
-                ? "bg-emerald-50 text-emerald-700 border-emerald-600 font-semibold"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-500 font-semibold"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-transparent"
             )}
           >
-            <BookOpen className={cn("h-5 w-5", activeTab === 'knowledge-base' ? "text-emerald-700" : "text-gray-400")} />
+            <BookOpen className={cn("h-5 w-5", activeTab === 'knowledge-base' ? "text-emerald-600" : "text-gray-400")} />
             <div>
               <div className="text-sm font-semibold">Tài liệu nội bộ</div>
               <div className="text-xs text-gray-400 font-normal mt-0.5">Tài liệu học tập của AI chatbot</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('email-templates')}
+            className={cn(
+              "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border-l-4 text-left",
+              activeTab === 'email-templates'
+                ? "bg-emerald-50 text-emerald-600 border-emerald-500 font-semibold"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-transparent"
+            )}
+          >
+            <Mail className={cn("h-5 w-5", activeTab === 'email-templates' ? "text-emerald-600" : "text-gray-400")} />
+            <div>
+              <div className="text-sm font-semibold">Mẫu Email</div>
+              <div className="text-xs text-gray-400 font-normal mt-0.5">Các mẫu email gửi tự động</div>
             </div>
           </button>
         </div>
 
         {/* Right Column: Tab Content */}
         <div className="lg:col-span-3">
-          {activeTab === 'account' ? (
+          {activeTab === 'account' && (
             <div className="space-y-6 max-w-4xl animate-in fade-in duration-200">
               {/* Account Info Card */}
               <Card className="border border-gray-100 shadow-sm">
@@ -370,7 +387,7 @@ const SettingsPage = () => {
                           <Button
                             type="submit"
                             disabled={isSubmitting || !formData.currentPassword || !isPasswordValid || !passwordsMatch}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm px-6 font-semibold transition-all"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-sm px-6 font-semibold transition-all"
                           >
                             {isSubmitting ? (
                               <>
@@ -394,12 +411,12 @@ const SettingsPage = () => {
               {/* Security Tips */}
               <Card className="border border-gray-100 bg-emerald-50/20 shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold text-emerald-800 uppercase tracking-wider">Mẹo bảo mật tài khoản</CardTitle>
+                  <CardTitle className="text-sm font-bold text-emerald-700 uppercase tracking-wider">Mẹo bảo mật tài khoản</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 text-sm text-gray-600">
                     <li className="flex items-start gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                       Sử dụng mật khẩu mạnh, kết hợp các ký tự đặc biệt và chữ số khác nhau.
                     </li>
                     <li className="flex items-start gap-2.5">
@@ -414,9 +431,17 @@ const SettingsPage = () => {
                 </CardContent>
               </Card>
             </div>
-          ) : (
+          )}
+
+          {activeTab === 'knowledge-base' && (
             <div className="animate-in fade-in duration-300">
               <KnowledgeBaseManagement />
+            </div>
+          )}
+
+          {activeTab === 'email-templates' && (
+            <div className="animate-in fade-in duration-300">
+              <EmailTemplateManagement />
             </div>
           )}
         </div>
