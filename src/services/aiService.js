@@ -12,14 +12,4 @@ export const enhanceJobContent = async (jobData) => {
   return response;
 };
 
-/**
- * Generate smart suggestions based on job title
- * @param {string} jobTitle - Job title
- * @returns {Promise} Suggestions for description, requirements, benefits
- */
-export const generateSmartSuggestions = async (jobTitle) => {
-  const response = await apiClient.post('/ai/smart-suggestions', { jobTitle }, {
-    timeout: 60000
-  });
-  return response;
-};
+

@@ -4,9 +4,10 @@ import {
   Upload, FileText, Trash2, RefreshCw, Search, Filter,
   BookOpen, BarChart3, CheckCircle2, Clock, XCircle,
   ChevronRight, Eye, AlertCircle, Loader2, Plus,
-  FileType, FileBox, Layers, TrendingUp, Tag
+  FileType, FileBox, Layers, TrendingUp, Tag, Bot
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import {
   uploadDocument,
   retryDocument,
 } from '@/services/knowledgeBase.service';
+import { getMyCompany, updateMyCompany } from '@/services/companyService';
 import DocumentUploadModal from './components/DocumentUploadModal';
 import DocumentDetailSheet from './components/DocumentDetailSheet';
 
@@ -288,6 +290,30 @@ function SkeletonRow() {
 export default function KnowledgeBaseManagement() {
   const queryClient = useQueryClient();
 
+  // ── Company Settings Query & Mutation ──
+  const { data: companyRes } = useQuery({
+    queryKey: ['myCompany'],
+    queryFn: getMyCompany,
+    staleTime: 60_000,
+  });
+  const company = companyRes?.data;
+  const enableChatbot = company?.enableChatbot ?? false;
+
+  const toggleChatbotMutation = useMutation({
+    mutationFn: async (newValue) => {
+      const formData = new FormData();
+      formData.append('companyData', JSON.stringify({ enableChatbot: newValue }));
+      return updateMyCompany(formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myCompany'] });
+      toast.success('Cập nhật cấu hình chatbot thành công!');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Cập nhật thất bại, vui lòng thử lại');
+    }
+  });
+
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [docToDelete, setDocToDelete] = useState(null);
@@ -415,6 +441,42 @@ export default function KnowledgeBaseManagement() {
           Bạn đã đạt giới hạn <strong>10 tài liệu</strong>. Xóa bớt để tải lên tài liệu mới.
         </div>
       )}
+
+      {/* ── Chatbot Switch Card ── */}
+      <Card className="border border-emerald-100 bg-emerald-50/10 shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 text-base">Hiển thị AI Chatbot hỗ trợ ứng viên</h3>
+              <p className="text-sm text-gray-500 mt-0.5 max-w-2xl">
+                Khi được kích hoạt, ứng viên có thể trò chuyện với AI chatbot ở trang chi tiết công việc hoặc trang cá nhân của công ty bạn để hỏi thông tin dựa trên tài liệu nội bộ.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              role="switch"
+              aria-checked={enableChatbot}
+              onClick={() => toggleChatbotMutation.mutate(!enableChatbot)}
+              disabled={toggleChatbotMutation.isPending}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                enableChatbot ? "bg-emerald-600" : "bg-gray-200"
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out",
+                  enableChatbot ? "translate-x-5" : "translate-x-0"
+                )}
+              />
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Stats Row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

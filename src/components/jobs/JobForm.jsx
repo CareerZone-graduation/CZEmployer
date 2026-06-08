@@ -229,57 +229,6 @@ const JobForm = ({ onSuccess, job }) => {
     }
   }, [useCompanyAddress, companyProfile, setValue]);
 
-  // Auto-generate suggestions when title changes - DISABLED
-  // Uncomment below if you want auto-fill feature
-  /*
-  useEffect(() => {
-    const generateSuggestions = async () => {
-      // Only generate if title is long enough and fields are empty
-      if (!watchedTitle || watchedTitle.trim().length < 5) return;
-      
-      const currentDescription = form.getValues('description');
-      const currentRequirements = form.getValues('requirements');
-      const currentBenefits = form.getValues('benefits');
-      
-      // Only auto-fill if all fields are empty
-      if (currentDescription || currentRequirements || currentBenefits) return;
-      
-      // Debounce: wait for user to stop typing
-      const timeoutId = setTimeout(async () => {
-        try {
-          setIsGeneratingSuggestions(true);
-          const response = await aiService.generateSmartSuggestions(watchedTitle);
-          
-          if (response.success && response.data) {
-            // Only fill if fields are still empty
-            if (!form.getValues('description') && response.data.description) {
-              form.setValue('description', response.data.description);
-            }
-            if (!form.getValues('requirements') && response.data.requirements) {
-              form.setValue('requirements', response.data.requirements);
-            }
-            if (!form.getValues('benefits') && response.data.benefits) {
-              form.setValue('benefits', response.data.benefits);
-            }
-            
-            toast.success('Đã tự động điền nội dung phù hợp!', {
-              description: 'Bạn có thể chỉnh sửa hoặc dùng AI để cải thiện thêm'
-            });
-          }
-        } catch (error) {
-          console.error('Error generating suggestions:', error);
-          // Silent fail - don't show error to user for auto-suggestions
-        } finally {
-          setIsGeneratingSuggestions(false);
-        }
-      }, 2000); // Wait 2 seconds after user stops typing
-      
-      return () => clearTimeout(timeoutId);
-    };
-    
-    generateSuggestions();
-  }, [form, watchedTitle]);
-  */
 
   const onSubmit = useCallback(
     async (values) => {
