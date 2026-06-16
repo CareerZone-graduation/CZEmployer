@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight, Download, RefreshCw, History } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, FileText, Calendar as CalendarIcon, Edit2, Star, Clock, MessageCircle, ChevronDown, CheckCircle, XCircle, Gift, ChevronLeft, ChevronRight, Download, RefreshCw, History, Sparkles } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,14 +57,12 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const [interviewEvaluateFeedback, setInterviewEvaluateFeedback] = useState('');
 
   const handleDownloadTemplateCV = async () => {
-    // Không cần check cvId nữa vì chúng ta sẽ dùng application snapshot để generate PDF
     if (!application?._id) {
       toast.error("Không tìm thấy thông tin ứng tuyển.");
       return;
     }
     const toastId = toast.loading("Đang tạo PDF từ hồ sơ lưu trữ...");
     try {
-      // Gọi endpoint mới dành riêng cho Application PDF (sử dụng snapshot)
       const response = await apiClient.get(`/applications/${application._id}/export-pdf`, {
         responseType: 'blob',
       });
@@ -83,11 +81,9 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
-  // State for inline editing
   const [currentNotes, setCurrentNotes] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
 
-  // State for modals
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [isAddToTalentPoolOpen, setIsAddToTalentPoolOpen] = useState(false);
   const [isInterviewFailedModalOpen, setIsInterviewFailedModalOpen] = useState(false);
@@ -95,7 +91,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
 
-  // Remove from talent pool mutation
   const removeFromTalentPoolMutation = useMutation({
     mutationFn: (talentPoolId) => talentPoolService.removeFromTalentPool(talentPoolId),
     onSuccess: () => {
@@ -138,7 +133,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
       setApplication(response.data);
       toast.success('Cập nhật trạng thái thành công');
-      setIsInterviewFailedModalOpen(false); // Close modal if open
+      setIsInterviewFailedModalOpen(false);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
     } finally {
@@ -186,12 +181,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
-  // ... (fetchApplication and other methods remain same)
-
-  // ...
-
-
-
   const fetchApplication = useCallback(async (showLoading = true) => {
     if (!applicationId) return;
     if (showLoading) setIsLoading(true);
@@ -230,9 +219,7 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     try {
       await workflowService.retryExecution(executionId);
       toast.success('Đã gửi yêu cầu thử lại task!');
-      // Xoá tạm thời khỏi danh sách FAILED (bởi vì backend đang xử lý RETRYING)
       setFailedExecutions(prev => prev.filter(ex => ex._id !== executionId));
-      // Optionally reload after a few seconds
       setTimeout(() => {
         fetchApplication(false);
         fetchFailedExecutions();
@@ -243,8 +230,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
       setIsRetrying(false);
     }
   };
-
-
 
   const handleNotesSave = async () => {
     if (currentNotes === (application.notes || '')) return;
@@ -261,13 +246,9 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     }
   };
 
-
-
   const handleScheduleSuccess = () => {
-    fetchApplication(false); // Refetch to update status
+    fetchApplication(false);
   };
-
-
 
   const interviewHistory = application?.interviewHistory || [];
   const latestInterviewInfo = getApplicationInterview(application) || null;
@@ -399,8 +380,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
     );
   };
 
-
-
   if (isLoading) {
     return <ApplicationDetailSkeleton />;
   }
@@ -455,8 +434,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             </Link>
           </Button>
         )}
-
-
       </div>
 
       {/* Compact Header */}
@@ -489,7 +466,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                     Ứng tuyển: <span className="font-medium text-gray-700">{application.jobSnapshot.title}</span>
                   </p>
                 </div>
-                {/* Mobile Status Badge */}
                 <div className="md:hidden">
                   {getStatusBadge(application.status, latestInterviewInfo)}
                 </div>
@@ -603,9 +579,9 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 </Button>
               )}
             </div>
-            </div>
           </div>
-        </Card >
+        </div>
+      </Card >
 
       {latestInterviewEvaluationNote && (
         <Card className="border-emerald-200 bg-emerald-50/40">
@@ -638,10 +614,8 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 className="border-orange-300 text-orange-700 hover:bg-orange-100"
                 onClick={() => {
                   if (isModal && onViewPreviousApplication) {
-                    // Trong modal: gọi callback để thay đổi applicationId
                     onViewPreviousApplication(application.previousApplicationId);
                   } else {
-                    // Ngoài modal: navigate sang trang mới
                     navigate(`/applications/${application.previousApplicationId}`);
                   }
                 }}
@@ -649,6 +623,48 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                 <History className="h-4 w-4 mr-2" />
                 Xem đơn trước
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Screening Assessment Details */}
+      {application.workflowData?.aiDecisions && application.workflowData.aiDecisions.length > 0 && (
+        <Card className="border-purple-200 bg-purple-50/20">
+          <CardHeader className="py-3 px-4 md:px-6 border-b border-purple-100 flex flex-row items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-600" />
+            <CardTitle className="text-sm font-semibold text-purple-900">
+              Kết quả đánh giá hồ sơ tự động (AI Screening)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 md:p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {application.workflowData.aiDecisions.map((decision, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-xl border border-purple-100/60 shadow-sm text-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                        Bước: {decision.nodeName || 'Đánh giá AI'}
+                      </span>
+                      <Badge className={decision.pass 
+                        ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-50 shadow-none' 
+                        : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-50 shadow-none'}>
+                        {decision.pass ? 'ĐẠT (Pass)' : 'KHÔNG ĐẠT (Fail)'}
+                      </Badge>
+                    </div>
+                    {decision.reason && (
+                      <div className="mt-2 text-gray-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs">
+                        <span className="font-semibold text-slate-800 block mb-1">Chi tiết đánh giá của AI:</span>
+                        <p className="whitespace-pre-wrap">{decision.reason}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-3 flex justify-between items-center border-t pt-2 border-slate-100">
+                    <span>Đánh giá bởi AI Node</span>
+                    <span>{new Date(decision.evaluatedAt).toLocaleString('vi-VN')}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -850,7 +866,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                     <Badge variant="secondary" className="ml-2 text-xs">CV Template</Badge>
                   )}
                 </CardTitle>
-                {/* Chỉ hiển thị nút tải xuống cho CV uploaded (có path) */}
                 {application.submittedCV.path ? (
                   <Button variant="ghost" size="sm" asChild>
                     <a href={application.submittedCV.path} target="_blank" rel="noopener noreferrer">
@@ -868,7 +883,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
             </CardHeader>
             <CardContent className="p-0 flex-1 min-h-[500px] bg-gray-100">
               {application.submittedCV.source === 'TEMPLATE' ? (
-                // CV Template: Render qua iframe trỏ về Candidate FE
                 <div className="relative w-full h-full min-h-[600px]">
                   {isIframeLoading && (
                     <div className="absolute inset-0 z-10 bg-white">
@@ -883,7 +897,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
                   />
                 </div>
               ) : (
-                // CV Uploaded: Hiển thị PDF trực tiếp
                 <iframe
                   src={application.submittedCV.path}
                   title="CV Viewer"
@@ -1094,7 +1107,6 @@ const ApplicationDetail = ({ applicationId: propAppId, jobId: propJobId, isModal
 
 const ApplicationDetailSkeleton = () => (
   <div className="container mx-auto max-w-6xl p-4 lg:p-6 space-y-6">
-    {/* Header Skeleton */}
     <div className="flex justify-between items-center">
       <Skeleton className="h-9 w-40" />
     </div>
@@ -1128,9 +1140,7 @@ const ApplicationDetailSkeleton = () => (
     </Card>
 
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
-      {/* Left Column (8 cols) */}
       <div className="md:col-span-8 space-y-4 flex flex-col h-full">
-        {/* Notes Skeleton */}
         <Card>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
@@ -1143,7 +1153,6 @@ const ApplicationDetailSkeleton = () => (
           </CardContent>
         </Card>
 
-        {/* CV Viewer Skeleton */}
         <Card className="flex-1 flex flex-col">
           <CardHeader className="pb-3 border-b">
             <div className="flex justify-between items-center">
@@ -1159,7 +1168,6 @@ const ApplicationDetailSkeleton = () => (
         </Card>
       </div>
 
-      {/* Right Column (4 cols) */}
       <div className="md:col-span-4 space-y-4 flex flex-col h-full">
         <Card className="h-full flex flex-col">
           <CardHeader className="pb-0 border-b">
@@ -1187,7 +1195,6 @@ export default ApplicationDetail;
 
 const CVContentSkeleton = () => (
   <div className="bg-white p-8 h-full w-full overflow-hidden">
-    {/* Header Section */}
     <div className="flex items-center space-x-6 border-b pb-8">
       <Skeleton className="h-24 w-24 rounded-full" />
       <div className="space-y-4 flex-1">
@@ -1201,7 +1208,6 @@ const CVContentSkeleton = () => (
       </div>
     </div>
     <div className="grid grid-cols-12 gap-8 mt-8">
-      {/* Left Sidebar */}
       <div className="col-span-4 space-y-8 border-r pr-6">
         <div className="space-y-3">
           <Skeleton className="h-6 w-1/2" />
@@ -1219,7 +1225,6 @@ const CVContentSkeleton = () => (
           </div>
         </div>
       </div>
-      {/* Right Content */}
       <div className="col-span-8 space-y-8">
         <div className="space-y-4">
           <Skeleton className="h-6 w-1/3" />
