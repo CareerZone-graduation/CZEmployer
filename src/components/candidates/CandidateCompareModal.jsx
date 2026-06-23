@@ -229,21 +229,21 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                                     <Avatar className="h-20 w-20 mx-auto mb-3">
                                         <AvatarImage src={candidate.candidateProfileId?.avatar} />
                                         <AvatarFallback>
-                                            {candidate.candidateProfileId?.fullName?.charAt(0) || 'U'}
+                                            {(candidate.candidateName || candidate.candidateProfileId?.fullname || candidate.candidateProfileId?.fullName || 'U').charAt(0)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <CardTitle className="text-lg">
-                                        {candidate.candidateProfileId?.fullName || 'N/A'}
+                                        {candidate.candidateName || candidate.candidateProfileId?.fullname || candidate.candidateProfileId?.fullName || 'N/A'}
                                     </CardTitle>
                                     <div className="flex flex-col gap-1 text-sm text-muted-foreground mt-2">
                                         <div className="flex items-center justify-center gap-1">
                                             <Mail className="h-3 w-3" />
-                                            <span className="truncate">{candidate.candidateProfileId?.email || 'N/A'}</span>
+                                            <span className="truncate">{candidate.candidateEmail || candidate.candidateProfileId?.email || 'N/A'}</span>
                                         </div>
-                                        {candidate.candidateProfileId?.phone && (
+                                        {(candidate.candidatePhone || candidate.candidateProfileId?.phone) && (
                                             <div className="flex items-center justify-center gap-1">
                                                 <Phone className="h-3 w-3" />
-                                                <span>{candidate.candidateProfileId.phone}</span>
+                                                <span>{candidate.candidatePhone || candidate.candidateProfileId.phone}</span>
                                             </div>
                                         )}
                                     </div>
