@@ -107,35 +107,43 @@ const CandidateCompareModal = ({ isOpen, onClose, applicationIds = [], onRemoveC
                             try {
                                 const parsed = JSON.parse(data);
                                 // Backend gửi "delta" field
-                                if (parsed.delta) {
-                                    buffer += parsed.delta;
+                                if (parsed.delta || parsed.text) {
+                                    const chunkText = parsed.delta || parsed.text;
+                                    buffer += chunkText;
 
-                                    // Extract JSON scores if not yet extracted
-                                    if (!jsonExtracted && buffer.includes('```json') && buffer.includes('```\n')) {
-                                        const jsonStart = buffer.indexOf('```json') + 7;
-                                        const jsonEnd = buffer.indexOf('```', jsonStart);
-                                        if (jsonEnd > jsonStart) {
-                                            const jsonStr = buffer.substring(jsonStart, jsonEnd).trim();
-                                            try {
-                                                const scoresData = JSON.parse(jsonStr);
-                                                setAiScores(scoresData);
-                                                jsonExtracted = true;
-                                                // Remove JSON from display text
-                                                const textAfterJson = buffer.substring(jsonEnd + 3);
-                                                setAiAnalysis(textAfterJson.trim());
-                                                buffer = textAfterJson;
-                                            } catch (e) {
-                                                console.error('Failed to parse JSON scores:', e);
+                                    if (!jsonExtracted) {
+                                        if (buffer.includes('```json')) {
+                                            const jsonStartIndex = buffer.indexOf('```json');
+                                            // Hiển thị phần text AI nói trước khi bắt đầu JSON (nếu có)
+                                            const textBefore = buffer.substring(0, jsonStartIndex);
+                                            setAiAnalysis(textBefore);
+
+                                            const jsonStart = jsonStartIndex + 7;
+                                            const jsonEnd = buffer.indexOf('```', jsonStart);
+                                            
+                                            if (jsonEnd > jsonStart) {
+                                                const jsonStr = buffer.substring(jsonStart, jsonEnd).trim();
+                                                try {
+                                                    const scoresData = JSON.parse(jsonStr);
+                                                    setAiScores(scoresData);
+                                                    jsonExtracted = true;
+                                                    
+                                                    // Phần text AI nói sau khi kết thúc JSON
+                                                    const textAfter = buffer.substring(jsonEnd + 3);
+                                                    setAiAnalysis(textBefore + '\n\n' + textAfter);
+                                                    // Xóa phần đã xử lý khỏi buffer để tránh lỗi nếu có thay đổi
+                                                    buffer = textAfter; 
+                                                } catch (e) {
+                                                    console.error('Failed to parse JSON scores:', e);
+                                                }
                                             }
+                                        } else {
+                                            // Đang stream text bình thường, chưa thấy JSON
+                                            setAiAnalysis(buffer);
                                         }
-                                    } else if (jsonExtracted) {
-                                        // After JSON extracted, append to analysis
-                                        setAiAnalysis(prev => prev + parsed.delta);
-                                    }
-                                } else if (parsed.text) {
-                                    buffer += parsed.text;
-                                    if (jsonExtracted) {
-                                        setAiAnalysis(prev => prev + parsed.text);
+                                    } else {
+                                        // Đã bóc tách JSON xong, các chunk tiếp theo chỉ là text
+                                        setAiAnalysis(prev => prev + chunkText);
                                     }
                                 } else if (parsed.error) {
                                     toast.error(parsed.error);
